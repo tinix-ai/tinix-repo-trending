@@ -1,0 +1,40 @@
+{
+  "HomePage": {
+    "heroTitle": "Track rising projects",
+    "heroHighlight": "before they peak.",
+    "heroDesc": "Momentum-based rankings across GitHub & HuggingFace. Discover trending repos, models, and datasets.",
+    "liveTracking": "Live Tracking",
+    "updatedHourly": "Updated hourly",
+    "projects": "Projects",
+    "trending": "Trending",
+    "lastSync": "Last Sync",
+    "showing": "Showing",
+    "ranking": "ranking"
+  },
+  "Navigation": {
+    "trending": "Trending",
+    "categories": "Categories",
+    "stats": "Stats",
+    "submit": "Submit",
+    "admin": "Admin"
+  },
+  "Submit": {
+    "title": "Submit Project",
+    "subtitle": "Put your repository or AI model on the leaderboard for the community to discover.",
+    "inputPlaceholder": "Paste GitHub or HuggingFace URL here...",
+    "button": "Submit Project",
+    "submitting": "Processing...",
+    "success": "Project added to analysis queue successfully!",
+    "errorUrl": "Please enter a valid GitHub or HuggingFace URL."
+  },
+  "Admin": {
+    "dashboard": "Dashboard",
+    "desc": "System overview and crawler management.",
+    "stats": "Database Statistics",
+    "totalItems": "Total Items",
+    "repos": "Repositories",
+    "models": "AI Models",
+    "crawlerJobs": "Crawler Jobs",
+    "runNow": "Run Now"
+  }
+}

@@ -1,0 +1,936 @@
+{
+  "phases\\03-deep-learning-core\\01-the-perceptron\\quiz.json": [
+    {
+      "question": "Phép toán toán học nào được perceptron thực hiện trên các đầu vào trước khi áp dụng hàm kích hoạt?",
+      "options": [
+        "Nghịch đảo ma trận",
+        "Tổng có trọng số cộng với độ lệch (bias)",
+        "Biến đổi Fourier",
+        "Phân tích trị riêng"
+      ],
+      "correct": 1,
+      "explanation": "Một perceptron tính tích vô hướng của đầu vào và trọng số, cộng thêm một đại lượng độ lệch (bias), sau đó chuyển kết quả qua một hàm bước (step function). Phép tính tổng có trọng số cộng bias này là tính toán cốt lõi của perceptron.",
+      "stage": "pre"
+    },
+    {
+      "question": "Khái niệm \"phân tách tuyến tính\" (linearly separable) có ý nghĩa gì đối với một bài toán phân loại?",
+      "options": [
+        "Dữ liệu có thể được sắp xếp theo thứ tự",
+        "Một đường thẳng (hoặc siêu phẳng) duy nhất có thể phân tách hoàn hảo các lớp",
+        "Các đặc trưng có mối quan hệ tuyến tính với nhãn",
+        "Dữ liệu chỉ có hai chiều"
+      ],
+      "correct": 1,
+      "explanation": "Một tập dữ liệu được gọi là phân tách tuyến tính khi ta có thể vẽ một siêu phẳng duy nhất phân chia hoàn hảo không gian đầu vào thành các lớp chính xác. Các hàm AND và OR phân tách tuyến tính được; còn XOR thì không.",
+      "stage": "pre"
+    },
+    {
+      "question": "Tại sao một perceptron đơn lẻ không thể học được hàm XOR?",
+      "options": [
+        "Tốc độ học (learning rate) quá thấp",
+        "XOR có quá nhiều đầu vào",
+        "XOR không phân tách tuyến tính được -- không có đường thẳng duy nhất nào có thể phân chia các lớp này",
+        "Hàm bước ngăn chặn dòng chảy của gradient"
+      ],
+      "correct": 2,
+      "explanation": "XOR đặt các điểm [0,1] và [1,0] về một phía, các điểm [0,0] và [1,1] về phía còn lại. Không có một đường thẳng nào có thể phân tách hai nhóm này, do đó một perceptron đơn lẻ (chỉ có thể tạo ra một ranh giới tuyến tính) không thể giải quyết bài toán XOR.",
+      "stage": "post"
+    },
+    {
+      "question": "Trong quy tắc huấn luyện perceptron, điều gì xảy ra khi giá trị dự đoán khớp với nhãn mục tiêu?",
+      "options": [
+        "Trọng số được nhân đôi",
+        "Trọng số được đặt về không",
+        "Không có gì thay đổi -- sai số bằng không nên lượng cập nhật bằng không",
+        "Tốc độ học giảm đi một nửa"
+      ],
+      "correct": 2,
+      "explanation": "Quy tắc cập nhật trọng số là w_i = w_i + lr * error * x_i. Khi giá trị dự đoán khớp với nhãn mục tiêu, sai số (error) bằng 0, dẫn đến mọi lượng cập nhật trọng số đều bằng 0. Perceptron chỉ điều chỉnh trọng số khi xảy ra dự đoán sai.",
+      "stage": "post"
+    },
+    {
+      "question": "Bài toán XOR được giải quyết như thế nào bằng cách sử dụng nhiều perceptron?",
+      "options": [
+        "Bằng cách sử dụng tốc độ học lớn hơn trên một perceptron đơn lẻ",
+        "Bằng cách kết hợp các perceptron thực hiện cổng OR, NAND và AND trong cấu trúc hai lớp",
+        "Bằng cách thêm nhiều đầu vào hơn cho một perceptron đơn lẻ",
+        "Bằng cách loại bỏ số hạng độ lệch (bias)"
+      ],
+      "correct": 1,
+      "explanation": "XOR = (x1 OR x2) AND NOT(x1 AND x2). Một lớp ẩn chứa một neuron OR và một neuron NAND sẽ truyền kết quả vào một neuron AND ở đầu ra, từ đó tạo ra một ranh giới quyết định phi tuyến tính từ các thành phần tuyến tính.",
+      "stage": "post"
+    }
+  ],
+  "phases\\03-deep-learning-core\\02-multi-layer-networks\\quiz.json": [
+    {
+      "question": "Mục đích của lớp ẩn (hidden layer) trong một mạng thần kinh nhiều lớp là gì?",
+      "options": [
+        "Để lưu trữ dữ liệu huấn luyện",
+        "Để biến đổi đầu vào thành các biểu diễn đặc trưng mới, cho phép tạo ra các ranh giới quyết định phi tuyến tính",
+        "Để giảm số lượng tham số",
+        "Để áp dụng hàm mất mát"
+      ],
+      "correct": 1,
+      "explanation": "Các lớp ẩn áp dụng trọng số, độ lệch và hàm kích hoạt để tạo ra các biểu diễn đặc trưng mới. Các đặc trưng trung gian này cho phép mạng học các ánh xạ phi tuyến tính mà một lớp đơn lẻ không thể thực hiện.",
+      "stage": "pre"
+    },
+    {
+      "question": "Lan truyền xuôi (forward pass) thực hiện nhiệm vụ gì trong mạng thần kinh?",
+      "options": [
+        "Cập nhật trọng số bằng cách sử dụng các gradient",
+        "Tính toán các gradient cho quá trình lan truyền ngược",
+        "Truyền dữ liệu đầu vào qua từng lớp để tạo ra kết quả đầu ra",
+        "Xáo trộn dữ liệu huấn luyện"
+      ],
+      "correct": 2,
+      "explanation": "Lan truyền xuôi (forward pass) thuần túy là quá trình tính toán: với mỗi lớp, thực hiện nhân với trọng số, cộng độ lệch, áp dụng hàm kích hoạt và truyền kết quả đến lớp tiếp theo. Không có sự học nào diễn ra trong quá trình lan truyền xuôi này.",
+      "stage": "pre"
+    },
+    {
+      "question": "Đối với một lớp chứa 3 neuron nhận đầu vào từ 2 neuron, ma trận trọng số sẽ có kích thước (shape) là bao nhiêu?",
+      "options": [
+        "(2, 3)",
+        "(3, 2)",
+        "(3, 3)",
+        "(2, 2)"
+      ],
+      "correct": 1,
+      "explanation": "Ma trận trọng số có dạng (số neuron lớp hiện tại, số neuron lớp trước đó) = (3, 2). Mỗi hàng chứa các trọng số của một neuron ứng với tất cả các đầu vào.",
+      "stage": "post"
+    },
+    {
+      "question": "Định lý Xấp xỉ Vạn năng (Universal Approximation Theorem) đảm bảo điều gì?",
+      "options": [
+        "Mọi mạng thần kinh đều có thể được huấn luyện trong thời gian đa thức",
+        "Một lớp ẩn duy nhất với đủ số lượng neuron có thể xấp xỉ bất kỳ hàm liên tục nào",
+        "Các mạng sâu hơn luôn có hiệu năng vượt trội hơn các mạng nông",
+        "Mạng thần kinh có thể giải quyết mọi bài toán tính toán"
+      ],
+      "correct": 1,
+      "explanation": "Cybenko (1989) đã chứng minh rằng một mạng thần kinh chỉ với một lớp ẩn và đủ số lượng neuron có thể xấp xỉ bất kỳ hàm liên tục nào với độ chính xác tùy ý. Trong thực tế, các mạng thần kinh sâu hơn đạt được khả năng xấp xỉ tương đương nhưng với tổng số lượng tham số ít hơn nhiều.",
+      "stage": "post"
+    },
+    {
+      "question": "Tại sao hàm kích hoạt sigmoid giúp quá trình học khả thi, khác với hàm bước (step function) được sử dụng trong perceptron?",
+      "options": [
+        "Hàm sigmoid cho ra các giá trị đầu ra lớn hơn",
+        "Hàm sigmoid có tốc độ tính toán nhanh hơn",
+        "Hàm sigmoid trơn và khả vi tại mọi điểm, do đó luôn tồn tại gradient phục vụ cho quá trình lan truyền ngược",
+        "Hàm sigmoid cho ra các giá trị âm"
+      ],
+      "correct": 2,
+      "explanation": "Hàm bước (step function) có gradient bằng không ở hầu hết mọi nơi và gradient không xác định tại điểm ngưỡng. Hàm sigmoid trơn và có đạo hàm xác định rõ ràng (s*(1-s)) tại mọi điểm, đây là điều kiện tiên quyết cho việc tối ưu dựa trên gradient.",
+      "stage": "post"
+    }
+  ],
+  "phases\\03-deep-learning-core\\03-backpropagation\\quiz.json": [
+    {
+      "question": "Quy tắc chuỗi (chain rule) là gì trong ngữ cảnh của mạng thần kinh?",
+      "options": [
+        "Quy tắc để liên kết các lớp lại với nhau",
+        "Nếu y = f(g(x)), thì dy/dx = f'(g(x)) * g'(x) -- nhân các đạo hàm dọc theo đường lan truyền",
+        "Phương pháp khởi tạo trọng số",
+        "Kỹ thuật chia nhóm (batching) dữ liệu"
+      ],
+      "correct": 1,
+      "explanation": "Quy tắc chuỗi (chain rule) cho phép tính đạo hàm của một hàm hợp bằng cách nhân các đạo hàm cục bộ tại từng bước. Lan truyền ngược áp dụng quy tắc này một cách hệ thống trên đồ thị tính toán.",
+      "stage": "pre"
+    },
+    {
+      "question": "Tại sao lan truyền ngược (backpropagation) lại hiệu quả hơn so với việc tính toán riêng rẽ từng gradient độc lập?",
+      "options": [
+        "Nó sử dụng ít bộ nhớ hơn",
+        "Nó tính toán tất cả các gradient trong một lượt lan truyền ngược duy nhất, thay vì phải chạy một lượt lan truyền xuôi cho mỗi tham số",
+        "Nó chỉ hoạt động trên các mạng quy mô nhỏ",
+        "Nó tránh được việc sử dụng quy tắc chuỗi"
+      ],
+      "correct": 1,
+      "explanation": "Tính toán các gradient độc lập yêu cầu một lượt lan truyền xuôi cho mỗi tham số (hàng triệu lượt đối với một mạng lớn). Lan truyền ngược tính toán toàn bộ các gradient trong một lượt lan truyền ngược duy nhất bằng cách tái sử dụng các giá trị trung gian được lưu trữ trong lượt lan truyền xuôi.",
+      "stage": "pre"
+    },
+    {
+      "question": "Trong lượt lan truyền ngược, tại sao chúng ta sử dụng toán tử cộng dồn \"+=\" thay vì phép gán \"=\" khi tích lũy các gradient?",
+      "options": [
+        "Đây là quy ước của ngôn ngữ Python",
+        "Một giá trị có thể được sử dụng trong nhiều phép tính, do đó gradient của nó bằng tổng các gradient truyền về từ tất cả các đường dẫn",
+        "Nó giúp ngăn chặn hiện tượng tràn số (overflow)",
+        "Nó làm cho mã nguồn chạy nhanh hơn"
+      ],
+      "correct": 1,
+      "explanation": "Khi một biến giá trị được sử dụng làm đầu vào cho nhiều phép tính (ví dụ: x được dùng trong cả x*w1 và x*w2), gradient toàn phần của nó bằng tổng các gradient truyền về từ từng phép tính. Việc sử dụng toán tử += giúp tích lũy chính xác các dòng gradient này.",
+      "stage": "post"
+    },
+    {
+      "question": "Nguyên nhân nào gây ra hiện tượng triệt tiêu gradient (vanishing gradient) trong các mạng sigmoid sâu?",
+      "options": [
+        "Tốc độ học quá nhỏ",
+        "Đạo hàm của hàm sigmoid đạt giá trị cực đại là 0.25, do đó các gradient bị thu hẹp theo lũy thừa khi đi qua các lớp",
+        "Mạng có quá nhiều tham số",
+        "Hàm mất mát được lựa chọn không phù hợp"
+      ],
+      "correct": 1,
+      "explanation": "Đạo hàm của sigmoid đạt đỉnh ở giá trị 0.25 (khi đầu vào z=0). Mỗi lớp nhân gradient với hệ số tối đa là 0.25, do đó sau 10 lớp, gradient chỉ còn tối đa là 0.25^10 = ~0.000001 so với tín hiệu ban đầu.",
+      "stage": "post"
+    },
+    {
+      "question": "Tại sao việc sắp xếp topo (topological sort) lại quan trọng trong lượt lan truyền ngược?",
+      "options": [
+        "Nó giúp mã nguồn sạch sẽ hơn",
+        "Nó đảm bảo gradient của mỗi nút được tích lũy đầy đủ trước khi lan truyền tiếp đến các nút con của nó",
+        "Nó tăng tốc độ của lượt lan truyền xuôi",
+        "Nó làm giảm dung lượng bộ nhớ sử dụng"
+      ],
+      "correct": 1,
+      "explanation": "Sắp xếp topo đảm bảo chúng ta xử lý các nút theo đúng thứ tự: gradient của một nút phải được tích lũy đầy đủ từ tất cả các nhánh phía sau (downstream) trước khi ta lan truyền ngược qua nó. Nếu không có thứ tự này, các giá trị gradient tính toán được sẽ bị thiếu sót.",
+      "stage": "post"
+    }
+  ],
+  "phases\\03-deep-learning-core\\04-activation-functions\\quiz.json": [
+    {
+      "question": "Tại sao không thể xây dựng một mạng thần kinh sâu hiệu quả nếu chỉ sử dụng duy nhất các lớp tuyến tính (không có hàm kích hoạt)?",
+      "options": [
+        "Các lớp tuyến tính hoạt động quá chậm",
+        "Việc xếp chồng các lớp tuyến tính sẽ quy về một phép biến đổi tuyến tính duy nhất, làm mất đi lợi ích của kiến trúc sâu",
+        "Các lớp tuyến tính không có tham số độ lệch (bias)",
+        "Các lớp tuyến tính không thể xử lý dữ liệu theo lô (batched data)"
+      ],
+      "correct": 1,
+      "explanation": "Biểu thức y = W2(W1*x + b1) + b2 có thể thu gọn thành y = Ax + c. Dù xếp chồng bao nhiêu lớp tuyến tính đi nữa thì kết quả thu được cũng tương đương với một lớp tuyến tính duy nhất. Các hàm kích hoạt phi tuyến giúp phá vỡ tính chất xếp chồng tuyến tính này.",
+      "stage": "pre"
+    },
+    {
+      "question": "Khoảng giá trị đầu ra (output range) của hàm kích hoạt ReLU là gì?",
+      "options": [
+        "(-1, 1)",
+        "(0, 1)",
+        "[0, vô cùng)",
+        "(-vô cùng, vô cùng)"
+      ],
+      "correct": 2,
+      "explanation": "ReLU(x) = max(0, x). Hàm này trả về giá trị 0 đối với mọi đầu vào âm và giữ nguyên các đầu vào dương, tạo ra phạm vi giá trị đầu ra là [0, vô cùng).",
+      "stage": "pre"
+    },
+    {
+      "question": "Hiện tượng \"neuron chết\" (dead neuron) trong các mạng ReLU là gì?",
+      "options": [
+        "Các neuron có tốc độ tính toán quá chậm",
+        "Các neuron có đầu vào luôn âm, dẫn đến việc luôn cho ra đầu ra bằng 0 và gradient bằng 0 vĩnh viễn",
+        "Các neuron tạo ra giá trị NaN",
+        "Các neuron có độ lệch (bias) bằng 0"
+      ],
+      "correct": 1,
+      "explanation": "Nếu đầu vào có trọng số của một neuron ReLU luôn âm (do khởi tạo không tốt hoặc độ lệch âm quá lớn), nó sẽ luôn cho đầu ra bằng 0 với gradient bằng 0. Neuron này không bao giờ có thể tự khôi phục vì gradient bằng 0 đồng nghĩa với việc trọng số không bao giờ được cập nhật.",
+      "stage": "post"
+    },
+    {
+      "question": "Hàm kích hoạt nào là mặc định cho các lớp ẩn trong các kiến trúc Transformer hiện đại như GPT và BERT?",
+      "options": [
+        "Sigmoid",
+        "ReLU",
+        "GELU",
+        "Tanh"
+      ],
+      "correct": 2,
+      "explanation": "GELU (Gaussian Error Linear Unit) là hàm kích hoạt mặc định trong các mô hình Transformer. Nó cung cấp dòng chảy gradient trơn tru hơn, tránh được hiện tượng neuron chết và đã được chứng minh là có hiệu năng vượt trội hơn ReLU trong các mô hình ngôn ngữ.",
+      "stage": "post"
+    },
+    {
+      "question": "Tại sao softmax chỉ được sử dụng ở lớp đầu ra (output layer) mà không bao giờ dùng ở các lớp ẩn?",
+      "options": [
+        "Tốc độ tính toán của nó quá chậm đối với các lớp ẩn",
+        "Nó biến đổi một vectơ thành một phân phối xác suất (tổng các giá trị bằng 1), điều cần thiết cho đầu ra phân loại nhưng không phù hợp cho các biểu diễn trung gian",
+        "Nó gây ra hiện tượng bùng nổ gradient (exploding gradients)",
+        "Nó chỉ hoạt động với bài toán hai lớp"
+      ],
+      "correct": 1,
+      "explanation": "Hàm softmax chuẩn hóa một vectơ sao cho toàn bộ các giá trị nằm trong khoảng (0,1) và có tổng bằng 1, tạo nên một phân phối xác suất. Các lớp ẩn cần bảo toàn và biến đổi thông tin, chứ không phải nén thông tin đó thành dạng xác suất.",
+      "stage": "post"
+    }
+  ],
+  "phases\\03-deep-learning-core\\05-loss-functions\\quiz.json": [
+    {
+      "question": "Hàm mất mát (loss function) đại diện cho điều gì trong quá trình huấn luyện mạng thần kinh?",
+      "options": [
+        "Số lượng dự đoán sai",
+        "Một phép đo khả vi thể hiện mức độ sai lệch trong dự đoán của mô hình, được bộ tối ưu hóa cực tiểu hóa",
+        "Kích thước của tập dữ liệu huấn luyện",
+        "Lịch trình thay đổi tốc độ học"
+      ],
+      "correct": 1,
+      "explanation": "Hàm mất mát ánh xạ các dự đoán và nhãn mục tiêu thành một giá trị vô hướng duy nhất mà bộ tối ưu hóa sẽ cực tiểu hóa thông qua thuật toán hạ cực đại gradient (gradient descent). Hàm này bắt buộc phải khả vi để có thể tính toán được các gradient.",
+      "stage": "pre"
+    },
+    {
+      "question": "Tại sao cross-entropy được ưa chuộng hơn MSE đối với các bài toán phân loại?",
+      "options": [
+        "Cross-entropy có tốc độ tính toán nhanh hơn",
+        "Cross-entropy phạt rất nặng các dự đoán sai mang tính tự tin thông qua hàm số -log(p), trong khi MSE tạo ra các gradient rất yếu ở gần các giá trị 0 và 1",
+        "MSE chỉ hoạt động đối với các bài toán hồi quy",
+        "Cross-entropy không yêu cầu nhãn dữ liệu"
+      ],
+      "correct": 1,
+      "explanation": "Khi một mô hình dự đoán sai một cách tự tin (xác suất p gần bằng 0 cho lớp thực tế), số hạng -log(p) sẽ tạo ra giá trị tổn thất khổng lồ và gradient cực mạnh. Trong cùng tình huống đó, MSE chỉ tạo ra các gradient rất yếu vì hàm sigmoid có độ dốc rất phẳng ở gần giá trị 0 và 1.",
+      "stage": "pre"
+    },
+    {
+      "question": "Điều gì xảy ra nếu bạn sử dụng hàm mất mát MSE cho bài toán phân loại nhị phân?",
+      "options": [
+        "Quá trình huấn luyện phân kỳ ngay lập tức",
+        "Mô hình có thể giảm thiểu tổn thất bằng cách dự đoán giá trị 0.5 cho tất cả các mẫu, đạt mức MSE=0.25 mà không học được bất kỳ thông tin nào",
+        "Mô hình huấn luyện như bình thường",
+        "Các gradient bị bùng nổ"
+      ],
+      "correct": 1,
+      "explanation": "Sử dụng MSE trên một tập dữ liệu nhị phân cân bằng, việc dự đoán giá trị 0.5 cho mọi đầu vào sẽ cho ra MSE=0.25 -- đây là mức tối thiểu có thể đạt được mà không cần phân loại. Mô hình đáp ứng được mục tiêu giảm hàm mất mát này mà không cần học được bất kỳ quy luật hữu ích nào.",
+      "stage": "post"
+    },
+    {
+      "question": "Kỹ thuật làm mịn nhãn (label smoothing) thực hiện công việc gì và tại sao nó lại hữu ích?",
+      "options": [
+        "Nó loại bỏ các nhãn nhiễu khỏi tập dữ liệu",
+        "Nó thay thế các nhãn mục tiêu nhị phân tuyệt đối 0/1 bằng các giá trị mềm như 0.1/0.9, giúp ngăn ngừa các dự đoán quá tự tin và cải thiện khả năng tổng quát hóa",
+        "Nó áp dụng trung bình trượt lên giá trị tổn thất",
+        "Nó làm mịn lịch trình thay đổi tốc độ học"
+      ],
+      "correct": 1,
+      "explanation": "Làm mịn nhãn (label smoothing) thay đổi nhãn mục tiêu dạng [0,0,1,0] thành [0.025,0.025,0.925,0.025] (với tham số alpha=0.1). Cơ chế này ngăn không cho mô hình đẩy các giá trị logit lên vô cùng để khớp với nhãn tuyệt đối, từ đó làm giảm sự quá tự tin của mô hình.",
+      "stage": "post"
+    },
+    {
+      "question": "Trong hàm mất mát đối chứng (InfoNCE), siêu tham số nhiệt độ (temperature) đóng vai trò gì?",
+      "options": [
+        "Nó kiểm soát tốc độ học",
+        "Nó kiểm soát độ nhọn của phân phối tương đồng -- nhiệt độ càng thấp nghĩa là ranh giới phân tách giữa mẫu tích cực và tiêu cực càng khắt khe",
+        "Nó thiết lập số lượng mẫu tiêu cực (negative samples)",
+        "Nó quyết định số chiều của không gian nhúng (embedding dimension)"
+      ],
+      "correct": 1,
+      "explanation": "Siêu tham số nhiệt độ chia các điểm số tương đồng trước khi áp dụng hàm softmax. Nhiệt độ thấp (ví dụ: 0.07) tạo ra một phân phối nhọn hơn, buộc mô hình phải phân tách rõ ràng giữa các mẫu tích cực và tiêu cực. Nhiệt độ cao hơn sẽ chấp nhận sự phân tách lỏng lẻo hơn.",
+      "stage": "post"
+    }
+  ],
+  "phases\\03-deep-learning-core\\06-optimizers\\quiz.json": [
+    {
+      "question": "Cơ chế momentum giải quyết bài toán nào trong thuật toán hạ cực đại gradient?",
+      "options": [
+        "Nó làm giảm dung lượng bộ nhớ sử dụng",
+        "Nó triệt tiêu dao động bằng cách tích lũy các gradient trong quá khứ, giúp tăng tốc độ di chuyển theo các hướng nhất quán",
+        "Nó loại bỏ nhu cầu sử dụng tốc độ học",
+        "Nó ngăn chặn hiện tượng quá khớp (overfitting)"
+      ],
+      "correct": 1,
+      "explanation": "Trong các thung lũng hẹp của hàm mất mát, gradient dao động mạnh qua lại giữa hai sườn thung lũng trong khi tiến triển rất chậm dọc theo lòng thung lũng. Cơ chế momentum tích lũy các gradient trong quá khứ: các hướng nhất quán sẽ được khuếch đại trong khi các hướng dao động bị triệt tiêu lẫn nhau, mang lại sự hội tụ trơn tru và nhanh chóng hơn.",
+      "stage": "pre"
+    },
+    {
+      "question": "Khác biệt cốt lõi giữa hai thuật toán Adam và AdamW là gì?",
+      "options": [
+        "AdamW sử dụng tốc độ học cao hơn",
+        "AdamW áp dụng suy giảm trọng số (weight decay) trực tiếp lên các trọng số thay vì thông qua gradient, giúp thực hiện chuẩn hóa một cách chính xác",
+        "AdamW không sử dụng cơ chế momentum",
+        "AdamW chỉ hoạt động với các mô hình Transformer"
+      ],
+      "correct": 1,
+      "explanation": "Trong thuật toán Adam kết hợp chuẩn hóa L2, tốc độ học thích ứng sẽ co giãn số hạng chuẩn hóa một cách khác biệt đối với từng tham số. AdamW tách biệt cơ chế suy giảm trọng số ra khỏi bước cập nhật gradient, áp dụng một lượng thu hẹp đồng nhất lên trọng số bất kể thống kê của gradient.",
+      "stage": "pre"
+    },
+    {
+      "question": "Tại sao Adam lại sử dụng phép hiệu chỉnh độ lệch (bias correction) trong những bước huấn luyện đầu tiên?",
+      "options": [
+        "Để ngăn chặn hiện tượng quá khớp",
+        "Các ước lượng moment được khởi tạo bằng không, do đó các giá trị ở những bước đầu bị lệch về không; phép hiệu chỉnh bù đắp cho sự khởi đầu lạnh (cold start) này",
+        "To clip large gradients",
+        "Để tăng tốc độ hội tụ"
+      ],
+      "correct": 1,
+      "explanation": "Tại bước huấn luyện đầu tiên với beta1=0.9, giá trị m_1 = 0.1 * gradient (nhỏ hơn 10 lần so với thực tế). Chia cho lượng (1 - 0.9^1) = 0.1 sẽ hiệu chỉnh giá trị này về đúng gradient thực tế. Phép hiệu chỉnh này sẽ trở nên không đáng kể sau khoảng 50 bước.",
+      "stage": "post"
+    },
+    {
+      "question": "Các siêu tham số mặc định tiêu chuẩn của thuật toán Adam là gì?",
+      "options": [
+        "lr=0.1, beta1=0.5, beta2=0.5",
+        "lr=0.001, beta1=0.9, beta2=0.999, epsilon=1e-8",
+        "lr=0.01, beta1=0.99, beta2=0.99",
+        "lr=0.0001, beta1=0.8, beta2=0.9"
+      ],
+      "correct": 1,
+      "explanation": "Bài báo gốc giới thiệu thuật toán Adam (Kingma & Ba, 2014) khuyến nghị các giá trị lr=0.001, beta1=0.9, beta2=0.999, epsilon=1e-8. Các cấu hình mặc định này hoạt động rất hiệu quả trên phần lớn các bài toán.",
+      "stage": "post"
+    },
+    {
+      "question": "Bộ tối ưu hóa nào đang là lựa chọn mặc định hiện nay để huấn luyện các mô hình Transformer và mô hình ngôn ngữ lớn (LLMs)?",
+      "options": [
+        "SGD thuần túy (Vanilla SGD)",
+        "SGD kết hợp momentum",
+        "RMSProp",
+        "AdamW"
+      ],
+      "correct": 3,
+      "explanation": "AdamW (thuật toán Adam tách biệt suy giảm trọng số) được sử dụng để huấn luyện BERT, GPT, LLaMA và hầu hết các mô hình Transformer hiện đại. Nó kết hợp tốc độ học thích ứng với cơ chế chuẩn hóa suy giảm trọng số chuẩn xác.",
+      "stage": "post"
+    }
+  ],
+  "phases\\03-deep-learning-core\\07-regularization\\quiz.json": [
+    {
+      "question": "Hiện tượng quá khớp (overfitting) trong mạng thần kinh là gì?",
+      "options": [
+        "Mô hình quá nhỏ để có thể học được dữ liệu",
+        "Mô hình ghi nhớ máy móc dữ liệu huấn luyện thay vì học các quy luật có tính tổng quát hóa, dẫn đến sự chênh lệch lớn giữa độ chính xác trên tập huấn luyện và tập kiểm tra",
+        "Mô hình có tốc độ huấn luyện quá chậm",
+        "Hàm mất mát bị thiết lập sai"
+      ],
+      "correct": 1,
+      "explanation": "Hiện tượng quá khớp (overfitting) xảy ra khi một mô hình đạt độ chính xác rất cao trên dữ liệu huấn luyện nhưng lại có hiệu năng kém trên dữ liệu kiểm tra. Mô hình đã ghi nhớ các thành phần nhiễu đặc thù của tập huấn luyện thay vì học được các quy luật thực tế nằm dưới dữ liệu.",
+      "stage": "pre"
+    },
+    {
+      "question": "Cơ chế dropout thực hiện chuẩn hóa mạng thần kinh bằng cách nào?",
+      "options": [
+        "Nó loại bỏ vĩnh viễn các neuron có hiệu năng kém nhất",
+        "Nó vô hiệu hóa ngẫu nhiên (đặt bằng không) các neuron trong quá trình huấn luyện, buộc mạng phải học các biểu diễn dư thừa (redundant representations)",
+        "Nó làm giảm tốc độ học",
+        "Nó loại bỏ các điểm ngoại lệ khỏi dữ liệu huấn luyện"
+      ],
+      "correct": 1,
+      "explanation": "Trong mỗi lượt lan truyền xuôi, dropout sẽ đặt ngẫu nhiên đầu ra của một số neuron về không với xác suất p. Cơ chế này ngăn chặn sự đồng thích ứng (co-adaptation - các neuron phụ thuộc chặt chẽ lẫn nhau) và tương đương với việc huấn luyện một tổ hợp gồm 2^N mạng con.",
+      "stage": "pre"
+    },
+    {
+      "question": "Tại sao các mô hình Transformer lại ưa chuộng sử dụng LayerNorm hơn là BatchNorm?",
+      "options": [
+        "LayerNorm có tốc độ tính toán nhanh hơn",
+        "LayerNorm chuẩn hóa trên các đặc trưng của từng mẫu (độc lập với lô dữ liệu - batch-independent), hoạt động hiệu quả với các chuỗi có độ dài thay đổi và kích thước lô nhỏ",
+        "BatchNorm gây ra hiện tượng bùng nổ gradient",
+        "LayerNorm được phát minh gần đây hơn"
+      ],
+      "correct": 1,
+      "explanation": "BatchNorm phụ thuộc vào thống kê của toàn bộ lô dữ liệu (batch statistics), vốn chứa nhiều nhiễu khi kích thước lô nhỏ và trở nên vô nghĩa khi kích thước lô bằng 1 (thường gặp trong quá trình tạo văn bản tự hồi quy). LayerNorm chuẩn hóa trên các đặc trưng bên trong từng mẫu dữ liệu đơn lẻ, hoàn toàn độc lập với kích thước lô.",
+      "stage": "post"
+    },
+    {
+      "question": "Điểm khác biệt then chốt giữa RMSNorm và LayerNorm là gì?",
+      "options": [
+        "RMSNorm sử dụng thống kê của lô dữ liệu",
+        "RMSNorm bỏ qua bước trừ đi giá trị trung bình, chỉ thực hiện chia cho căn bậc hai của trung bình bình phương (root mean square), mang lại tốc độ nhanh hơn khoảng 10% trong khi vẫn giữ nguyên độ chính xác",
+        "RMSNorm bổ sung thêm các tham số có thể học được",
+        "RMSNorm chỉ hoạt động trên các mạng CNN"
+      ],
+      "correct": 1,
+      "explanation": "RMSNorm loại bỏ bước trừ giá trị trung bình của LayerNorm, đây là bước đóng góp rất ít vào độ chính xác nhưng lại tốn chi phí tính toán. LLaMA, Mistral và hầu hết các mô hình ngôn ngữ lớn hiện đại đều sử dụng RMSNorm nhằm đạt được hiệu suất tối ưu này.",
+      "stage": "post"
+    },
+    {
+      "question": "Tại sao việc gọi phương thức model.eval() trước khi chạy suy luận (inference) trong PyTorch lại có vai trò sống còn?",
+      "options": [
+        "Nó giúp tăng tốc độ tính toán",
+        "Nó vô hiệu hóa lớp dropout và chuyển đổi BatchNorm sang sử dụng các thống kê lũy tích (running statistics) thay vì thống kê theo lô hiện tại, mang lại kết quả đầu ra mang tính tiền định",
+        "Nó giải phóng bộ nhớ GPU",
+        "Nó cho phép tính toán gradient"
+      ],
+      "correct": 1,
+      "explanation": "Nếu không gọi model.eval(), dropout vẫn tiếp tục vô hiệu hóa ngẫu nhiên các neuron trong quá trình suy luận (gây ra sự biến động ngẫu nhiên ở đầu ra) và BatchNorm sẽ sử dụng các giá trị thống kê của lô hiện tại thay vì trung bình lũy tích ổn định được tích lũy từ quá trình huấn luyện.",
+      "stage": "post"
+    }
+  ],
+  "phases\\03-deep-learning-core\\08-weight-initialization\\quiz.json": [
+    {
+      "question": "Điều gì xảy ra nếu bạn khởi tạo tất cả các trọng số trong mạng thần kinh bằng giá trị không?",
+      "options": [
+        "Mạng huấn luyện bình thường nhưng tốc độ chậm",
+        "Tất cả các neuron tính toán ra đầu ra giống hệt nhau và nhận các gradient như nhau, do đó mạng chỉ có duy nhất 1 neuron hoạt động thực sự trên mỗi lớp",
+        "Mạng thần kinh bị phân kỳ",
+        "Khởi tạo bằng không là lựa chọn mặc định được khuyến nghị"
+      ],
+      "correct": 1,
+      "explanation": "Khi các trọng số được khởi tạo bằng không, mọi neuron trong một lớp sẽ tính toán cùng một hàm số, nhận cùng một gradient và cập nhật theo cách giống hệt nhau. Sự 'đối xứng' này khiến cho hàng trăm tham số hoạt động như một thực thể duy nhất.",
+      "stage": "pre"
+    },
+    {
+      "question": "Tại sao quy mô (scale) của việc khởi tạo trọng số ngẫu nhiên lại có tầm ảnh hưởng quan trọng?",
+      "options": [
+        "Trọng số lớn hơn sẽ giúp huấn luyện nhanh hơn",
+        "Nếu phương sai quá cao, các giá trị kích hoạt sẽ bùng nổ; nếu phương sai quá thấp, các giá trị kích hoạt sẽ bị triệt tiêu -- cả hai hiện tượng đều cản trở quá trình huấn luyện",
+        "Thang đo chỉ quan trọng đối với lớp đầu ra",
+        "Nó không quan trọng miễn là các trọng số khác không"
+      ],
+      "correct": 1,
+      "explanation": "Mỗi lớp nhân phương sai của tín hiệu với đại lượng fan_in * Var(w). Nếu tích số này lớn hơn 1, tín hiệu kích hoạt sẽ bùng nổ theo hàm mũ qua các lớp. Nếu tích số nhỏ hơn 1, tín hiệu sẽ triệt tiêu dần. Khởi tạo đúng cách sẽ giữ cho tích số này bằng chính xác 1.",
+      "stage": "pre"
+    },
+    {
+      "question": "Công thức tính phương sai khởi tạo Kaiming/He là gì?",
+      "options": [
+        "Var(w) = 1/fan_in",
+        "Var(w) = 2/fan_in",
+        "Var(w) = 2/(fan_in + fan_out)",
+        "Var(w) = 1/(fan_in + fan_out)"
+      ],
+      "correct": 1,
+      "explanation": "Phương pháp khởi tạo Kaiming sử dụng công thức Var(w) = 2/fan_in. Hệ số 2 bù đắp cho việc hàm kích hoạt ReLU vô hiệu hóa một nửa số lượng giá trị kích hoạt (các giá trị âm trở thành 0), điều này làm giảm hiệu dụng của fan_in đi một nửa.",
+      "stage": "post"
+    },
+    {
+      "question": "Khi nào bạn nên lựa chọn khởi tạo Xavier/Glorot thay vì Kaiming/He?",
+      "options": [
+        "Luôn luôn -- Xavier có hiệu năng vượt trội hơn một cách phổ quát",
+        "Khi sử dụng các hàm kích hoạt dạng sigmoid hoặc tanh, vốn không vô hiệu hóa một nửa đầu ra như ReLU",
+        "Khi huấn luyện trên các tập dữ liệu nhỏ",
+        "Khi sử dụng bộ tối ưu hóa Adam"
+      ],
+      "correct": 1,
+      "explanation": "Khởi tạo Xavier sử dụng Var(w) = 2/(fan_in + fan_out), được thiết kế cho các hàm kích hoạt xấp xỉ tuyến tính quanh gốc tọa độ (sigmoid, tanh). Hệ số 2 bổ sung trong phương pháp Kaiming là để bù đắp cho cơ chế triệt tiêu một nửa giá trị âm của ReLU, điều không cần thiết đối với Xavier.",
+      "stage": "post"
+    },
+    {
+      "question": "Tại sao GPT-2 lại co giãn các trọng số của lớp phần dư (residual layer) theo hệ số 1/sqrt(2N)?",
+      "options": [
+        "Để tăng tốc độ huấn luyện",
+        "Mỗi phép cộng phần dư (residual addition) đều làm tăng phương sai của tín hiệu, do đó việc co giãn này ngăn chặn tín hiệu lũy tích tăng trưởng vô hạn qua N lớp",
+        "Để giảm số lượng tham số",
+        "Để cải thiện quá trình phân tách từ tố (tokenization)"
+      ],
+      "correct": 1,
+      "explanation": "Các liên kết phần dư (residual connections) cộng đầu ra của lớp con vào đầu vào của nó: x = x + sublayer(x). Mỗi phép cộng này làm tăng phương sai. Với N lớp phần dư, phương sai sẽ tăng tỷ lệ thuận với N. Việc co giãn theo hệ số 1/sqrt(2N) giúp giữ cho biên độ tín hiệu ổn định.",
+      "stage": "post"
+    }
+  ],
+  "phases\\03-deep-learning-core\\09-learning-rate-schedules\\quiz.json": [
+    {
+      "question": "Tại sao việc duy trì một tốc độ học hằng số (constant learning rate) thường không phải là lựa chọn tối ưu khi huấn luyện mạng thần kinh?",
+      "options": [
+        "Nó sử dụng quá nhiều bộ nhớ",
+        "Nó quá cao ở giai đoạn sau của quá trình huấn luyện (gây ra hiện tượng dao động quanh cực tiểu) hoặc quá thấp ở giai đoạn đầu (lãng phí tài nguyên tính toán)",
+        "Tốc độ học hằng số gây ra hiện tượng quá khớp",
+        "Chúng chỉ hoạt động với bộ tối ưu hóa SGD"
+      ],
+      "correct": 1,
+      "explanation": "Kích thước bước đi tối ưu thay đổi liên tục trong suốt quá trình huấn luyện. Ở giai đoạn đầu, các bước đi lớn giúp bao phủ không gian và tiếp cận vùng tối ưu nhanh chóng. Ở giai đoạn sau, cần các bước đi cực nhỏ để mô hình ổn định tại điểm cực tiểu. Tốc độ học hằng số không thể đáp ứng đồng thời cả hai nhu cầu này.",
+      "stage": "pre"
+    },
+    {
+      "question": "Mục đích của việc thiết lập giai đoạn khởi động tốc độ học (learning rate warmup) là gì?",
+      "options": [
+        "Để ngăn chặn hiện tượng quá khớp",
+        "Để cho phép các số liệu thống kê thích ứng của bộ tối ưu hóa (momentum, phương sai) ổn định trước khi thực hiện các bước cập nhật lớn",
+        "Để tăng dần kích thước lô dữ liệu (batch size)",
+        "Để khởi tạo các trọng số một cách chuẩn xác"
+      ],
+      "correct": 1,
+      "explanation": "Các ước lượng moment của Adam được khởi tạo bằng không. Những bước cập nhật gradient đầu tiên sẽ dựa trên các số liệu thống kê chưa đáng tin cậy. Quá trình khởi động (warmup) bắt đầu bằng một tốc độ học cực nhỏ và tăng dần lên, giúp Adam có đủ thời gian tích lũy các ước lượng moment thực sự có ý nghĩa.",
+      "stage": "pre"
+    },
+    {
+      "question": "Lịch trình thay đổi tốc độ học nào được Llama 3, GPT-3 và phần lớn các mô hình ngôn ngữ lớn (LLMs) hiện đại sử dụng?",
+      "options": [
+        "Tốc độ học không đổi (Constant learning rate)",
+        "Giảm theo bước (Step decay) sau mỗi 30 kỷ nguyên",
+        "Tăng tuyến tính (Linear warmup) kết hợp giảm theo hàm cosin (Cosine decay)",
+        "Giảm theo hàm mũ (Exponential decay)"
+      ],
+      "correct": 2,
+      "explanation": "Khởi động tuyến tính kết hợp giảm theo hàm cosin (Linear warmup + cosine decay) là quy chuẩn cho việc huấn luyện các mô hình Transformer. Llama 3 sử dụng 2000 bước khởi động với cosine decay từ 3e-4 xuống 3e-5. Lịch trình này không yêu cầu tinh chỉnh thủ công các mốc thời gian giảm tốc độ học.",
+      "stage": "post"
+    },
+    {
+      "question": "Điều gì tạo nên sự khác biệt của chiến lược 1cycle so với các lịch trình thay đổi tốc độ học khác?",
+      "options": [
+        "Nó sử dụng một tốc độ học hằng số",
+        "Nó tăng tốc độ học lên trong nửa đầu quá trình huấn luyện, sau đó giảm dần xuống -- giai đoạn tốc độ học cao này đóng vai trò như một cơ chế chuẩn hóa",
+        "Nó chỉ hoạt động đối với thuật toán SGD",
+        "Nó không yêu cầu tinh chỉnh siêu tham số"
+      ],
+      "correct": 1,
+      "explanation": "Chiến lược 1cycle của tác giả Leslie Smith tăng tốc độ học từ thấp lên cao (nửa đầu), sau đó giảm từ cao xuống cực thấp (nửa sau). Giai đoạn tốc độ học cao giúp mô hình khám phá rộng hơn trên bề mặt hàm tổn thất trước khi ổn định vào thung lũng tối ưu nhất.",
+      "stage": "post"
+    },
+    {
+      "question": "Nếu tổn thất huấn luyện (training loss) bất ngờ tăng vọt và bị phân kỳ, vấn đề về tốc độ học nào có khả năng xảy ra cao nhất?",
+      "options": [
+        "Tốc độ học quá thấp",
+        "Tốc độ học quá cao, khiến cho bộ tối ưu hóa vượt quá điểm cực tiểu",
+        "Giai đoạn khởi động (warmup) quá dài",
+        "Lịch trình giảm tốc độ học diễn ra quá chậm"
+      ],
+      "correct": 1,
+      "explanation": "Tốc độ học quá lớn khiến bộ tối ưu hóa thực hiện các bước cập nhật vượt ngoài phạm vi của thung lũng tổn thất, đi quá điểm cực tiểu và làm giá trị tổn thất tăng lên. Điều này biểu hiện dưới dạng sự phân kỳ đột ngột của hàm mất mát.",
+      "stage": "post"
+    }
+  ],
+  "phases\\03-deep-learning-core\\10-mini-framework\\quiz.json": [
+    {
+      "question": "Ba trách nhiệm nào được giao cho lớp trừu tượng Module trong một khung làm việc học sâu (deep learning framework)?",
+      "options": [
+        "Tải dữ liệu, tiền xử lý dữ liệu, tăng cường dữ liệu",
+        "forward() cho tính toán xuôi, backward() cho tính toán gradient, parameters() cho các trọng số có thể học",
+        "Biên dịch, tối ưu hóa, triển khai",
+        "Phân tách từ tố, tạo không gian nhúng, giải mã"
+      ],
+      "correct": 1,
+      "explanation": "Mỗi Module đều triển khai hàm forward() để tính toán đầu ra, backward() để lan truyền gradient và parameters() để công khai các trọng số có thể huấn luyện. Giao diện đồng nhất này cho phép liên kết bất kỳ mô-đun nào với nhau.",
+      "stage": "pre"
+    },
+    {
+      "question": "Tại sao lớp tuần tự Sequential lại xử lý các mô-đun theo thứ tự ngược trong lượt lan truyền ngược?",
+      "options": [
+        "Điều này mang tính tùy ý -- chiều nào cũng hoạt động được",
+        "Các dòng gradient chảy từ hàm tổn thất ngược về mạng, do đó lớp cuối cùng sẽ tính toán gradient đầu tiên",
+        "Thứ tự ngược giúp sử dụng ít bộ nhớ hơn",
+        "Nó ngăn chặn hiện tượng bùng nổ gradient"
+      ],
+      "correct": 1,
+      "explanation": "Lượt lan truyền ngược bắt đầu từ hàm tổn thất và truyền các gradient về phía đầu vào. Lớp cuối cùng sẽ nhận gradient tổn thất đầu tiên, tính toán các gradient cục bộ của nó rồi truyền chúng về cho lớp liền trước.",
+      "stage": "pre"
+    },
+    {
+      "question": "Tại sao phương thức optimizer.zero_grad() lại là một lời gọi hàm riêng biệt thay vì được thực thi tự động?",
+      "options": [
+        "Đây là một lỗi thiết kế của thư viện PyTorch",
+        "Nó cho phép tích lũy gradient qua nhiều lô dữ liệu trước khi thực hiện một bước cập nhật tối ưu hóa duy nhất",
+        "Nó giúp tiết kiệm bộ nhớ",
+        "Nó giúp việc gỡ lỗi trở nên dễ dàng hơn"
+      ],
+      "correct": 1,
+      "explanation": "Việc tách biệt zero_grad khỏi bước cập nhật (step) cho phép thực hiện tích lũy gradient (gradient accumulation): bạn có thể chạy hàm backward() nhiều lần (trên các lô nhỏ khác nhau) và cộng dồn các gradient trước khi gọi step(). Cơ chế này giúp mô phỏng các kích thước lô lớn hơn.",
+      "stage": "post"
+    },
+    {
+      "question": "Thứ tự chính xác của các phép toán trong một vòng lặp huấn luyện là gì?",
+      "options": [
+        "backward, forward, zero_grad, step",
+        "forward, loss, zero_grad, backward, step",
+        "zero_grad, forward, loss, backward, step",
+        "forward, zero_grad, backward, loss, step"
+      ],
+      "correct": 2,
+      "explanation": "Quy trình chuẩn: zero_grad (xóa các gradient cũ), forward (tính toán dự đoán), loss (tính giá trị tổn thất vô hướng), backward (tính toán các gradient), step (cập nhật tham số). Thiết lập sai thứ tự này sẽ dẫn đến những lỗi logic rất khó phát hiện.",
+      "stage": "post"
+    },
+    {
+      "question": "Vai trò của DataLoader trong khung làm việc là gì?",
+      "options": [
+        "Nó chịu trách nhiệm huấn luyện mô hình",
+        "Nó chia nhỏ dữ liệu thành các lô (batch) và tùy chọn xáo trộn dữ liệu giữa các kỷ nguyên phục vụ cho thuật toán hạ cực đại gradient theo lô nhỏ (mini-batch gradient descent)",
+        "Nó tính toán giá trị của hàm mất mát",
+        "Nó khởi tạo các giá trị trọng số"
+      ],
+      "correct": 1,
+      "explanation": "DataLoader giải quyết hai bài toán thực tế: chia lô (khi không thể nạp toàn bộ dữ liệu vào bộ nhớ cùng lúc) và xáo trộn dữ liệu (thứ tự ngẫu nhiên ngăn không cho mô hình ghi nhớ máy móc trình tự xuất hiện của dữ liệu).",
+      "stage": "post"
+    }
+  ],
+  "phases\\03-deep-learning-core\\11-intro-to-pytorch\\quiz.json": [
+    {
+      "question": "Công cụ autograd trong PyTorch là gì?",
+      "options": [
+        "Thư viện tải dữ liệu",
+        "Công cụ tự động tính đạo hàm (automatic differentiation engine) giúp ghi lại các phép toán và tính toán gradient mà không cần tự triển khai thủ công hàm backward",
+        "Công cụ nén mô hình",
+        "Khung làm việc để tinh chỉnh siêu tham số"
+      ],
+      "correct": 1,
+      "explanation": "Cơ chế autograd của PyTorch xây dựng một đồ thị tính toán trong quá trình lan truyền xuôi và tự động tính toán các gradient khi gọi phương thức .backward(). Điều này loại bỏ hoàn toàn việc phải tự viết mã cho hàm backward() ở mỗi mô-đun.",
+      "stage": "pre"
+    },
+    {
+      "question": "Hàm torch.no_grad() thực hiện nhiệm vụ gì và khi nào bạn nên sử dụng nó?",
+      "options": [
+        "Nó ngăn chặn hiện tượng quá khớp",
+        "Nó vô hiệu hóa cơ chế theo dõi gradient phục vụ cho quá trình suy luận (inference), giúp tiết kiệm bộ nhớ và tài nguyên tính toán khi không cần huấn luyện",
+        "Nó đóng băng toàn bộ các trọng số của mô hình",
+        "Nó cho phép tăng tốc phần cứng bằng GPU"
+      ],
+      "correct": 1,
+      "explanation": "Trong quá trình suy luận (inference), gradient là không cần thiết. Câu lệnh torch.no_grad() vô hiệu hóa việc theo dõi gradient, qua đó giải phóng dung lượng bộ nhớ dùng để lưu trữ đồ thị tính toán và đẩy nhanh tốc độ tính toán.",
+      "stage": "pre"
+    },
+    {
+      "question": "Khai báo nn.Linear(784, 256) sẽ tạo ra đối tượng gì trong PyTorch?",
+      "options": [
+        "Một lớp kích hoạt ReLU",
+        "Một lớp kết nối đầy đủ (fully connected layer) với ma trận trọng số kích thước (256, 784) và vectơ độ lệch (bias) kích thước (256,)",
+        "Một lớp dropout với xác suất p=784/256",
+        "Một lớp chuẩn hóa theo lô (batch normalization)"
+      ],
+      "correct": 1,
+      "explanation": "Lệnh nn.Linear(in_features, out_features) tạo ra một lớp thực hiện phép tính y = x @ W^T + b, trong đó ma trận W có kích thước (256, 784) và b có kích thước (256,). Đây chính là lớp tương đương trong PyTorch cho lớp Layer được tự xây dựng từ đầu.",
+      "stage": "post"
+    },
+    {
+      "question": "Phương thức nào trong PyTorch chịu trách nhiệm tính toán gradient cho tất cả các tham số có trên đồ thị tính toán?",
+      "options": [
+        "optimizer.step()",
+        "model.forward()",
+        "loss.backward()",
+        "optimizer.zero_grad()"
+      ],
+      "correct": 2,
+      "explanation": "Phương thức loss.backward() duyệt ngược đồ thị tính toán để tính đạo hàm riêng dL/dp cho từng tham số p có yêu cầu tính toán gradient. Bộ tối ưu sau đó sẽ gọi optimizer.step() để dùng các gradient này cập nhật trọng số.",
+      "stage": "post"
+    },
+    {
+      "question": "Tại sao vòng lặp huấn luyện bằng PyTorch lại chạy nhanh hơn đáng kể so với khung làm việc mini-framework viết bằng Python thuần túy?",
+      "options": [
+        "PyTorch sử dụng thuật toán khác biệt",
+        "PyTorch thực thi các phép toán dưới dạng các nhân (kernel) C++/CUDA đã được tối ưu hóa trên GPU, trong khi mã nguồn Python thuần túy phải biên dịch và thông dịch từng phép tính một cách tuần tự",
+        "PyTorch sử dụng các kiểu dữ liệu nhỏ hơn",
+        "PyTorch bỏ qua lượt lan truyền ngược"
+      ],
+      "correct": 1,
+      "explanation": "PyTorch phân nhiệm các phép toán ma trận cho các kernel C++ và CUDA tối ưu hóa cao chạy trên GPU với khả năng song song hóa cực lớn. Python thuần túy chạy các vòng lặp một cách tuần tự và chịu hao tổn hiệu năng từ trình thông dịch (interpreter overhead) trên từng phép toán.",
+      "stage": "post"
+    }
+  ],
+  "phases\\03-deep-learning-core\\12-intro-to-jax\\quiz.json": [
+    {
+      "question": "Điểm khác biệt mang tính nền tảng trong triết lý thiết kế giữa PyTorch và JAX là gì?",
+      "options": [
+        "PyTorch có tốc độ nhanh hơn",
+        "PyTorch biến đổi các tensor một cách trực tiếp và tức thời (eager execution), trong khi JAX biên dịch các hàm thuần khiết (pure functions) không có tác dụng phụ (side effects)",
+        "JAX không hỗ trợ phần cứng GPU",
+        "PyTorch không hỗ trợ tự động tính đạo hàm"
+      ],
+      "correct": 1,
+      "explanation": "PyTorch sử dụng cơ chế thực thi eager với trạng thái có thể biến đổi (ví dụ: thuộc tính tensor.grad bị sửa đổi trực tiếp). JAX đi theo triết lý lập trình hàm (functional programming): các hàm là thuần khiết, trạng thái được truyền tường minh và quá trình biên dịch JIT tối ưu hóa toàn bộ đồ thị tính toán.",
+      "stage": "pre"
+    },
+    {
+      "question": "Công cụ jax.jit thực hiện nhiệm vụ gì?",
+      "options": [
+        "Nó bổ sung cơ chế chuẩn hóa dropout",
+        "Nó biên dịch một hàm Python thành mã XLA tối ưu hóa, chạy nhanh hơn nhiều so với mã thông dịch Python thông thường",
+        "Nó khởi tạo các trọng số của mô hình",
+        "Nó tính toán các giá trị gradient"
+      ],
+      "correct": 1,
+      "explanation": "jax.jit theo dõi (trace) hàm số và biên dịch nó thành mã máy XLA (Accelerated Linear Algebra). Lần gọi đầu tiên sẽ mất nhiều thời gian do quá trình biên dịch, các lần gọi tiếp theo sẽ chạy phiên bản đã được tối ưu hóa với tốc độ cực nhanh.",
+      "stage": "pre"
+    },
+    {
+      "question": "Phương thức jax.vmap thực hiện nhiệm vụ gì?",
+      "options": [
+        "Vectơ hóa một hàm để chạy trên một chiều của lô dữ liệu (batch dimension) mà không cần viết các vòng lặp rõ ràng",
+        "Kiểm chứng kiến trúc mô hình",
+        "Quản lý tài nguyên bộ nhớ GPU",
+        "Tính toán các gradient bậc hai"
+      ],
+      "correct": 0,
+      "explanation": "jax.vmap tự động vectơ hóa một hàm được viết cho một ví dụ đơn lẻ để xử lý trên toàn bộ lô dữ liệu. Người dùng chỉ cần viết mã xử lý một mẫu dữ liệu và vmap sẽ đảm nhiệm việc chia lô, thường mang lại hiệu năng tối ưu hơn các vòng lặp thủ công.",
+      "stage": "post"
+    },
+    {
+      "question": "JAX quản lý trạng thái mô hình (trọng số) khác biệt như thế nào so với PyTorch?",
+      "options": [
+        "JAX chỉ lưu trữ các trọng số trên bộ nhớ CPU",
+        "JAX yêu cầu truyền trạng thái một cách tường minh -- các trọng số là đối số đầu vào của hàm số, chứ không phải các thuộc tính đối tượng có thể sửa đổi",
+        "JAX không hỗ trợ các trọng số có thể học được",
+        "JAX và PyTorch quản lý trạng thái hoàn toàn giống nhau"
+      ],
+      "correct": 1,
+      "explanation": "Trong PyTorch, các trọng số nằm bên trong đối tượng nn.Module và bị thay đổi trực tiếp. Trong JAX, các trọng số được truyền một cách tường minh như là đối số đầu vào của hàm số và trả về các giá trị mới. Hoàn toàn không có sự thay đổi trực tiếp (mutation) hay trạng thái ẩn (hidden state).",
+      "stage": "post"
+    },
+    {
+      "question": "Khi nào bạn nên lựa chọn sử dụng JAX thay vì PyTorch?",
+      "options": [
+        "Khi cần nhanh chóng tạo nguyên mẫu các mô hình quy mô nhỏ",
+        "Khi cần huấn luyện ở quy mô cực lớn trên các cụm TPU (TPU pods), nơi các tính năng biên dịch và biến đổi hàm mang lại tốc độ vượt trội",
+        "Khi cần một hệ sinh thái mô hình huấn luyện sẵn (pretrained models) lớn nhất",
+        "Để triển khai mô hình trên các thiết bị di động"
+      ],
+      "correct": 1,
+      "explanation": "JAX vượt trội ở quy mô lớn: biên dịch JIT loại bỏ hoàn toàn các chi phí thông dịch của Python, pmap xử lý tính toán song song đa thiết bị một cách tự nhiên và tính năng tối ưu hóa XLA trên toàn bộ đồ thị tính toán mang lại tốc độ vượt trội trên các cụm máy TPU.",
+      "stage": "post"
+    }
+  ],
+  "phases\\03-deep-learning-core\\13-debugging-neural-networks\\quiz.json": [
+    {
+      "question": "Tại sao việc gỡ lỗi (debugging) mạng thần kinh lại khó khăn hơn so với gỡ lỗi các chương trình phần mềm truyền thống?",
+      "options": [
+        "Mạng thần kinh sử dụng các ngôn ngữ lập trình khác biệt",
+        "Mạng thần kinh có thể tạo ra các kết quả sai lệch mà không hề báo lỗi hay bị dừng chương trình -- mã nguồn vẫn chạy bình thường nhưng kết quả lại âm thầm bị lỗi",
+        "Mạng thần kinh không thể kiểm thử được",
+        "Không có các công cụ gỡ lỗi dành cho mạng thần kinh"
+      ],
+      "correct": 1,
+      "explanation": "Các lỗi phần mềm truyền thống thường gây dừng chương trình hoặc ném ra biệt lệ (exception). Lỗi trong mạng thần kinh chỉ đơn giản trả ra các con số sai lệch -- giá trị tổn thất không giảm, độ chính xác bị chững lại hoặc đầu ra sai sót một cách tinh vi mà không có bất kỳ thông báo lỗi nào chỉ ra nguyên nhân.",
+      "stage": "pre"
+    },
+    {
+      "question": "Kỹ thuật gỡ lỗi \"quá khớp trên một lô dữ liệu đơn lẻ\" (overfit one batch) là gì?",
+      "options": [
+        "Huấn luyện trên toàn bộ tập dữ liệu cho đến khi xảy ra quá khớp",
+        "Huấn luyện trên một lô nhỏ duy nhất cho đến khi giá trị tổn thất tiệm cận không, nhằm xác nhận mô hình có thể ghi nhớ được ít nhất một vài ví dụ",
+        "Sử dụng một kích thước lô dữ liệu cực kỳ lớn",
+        "Gây ra hiện tượng quá khớp trên tập kiểm chứng (validation set)"
+      ],
+      "correct": 1,
+      "explanation": "Nếu mô hình không thể ghi nhớ nổi một lô siêu nhỏ (ví dụ: 4-8 mẫu) để kéo tổn thất về sát không, chứng tỏ hệ thống đã bị lỗi nghiêm trọng ở cấu phần nền tảng: thiết lập sai kiến trúc, hỏng hàm mất mát hoặc viết sai vòng lặp huấn luyện. Đây là bước kiểm tra chẩn đoán đầu tiên cần thực hiện.",
+      "stage": "pre"
+    },
+    {
+      "question": "Giá trị tổn thất của bạn trả về NaN chỉ sau một vài bước huấn luyện. Nguyên nhân khả dĩ nhất là gì?",
+      "options": [
+        "Tập dữ liệu quá nhỏ",
+        "Hiện tượng bùng nổ gradient hoặc tràn số (numerical overflow), thường xuất phát từ tốc độ học quá cao hoặc thiếu cơ chế cắt bớt gradient (gradient clipping)",
+        "Mô hình có quá ít tham số",
+        "Sử dụng hàm kích hoạt không phù hợp"
+      ],
+      "correct": 1,
+      "explanation": "Giá trị tổn thất bằng NaN thường bắt nguồn từ lỗi tràn số: gradient bùng nổ, các trọng số tăng trưởng không giới hạn và các phép toán như log(0) hoặc exp(1000) tạo ra các giá trị vô cùng hoặc NaN. Cách khắc phục là giảm tốc độ học hoặc bổ sung kỹ thuật cắt bớt gradient (gradient clipping).",
+      "stage": "post"
+    },
+    {
+      "question": "Tổn thất huấn luyện của bạn liên tục giảm nhưng tổn thất kiểm chứng (validation loss) vẫn nằm phẳng ngay từ đầu. Điều này chỉ ra điều gì?",
+      "options": [
+        "Mô hình đang bị quá khớp",
+        "Mô hình đang học được quy luật trên dữ liệu huấn luyện nhưng không thể tổng quát hóa -- nhiều khả năng do lỗi ở đường ống dữ liệu (bất tương đồng giữa tập huấn luyện và tập kiểm chứng) hoặc do quá khớp nghiêm trọng",
+        "Tốc độ học quá thấp",
+        "Mô hình cần được bổ sung thêm nhiều lớp hơn"
+      ],
+      "correct": 1,
+      "explanation": "Nếu tổn thất trên tập kiểm chứng hoàn toàn không cải thiện, hoặc là mô hình đang ghi nhớ máy móc nhiễu của tập huấn luyện (quá khớp), hoặc là đã xảy ra lỗi ở đường ống dẫn dữ liệu khiến phân phối của tập huấn luyện và kiểm chứng khác biệt hoàn toàn.",
+      "stage": "post"
+    },
+    {
+      "question": "Bạn nên tiến hành kiểm tra yếu tố nào trước tiên khi đường cong tổn thất nằm phẳng hoàn toàn (giá trị tổn thất không hề suy giảm)?",
+      "options": [
+        "Thử nghiệm một kiến trúc mô hình khác",
+        "Xác minh các gradient khác không, tốc độ học đủ lớn và hàm mất mát thực sự phụ thuộc vào các dự đoán đầu ra của mô hình",
+        "Bổ sung thêm dữ liệu huấn luyện",
+        "Chuyển sang một bộ tối ưu hóa khác"
+      ],
+      "correct": 1,
+      "explanation": "Đường cong tổn thất nằm phẳng nghĩa là mô hình không thực hiện cập nhật trọng số. Các nguyên nhân phổ biến bao gồm: gradient bằng không (neuron chết, các tensor bị ngắt liên kết tính đạo hàm), tốc độ học quá nhỏ hoặc hàm mất mát được lập trình tách biệt khiến dòng gradient không truyền về mô hình (ví dụ: vô tình gọi phương thức .item() trước khi gọi .backward()).",
+      "stage": "post"
+    }
+  ],
+  "phases\\04-computer-vision\\01-image-fundamentals\\quiz.json": {
+    "questions": [
+      {
+        "stage": "pre",
+        "question": "Một tệp tin hình ảnh lưu trên đĩa được giải mã thành một mảng NumPy có kích thước (224, 224, 3) và kiểu dữ liệu uint8. Mỗi con số trong mảng biểu thị điều gì?",
+        "options": [
+          "Xác suất một điểm ảnh có màu sắc đó, nằm trong khoảng từ 0 đến 1",
+          "Số lượng photon đếm được trên mỗi cảm biến, được chuẩn hóa theo toàn bộ dải động của cảm biến",
+          "Một mẫu cường độ ánh sáng tại một vị trí lưới, được lượng tử hóa thành một trong 256 cấp độ trên mỗi kênh màu",
+          "Một giá trị độ sáng dấu phẩy động sẵn sàng để truyền vào mạng tích chập"
+        ],
+        "correct": 2,
+        "explanation": "Một hình ảnh kiểu dữ liệu uint8 lưu trữ các số nguyên 8-bit trong đoạn [0, 255]. Mỗi số nguyên biểu thị một mẫu cường độ ánh sáng đã lượng tử hóa tại một vị trí cụ thể (hàng, cột, kênh màu). Giá trị này không phải là xác suất hay số thực; bạn bắt buộc phải thực hiện chia cho 255 và chuẩn hóa trước khi đưa vào một mô hình đã được huấn luyện sẵn."
+      },
+      {
+        "stage": "pre",
+        "question": "Bạn nạp một hình ảnh bằng thư viện Pillow và nhận được một mảng có kích thước (480, 640, 3). Bạn truyền nó dưới dạng một tensor theo lô (1, 480, 640, 3) vào lớp PyTorch Conv2d có tham số in_channels=3. Hiện tượng gì sẽ xảy ra?",
+        "options": [
+          "Không có vấn đề gì — PyTorch tự động phát hiện cấu trúc bố cục",
+          "Lớp tích chập đầu tiên coi chiều cao là trục kênh màu, tạo ra các bản đồ đặc trưng vô nghĩa",
+          "PyTorch báo lỗi RuntimeError: Conv2d yêu cầu định dạng NCHW nhưng lại nhận diện có 480 kênh màu trong khi trọng số yêu cầu 3 kênh, và từ chối thực thi",
+          "Độ chính xác sụt giảm vài phần trăm nhưng quá trình suy luận vẫn diễn ra bình thường"
+        ],
+        "correct": 2,
+        "explanation": "Lớp Conv2d của PyTorch áp dụng kiểm tra nghiêm ngặt số lượng kênh màu đối với tensor trọng số. Đầu vào có dạng HWC theo lô (1, 480, 640, 3) sẽ bị diễn giải thành định dạng NCHW với số kênh C=480, không khớp với số kênh kỳ vọng bằng 3 của trọng số, khiến PyTorch lập tức báo lỗi RuntimeError trước khi thực hiện bất kỳ phép tính nào. Lỗi tường minh này là một tính năng thiết kế -- nó ép buộc bạn phải sửa lại cấu trúc bố cục. Bạn bắt buộc phải chuyển vị trí các trục sang định dạng NCHW (`.permute(0, 3, 1, 2)`) trước khi truyền vào mô hình PyTorch."
+      },
+      {
+        "stage": "post",
+        "question": "Tại sao các mô hình đã được huấn luyện sẵn trên tập ImageNet lại yêu cầu dữ liệu đầu vào phải được chuẩn hóa với các giá trị mean=[0.485, 0.456, 0.406] và std=[0.229, 0.224, 0.225]?",
+        "options": [
+          "Đó là các giá trị RGB của một cảnh quan tự nhiên trung bình",
+          "Đó là giá trị trung bình và độ lệch chuẩn trên từng kênh của tập huấn luyện ImageNet trong không gian [0, 1], do đó việc trừ đi các giá trị này sẽ đưa phân phối dữ liệu đầu vào về tâm phân phối mà mô hình được huấn luyện",
+          "Chúng đưa đầu vào về trạng thái trung bình bằng không và phương sai bằng một đối với mọi hình ảnh",
+          "Chúng là điều kiện bắt buộc của hàm kích hoạt ReLU"
+        ],
+        "correct": 1,
+        "explanation": "Các chỉ số này là thống kê của tập dữ liệu huấn luyện ImageNet được tính toán sau khi đã chia các giá trị điểm ảnh cho 255. Việc sử dụng chúng giúp căn chỉnh phân phối đầu vào của bạn đồng bộ với phân phối mà mạng thần kinh đã tiếp xúc trong quá trình huấn luyện. Đối với một mô hình được huấn luyện trên một tập dữ liệu khác, bạn sẽ cần tính toán lại các số liệu thống kê này trên chính tập dữ liệu đó."
+      },
+      {
+        "stage": "post",
+        "question": "Bạn thực hiện thay đổi kích thước của một mặt nạ phân đoạn (segmentation mask - có mã định danh lớp kiểu số nguyên từ 0..20) từ kích thước 500x500 sang 224x224. Phương pháp nội suy nào dưới đây là chính xác?",
+        "options": [
+          "Nội suy song tuyến tính (Bilinear) — nó làm mịn các ranh giới lớp",
+          "Nội suy song lập phương (Bicubic) — nó bảo toàn độ sắc nét",
+          "Nội suy Lanczos — cho chất lượng cao nhất",
+          "Nội suy láng giềng gần nhất (Nearest neighbour) — nó bảo toàn các mã định danh lớp kiểu số nguyên hợp lệ thay vì tự tạo ra các giá trị phân số lẻ"
+        ],
+        "correct": 3,
+        "explanation": "Các phương pháp Bilinear, Bicubic và Lanczos thực hiện tính trung bình các giá trị lân cận. Trên một mặt nạ phân đoạn lớp (segmentation mask), thao tác này sẽ tạo ra các giá trị không nguyên (ví dụ: giá trị 4.7 nằm giữa lớp 4 và lớp 5), vốn không tương ứng với bất kỳ lớp thực tế nào. Phương pháp nội suy láng giềng gần nhất chọn ra điểm ảnh gốc gần nhất, giữ nguyên vẹn không gian nhãn dữ liệu ban đầu. Quy tắc này cũng áp dụng cho mọi kênh mã hóa mã định danh (IDs) hoặc chỉ số (indices)."
+      },
+      {
+        "stage": "post",
+        "question": "Công thức chuyển đổi ảnh màu RGB sang ảnh xám sử dụng các hệ số trọng số 0.299 R + 0.587 G + 0.114 B thay vì chia đều 0.333 R + 0.333 G + 0.333 B. Tại sao lại như vậy?",
+        "options": [
+          "Để bù đắp cho các lỗi nén ảnh JPEG trên từng kênh màu",
+          "Vì các hạt photon màu xanh lá cây mang năng lượng cao hơn photon đỏ hoặc xanh dương",
+          "Vì thị giác của con người nhạy cảm nhất với ánh sáng xanh lá cây và ít nhạy cảm nhất với ánh sáng xanh dương, do đó tổng có trọng số này giúp tương thích với độ sáng cảm nhận được",
+          "Để tương thích với hoạt động của bộ lọc Bayer trên cảm biến máy ảnh"
+        ],
+        "correct": 2,
+        "explanation": "Các trọng số 0.299/0.587/0.114 của tiêu chuẩn ITU-R BT.601 xuất phát từ hiệu suất nhạy sáng của mắt người. Việc lấy trung bình cộng đồng đều (chia đều 1/3 cho mỗi kênh) sẽ khiến các hình ảnh thiên về sắc xanh lá trông quá tối và các ảnh thiên về sắc đỏ trông quá sáng đối với mắt người quan sát. Hầu hết các thư viện xử lý ảnh cổ điển chuyển đổi ảnh xám sử dụng bộ trọng số này; trong đó BT.709 (0.2126/0.7152/0.0722) là biến thể hiện đại dành cho chuẩn HDTV với đầu vào ánh sáng tuyến tính."
+      }
+    ]
+  },
+  "phases\\04-computer-vision\\02-convolutions-from-scratch\\quiz.json": {
+    "questions": [
+      {
+        "stage": "pre",
+        "question": "Bạn truyền một hình ảnh RGB kích thước 224x224 vào lớp tích chập có kernel_size=3, stride=1, padding=0. Kích thước không gian đầu ra (output spatial size) thu được là bao nhiêu?",
+        "options": [
+          "224x224",
+          "222x222",
+          "112x112",
+          "74x74"
+        ],
+        "correct": 1,
+        "explanation": "Kích thước đầu ra = (H - K + 2P) / S + 1 = (224 - 3 + 0) / 1 + 1 = 222. Nếu không có padding, mỗi phép tích chập với kích thước nhân 3x3 sẽ làm co bản đồ đặc trưng đi 2 điểm ảnh trên mỗi trục -- tương đương loại bỏ một điểm ảnh ở mỗi cạnh biên."
+      },
+      {
+        "stage": "pre",
+        "question": "Một lớp tích chập có in_channels=3, out_channels=64, kernel_size=3, có sử dụng số hạng bias. Lớp này có bao nhiêu tham số có thể học được?",
+        "options": [
+          "1,728",
+          "1,792",
+          "576",
+          "192"
+        ],
+        "correct": 1,
+        "explanation": "Công thức tính: C_out * C_in * K * K + C_out = 64 * 3 * 3 * 3 + 64 = 1,728 + 64 = 1,792. Đại lượng +C_out đại diện cho một tham số bias trên mỗi kênh đầu ra. Hãy so sánh con số này với một lớp kết nối đầy đủ (dense layer) thông thường nhận cùng đầu vào (224*224*3 -> 64 = xấp xỉ 9.6 triệu tham số), bạn sẽ hiểu rõ lý do tại sao tích chập là một giả định tiên nghiệm vô cùng chính xác đối với dữ liệu hình ảnh."
+      },
+      {
+        "stage": "post",
+        "question": "Tại sao các mạng thần kinh tích chập (CNNs) hiện đại lại ưu chuộng việc xếp chồng các phép tích chập 3x3 hơn là sử dụng một phép tích chập đơn lẻ kích thước lớn như 5x5 hoặc 7x7?",
+        "options": [
+          "Tích chập 3x3 được hỗ trợ tăng tốc phần cứng trực tiếp; các kích thước lớn hơn thì không",
+          "Hai lớp tích chập 3x3 bao phủ cùng một trường thụ cảm (receptive field) kích thước 5x5 nhưng với số lượng tham số ít hơn (2 * 9 = 18 so với 25) và bổ sung thêm một hàm phi tuyến tính ở giữa chúng",
+          "Nhân tích chập kích thước lớn gây tràn các thanh ghi của GPU",
+          "3x3 là kích thước nhân tích chập duy nhất hỗ trợ cơ chế padding"
+        ],
+        "correct": 1,
+        "explanation": "Việc xếp chồng các lớp tích chập 3x3 tạo ra trường thụ cảm tương đương một phép tích chập lớn đơn lẻ nhưng sử dụng số lượng tham số ít hơn và bổ sung nhiều hàm phi tuyến tính hơn, giúp tăng cường khả năng biểu diễn của mô hình. Mạng VGG đã chứng minh điều này bằng thực nghiệm và mọi họ kiến trúc hiện đại (ResNet, ConvNeXt) đều kế thừa triết lý thiết kế này."
+      },
+      {
+        "stage": "post",
+        "question": "Thao tác biến đổi dữ liệu im2col thực chất thực hiện công việc gì?",
+        "options": [
+          "Nó nén hình ảnh để vừa vặn trong bộ nhớ đệm cache của GPU",
+          "Nó tách trích mọi cửa sổ trường thụ cảm theo kích thước nhân tích chập từ đầu vào và xếp chúng thành các cột, chuyển đổi phép tích chập thành một phép nhân ma trận duy nhất",
+          "Nó biến đổi các điểm ảnh dạng float32 sang int8 để tăng tốc độ tính toán số học",
+          "Nó liên kết (concatenate) tất cả hình ảnh trong một lô dữ liệu thành một ma trận 2D duy nhất"
+        ],
+        "correct": 1,
+        "explanation": "Thuật toán im2col định hình lại đầu vào sao cho mỗi cột đại diện cho một trường thụ cảm được làm phẳng (flattened receptive field). Việc làm phẳng nhân tích chập thành một hàng sẽ tinh giản phép tích chập về dạng tính cols @ w_flat.T -- đây là một lệnh gọi hàm nhân ma trận tổng quát (GEMM) đơn nhất mà các thiết bị phần cứng GPU có thể thực thi nhanh hơn hàng ngàn lần so với bốn vòng lặp lồng nhau trong ngôn ngữ Python. Mọi thư viện tích chập trong môi trường sản xuất thương mại đều là một biến thể của cơ chế này."
+      },
+      {
+        "stage": "post",
+        "question": "Bạn tiến hành xếp chồng bốn lớp tích chập 3x3 (tất cả đều có stride 1, không sử dụng lớp pooling). Trường thụ cảm (receptive field) của một neuron ở lớp cuối cùng là bao nhiêu?",
+        "options": [
+          "3x3 — mỗi lớp tích chập đều có kích thước 3x3",
+          "5x5 — hai lớp tích chập cho kích thước 5x5 và chiều sâu không giúp cải thiện thêm",
+          "9x9 — mỗi lớp tích chập cộng thêm 2 điểm ảnh về mỗi phía: 1 + 4*(3-1) = 9",
+          "15x15 — mỗi lớp tích chập nhân kích thước trường thụ cảm lên gấp ba"
+        ],
+        "correct": 2,
+        "explanation": "Đối với L lớp xếp chồng tích chập K x K có stride 1, trường thụ cảm được tính bằng công thức = 1 + L * (K - 1). Với L=4 and K=3, ta thu được kết quả 1 + 4*2 = 9. Công thức này có thể mở rộng tổng quát khi có stride: trường thụ cảm tăng trưởng theo cấp số nhân qua các lớp có stride khác 1, đó là lý do vì sao một mạng thần kinh sâu tích hợp hạ mẫu (downsampling) có thể bao phủ toàn bộ bức ảnh chỉ trong vòng mười hoặc mười lăm khối tính toán."
+      }
+    ]
+  }
+}

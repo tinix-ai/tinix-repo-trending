@@ -1,0 +1,3522 @@
+{
+  "00-setup-and-tooling": [
+    {
+      "lesson_folder": "01-dev-environment",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Môi trường Phát triển",
+      "extracted_vi_en_part": "Dev Environment",
+      "extracted_en_title": "Dev Environment"
+    },
+    {
+      "lesson_folder": "02-git-and-collaboration",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Git & Cộng tác",
+      "extracted_vi_en_part": "Git & Collaboration",
+      "extracted_en_title": "Git & Collaboration"
+    },
+    {
+      "lesson_folder": "03-gpu-setup-and-cloud",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Thiết lập GPU & Cloud",
+      "extracted_vi_en_part": "GPU Setup & Cloud",
+      "extracted_en_title": "GPU Setup & Cloud"
+    },
+    {
+      "lesson_folder": "04-apis-and-keys",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "API & Khóa truy cập",
+      "extracted_vi_en_part": "APIs & Keys",
+      "extracted_en_title": "APIs & Keys"
+    },
+    {
+      "lesson_folder": "05-jupyter-notebooks",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Jupyter Notebooks",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Jupyter Notebooks"
+    },
+    {
+      "lesson_folder": "06-python-environments",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Môi trường Python",
+      "extracted_vi_en_part": "Python Environments",
+      "extracted_en_title": "Python Environments"
+    },
+    {
+      "lesson_folder": "07-docker-for-ai",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Docker cho AI",
+      "extracted_vi_en_part": "Docker for AI",
+      "extracted_en_title": "Docker for AI"
+    },
+    {
+      "lesson_folder": "08-editor-setup",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Thiết lập Trình soạn thảo",
+      "extracted_vi_en_part": "Editor Setup",
+      "extracted_en_title": "Editor Setup"
+    },
+    {
+      "lesson_folder": "09-data-management",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Quản lý Dữ liệu",
+      "extracted_vi_en_part": "Data Management",
+      "extracted_en_title": "Data Management"
+    },
+    {
+      "lesson_folder": "10-terminal-and-shell",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Terminal & Shell",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Terminal & Shell"
+    },
+    {
+      "lesson_folder": "11-linux-for-ai",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Linux cho AI",
+      "extracted_vi_en_part": "Linux for AI",
+      "extracted_en_title": "Linux for AI"
+    },
+    {
+      "lesson_folder": "12-debugging-and-profiling",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Gỡ lỗi và Phân tích hiệu năng",
+      "extracted_vi_en_part": "Debugging and Profiling",
+      "extracted_en_title": "Debugging and Profiling"
+    }
+  ],
+  "01-math-foundations": [
+    {
+      "lesson_folder": "01-linear-algebra-intuition",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Trực giác về Đại số Tuyến tính",
+      "extracted_vi_en_part": "Linear Algebra Intuition",
+      "extracted_en_title": "Linear Algebra Intuition"
+    },
+    {
+      "lesson_folder": "02-vectors-matrices-operations",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Vector, Ma trận & Các phép toán",
+      "extracted_vi_en_part": "Vectors, Matrices & Operations",
+      "extracted_en_title": "Vectors, Matrices & Operations"
+    },
+    {
+      "lesson_folder": "03-matrix-transformations",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Các phép biến đổi Ma trận",
+      "extracted_vi_en_part": "Matrix Transformations",
+      "extracted_en_title": "Matrix Transformations"
+    },
+    {
+      "lesson_folder": "04-calculus-for-ml",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Giải tích cho Học máy",
+      "extracted_vi_en_part": "Calculus for Machine Learning",
+      "extracted_en_title": "Calculus for Machine Learning"
+    },
+    {
+      "lesson_folder": "05-chain-rule-and-autodiff",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Quy tắc Chuỗi & Đạo hàm Tự động",
+      "extracted_vi_en_part": "Chain Rule & Automatic Differentiation",
+      "extracted_en_title": "Chain Rule & Automatic Differentiation"
+    },
+    {
+      "lesson_folder": "06-probability-and-distributions",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Xác suất và Phân phối",
+      "extracted_vi_en_part": "Probability and Distributions",
+      "extracted_en_title": "Probability and Distributions"
+    },
+    {
+      "lesson_folder": "07-bayes-theorem",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Định lý Bayes",
+      "extracted_vi_en_part": "Bayes' Theorem",
+      "extracted_en_title": "Bayes' Theorem"
+    },
+    {
+      "lesson_folder": "08-optimization",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Tối ưu hóa",
+      "extracted_vi_en_part": "Optimization",
+      "extracted_en_title": "Optimization"
+    },
+    {
+      "lesson_folder": "09-information-theory",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Lý thuyết Thông tin",
+      "extracted_vi_en_part": "Information Theory",
+      "extracted_en_title": "Information Theory"
+    },
+    {
+      "lesson_folder": "10-dimensionality-reduction",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Giảm chiều dữ liệu",
+      "extracted_vi_en_part": "Dimensionality Reduction",
+      "extracted_en_title": "Dimensionality Reduction"
+    },
+    {
+      "lesson_folder": "11-singular-value-decomposition",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Phân tách Giá trị Suy biến",
+      "extracted_vi_en_part": "Singular Value Decomposition - SVD",
+      "extracted_en_title": "Singular Value Decomposition"
+    },
+    {
+      "lesson_folder": "12-tensor-operations",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Các phép toán Tensor",
+      "extracted_vi_en_part": "Tensor Operations",
+      "extracted_en_title": "Tensor Operations"
+    },
+    {
+      "lesson_folder": "13-numerical-stability",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Ổn định Số học",
+      "extracted_vi_en_part": "Numerical Stability",
+      "extracted_en_title": "Numerical Stability"
+    },
+    {
+      "lesson_folder": "14-norms-and-distances",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Chuẩn và Khoảng cách",
+      "extracted_vi_en_part": "Norms and Distances",
+      "extracted_en_title": "Norms and Distances"
+    },
+    {
+      "lesson_folder": "15-statistics-for-ml",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Thống kê trong Machine Learning",
+      "extracted_vi_en_part": "Statistics for ML",
+      "extracted_en_title": "Statistics for Machine Learning"
+    },
+    {
+      "lesson_folder": "16-sampling-methods",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Các phương pháp lấy mẫu",
+      "extracted_vi_en_part": "Sampling Methods",
+      "extracted_en_title": "Sampling Methods"
+    },
+    {
+      "lesson_folder": "17-linear-systems",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Hệ phương trình tuyến tính",
+      "extracted_vi_en_part": "Linear Systems",
+      "extracted_en_title": "Linear Systems"
+    },
+    {
+      "lesson_folder": "18-convex-optimization",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Tối ưu hóa lồi",
+      "extracted_vi_en_part": "Convex Optimization",
+      "extracted_en_title": "Convex Optimization"
+    },
+    {
+      "lesson_folder": "19-complex-numbers",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Số phức cho AI",
+      "extracted_vi_en_part": "Complex Numbers for AI",
+      "extracted_en_title": "Complex Numbers for AI"
+    },
+    {
+      "lesson_folder": "20-fourier-transform",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Phép biến đổi Fourier",
+      "extracted_vi_en_part": "The Fourier Transform",
+      "extracted_en_title": "The Fourier Transform"
+    },
+    {
+      "lesson_folder": "21-graph-theory",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Lý thuyết đồ thị trong Machine Learning",
+      "extracted_vi_en_part": "Graph Theory",
+      "extracted_en_title": "Graph Theory for Machine Learning"
+    },
+    {
+      "lesson_folder": "22-stochastic-processes",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Các quá trình ngẫu nhiên",
+      "extracted_vi_en_part": "Stochastic Processes",
+      "extracted_en_title": "Stochastic Processes"
+    }
+  ],
+  "02-ml-fundamentals": [
+    {
+      "lesson_folder": "01-what-is-machine-learning",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Machine Learning là gì?",
+      "extracted_vi_en_part": "What Is Machine Learning",
+      "extracted_en_title": "What Is Machine Learning"
+    },
+    {
+      "lesson_folder": "02-linear-regression",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Hồi quy tuyến tính",
+      "extracted_vi_en_part": "Linear Regression",
+      "extracted_en_title": "Linear Regression"
+    },
+    {
+      "lesson_folder": "03-logistic-regression",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Hồi quy Logistic",
+      "extracted_vi_en_part": "Logistic Regression",
+      "extracted_en_title": "Logistic Regression"
+    },
+    {
+      "lesson_folder": "04-decision-trees",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Cây quyết định và Rừng ngẫu nhiên",
+      "extracted_vi_en_part": "Decision Trees and Random Forests",
+      "extracted_en_title": "Decision Trees and Random Forests"
+    },
+    {
+      "lesson_folder": "05-support-vector-machines",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Máy Vectơ Hỗ trợ",
+      "extracted_vi_en_part": "Support Vector Machines - SVM",
+      "extracted_en_title": "Support Vector Machines"
+    },
+    {
+      "lesson_folder": "06-knn-and-distances",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "K-Hàng xóm gần nhất và Khoảng cách",
+      "extracted_vi_en_part": "K-Nearest Neighbors and Distances",
+      "extracted_en_title": "K-Nearest Neighbors and Distances"
+    },
+    {
+      "lesson_folder": "07-unsupervised-learning",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Học không giám sát",
+      "extracted_vi_en_part": "Unsupervised Learning",
+      "extracted_en_title": "Unsupervised Learning"
+    },
+    {
+      "lesson_folder": "08-feature-engineering",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Kỹ nghệ & Lựa chọn Đặc trưng",
+      "extracted_vi_en_part": "Feature Engineering & Selection",
+      "extracted_en_title": "Feature Engineering & Selection"
+    },
+    {
+      "lesson_folder": "09-model-evaluation",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Đánh giá Mô hình",
+      "extracted_vi_en_part": "Model Evaluation",
+      "extracted_en_title": "Model Evaluation"
+    },
+    {
+      "lesson_folder": "10-bias-variance",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Đánh đổi Bias-Variance",
+      "extracted_vi_en_part": "Bias-Variance Tradeoff",
+      "extracted_en_title": "Bias-Variance Tradeoff"
+    },
+    {
+      "lesson_folder": "11-ensemble-methods",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Các phương pháp Ensemble",
+      "extracted_vi_en_part": "Ensemble Methods",
+      "extracted_en_title": "Ensemble Methods"
+    },
+    {
+      "lesson_folder": "12-hyperparameter-tuning",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Tinh chỉnh Tham số",
+      "extracted_vi_en_part": "Hyperparameter Tuning",
+      "extracted_en_title": "Hyperparameter Tuning"
+    },
+    {
+      "lesson_folder": "13-ml-pipelines",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Quy trình ML",
+      "extracted_vi_en_part": "ML Pipelines",
+      "extracted_en_title": "ML Pipelines"
+    },
+    {
+      "lesson_folder": "14-naive-bayes",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Thuật toán Naive Bayes",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Naive Bayes"
+    },
+    {
+      "lesson_folder": "15-time-series",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Cơ bản về Chuỗi thời gian",
+      "extracted_vi_en_part": "Time Series Fundamentals",
+      "extracted_en_title": "Time Series Fundamentals"
+    },
+    {
+      "lesson_folder": "16-anomaly-detection",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Phát hiện Bất thường",
+      "extracted_vi_en_part": "Anomaly Detection",
+      "extracted_en_title": "Anomaly Detection"
+    },
+    {
+      "lesson_folder": "17-imbalanced-data",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Xử lý Dữ liệu Mất cân bằng",
+      "extracted_vi_en_part": "Handling Imbalanced Data",
+      "extracted_en_title": "Handling Imbalanced Data"
+    },
+    {
+      "lesson_folder": "18-feature-selection",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Lựa chọn Đặc trưng",
+      "extracted_vi_en_part": "Feature Selection",
+      "extracted_en_title": "Feature Selection"
+    }
+  ],
+  "03-deep-learning-core": [
+    {
+      "lesson_folder": "01-the-perceptron",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Perceptron: Nguyên tử của Mạng thần kinh",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "The Perceptron"
+    },
+    {
+      "lesson_folder": "02-multi-layer-networks",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Mạng Đa tầng và Lan truyền xuôi",
+      "extracted_vi_en_part": "Forward Pass",
+      "extracted_en_title": "Multi-Layer Networks and Forward Pass"
+    },
+    {
+      "lesson_folder": "03-backpropagation",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Lan truyền ngược (Backpropagation) từ con số 0",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Backpropagation from Scratch"
+    },
+    {
+      "lesson_folder": "04-activation-functions",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Hàm kích hoạt",
+      "extracted_vi_en_part": "Activation Functions",
+      "extracted_en_title": "Activation Functions"
+    },
+    {
+      "lesson_folder": "05-loss-functions",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Hàm mất mát",
+      "extracted_vi_en_part": "Loss Functions",
+      "extracted_en_title": "Loss Functions"
+    },
+    {
+      "lesson_folder": "06-optimizers",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Các bộ tối ưu hóa",
+      "extracted_vi_en_part": "Optimizers",
+      "extracted_en_title": "Optimizers"
+    },
+    {
+      "lesson_folder": "07-regularization",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Điều chuẩn",
+      "extracted_vi_en_part": "Regularization",
+      "extracted_en_title": "Regularization"
+    },
+    {
+      "lesson_folder": "08-weight-initialization",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Khởi tạo trọng số và Độ ổn định huấn luyện",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Weight Initialization and Training Stability"
+    },
+    {
+      "lesson_folder": "09-learning-rate-schedules",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Lịch trình Tốc độ học và Khởi động",
+      "extracted_vi_en_part": "Warmup",
+      "extracted_en_title": "Learning Rate Schedules and Warmup"
+    },
+    {
+      "lesson_folder": "10-mini-framework",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Tự xây dựng Mini Framework của riêng bạn",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Build Your Own Mini Framework"
+    },
+    {
+      "lesson_folder": "11-intro-to-pytorch",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Giới thiệu về PyTorch",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Introduction to PyTorch"
+    },
+    {
+      "lesson_folder": "12-intro-to-jax",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Giới thiệu về JAX",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Introduction to JAX"
+    },
+    {
+      "lesson_folder": "13-debugging-neural-networks",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Gỡ lỗi Mạng thần kinh",
+      "extracted_vi_en_part": "Debugging Neural Networks",
+      "extracted_en_title": "Debugging Neural Networks"
+    }
+  ],
+  "04-computer-vision": [
+    {
+      "lesson_folder": "01-image-fundamentals",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Cơ bản về Hình ảnh — Pixel, Kênh và Không gian màu",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Image Fundamentals — Pixels, Channels, Color Spaces"
+    },
+    {
+      "lesson_folder": "02-convolutions-from-scratch",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Tự xây dựng phép Tích chập",
+      "extracted_vi_en_part": "Convolutions from Scratch",
+      "extracted_en_title": "Convolutions from Scratch"
+    },
+    {
+      "lesson_folder": "03-cnns-lenet-to-resnet",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Mạng CNN — Từ LeNet đến ResNet",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "CNNs — LeNet to ResNet"
+    },
+    {
+      "lesson_folder": "04-image-classification",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Phân loại Hình ảnh",
+      "extracted_vi_en_part": "Image Classification",
+      "extracted_en_title": "Image Classification"
+    },
+    {
+      "lesson_folder": "05-transfer-learning",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Học chuyển tiếp & Tinh chỉnh",
+      "extracted_vi_en_part": "Transfer Learning & Fine-Tuning",
+      "extracted_en_title": "Transfer Learning & Fine-Tuning"
+    },
+    {
+      "lesson_folder": "06-object-detection-yolo",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Phát hiện Vật thể — Tự xây dựng YOLO",
+      "extracted_vi_en_part": "Object Detection — YOLO from Scratch",
+      "extracted_en_title": "Object Detection — YOLO from Scratch"
+    },
+    {
+      "lesson_folder": "07-semantic-segmentation-unet",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Phân đoạn ngữ nghĩa — U-Net",
+      "extracted_vi_en_part": "Semantic Segmentation — U-Net",
+      "extracted_en_title": "Semantic Segmentation — U-Net"
+    },
+    {
+      "lesson_folder": "08-instance-segmentation-mask-rcnn",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Phân đoạn thực thể — Mask R-CNN",
+      "extracted_vi_en_part": "Instance Segmentation — Mask R-CNN",
+      "extracted_en_title": "Instance Segmentation — Mask R-CNN"
+    },
+    {
+      "lesson_folder": "09-image-generation-gans",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Tạo ảnh — Mạng GAN",
+      "extracted_vi_en_part": "Image Generation — GANs",
+      "extracted_en_title": "Image Generation — GANs"
+    },
+    {
+      "lesson_folder": "10-image-generation-diffusion",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Tạo ảnh — Mô hình Khuếch tán",
+      "extracted_vi_en_part": "Image Generation — Diffusion Models",
+      "extracted_en_title": "Image Generation — Diffusion Models"
+    },
+    {
+      "lesson_folder": "11-stable-diffusion",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Stable Diffusion — Kiến trúc & Tinh chỉnh",
+      "extracted_vi_en_part": "Stable Diffusion — Architecture & Fine-Tuning",
+      "extracted_en_title": "Stable Diffusion — Architecture & Fine-Tuning"
+    },
+    {
+      "lesson_folder": "12-video-understanding",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Hiểu Video — Mô hình hóa thời gian",
+      "extracted_vi_en_part": "Video Understanding — Temporal Modeling",
+      "extracted_en_title": "Video Understanding — Temporal Modeling"
+    },
+    {
+      "lesson_folder": "13-3d-vision-nerf",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Thị giác 3D — Đám mây điểm & NeRF",
+      "extracted_vi_en_part": "3D Vision — Point Clouds & NeRFs",
+      "extracted_en_title": "3D Vision — Point Clouds & NeRFs"
+    },
+    {
+      "lesson_folder": "14-vision-transformers",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Vision Transformers",
+      "extracted_vi_en_part": "ViT",
+      "extracted_en_title": "Vision Transformers"
+    },
+    {
+      "lesson_folder": "15-real-time-edge",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Thị giác thời gian thực — Triển khai trên thiết bị ngoại vi",
+      "extracted_vi_en_part": "Real-Time Vision — Edge Deployment",
+      "extracted_en_title": "Real-Time Vision — Edge Deployment"
+    },
+    {
+      "lesson_folder": "16-vision-pipeline-capstone",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Xây dựng Hệ thống Thị giác Hoàn chỉnh — Dự án Cuối khóa",
+      "extracted_vi_en_part": "Build a Complete Vision Pipeline — Capstone",
+      "extracted_en_title": "Build a Complete Vision Pipeline — Capstone"
+    },
+    {
+      "lesson_folder": "17-self-supervised-vision",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Thị giác tự giám sát — SimCLR, DINO, MAE",
+      "extracted_vi_en_part": "Self-Supervised Vision",
+      "extracted_en_title": "Self-Supervised Vision — SimCLR, DINO, MAE"
+    },
+    {
+      "lesson_folder": "18-open-vocab-clip",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Thị giác từ vựng mở — CLIP",
+      "extracted_vi_en_part": "Open-Vocabulary Vision — CLIP",
+      "extracted_en_title": "Open-Vocabulary Vision — CLIP"
+    },
+    {
+      "lesson_folder": "19-ocr-document-understanding",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "OCR & Hiểu Tài liệu",
+      "extracted_vi_en_part": "OCR & Document Understanding",
+      "extracted_en_title": "OCR & Document Understanding"
+    },
+    {
+      "lesson_folder": "20-image-retrieval-metric",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Tìm kiếm Hình ảnh & Học đặc trưng",
+      "extracted_vi_en_part": "Image Retrieval & Metric Learning",
+      "extracted_en_title": "Image Retrieval & Metric Learning"
+    },
+    {
+      "lesson_folder": "21-keypoint-pose",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Phát hiện Điểm mấu chốt & Ước lượng Tư thế",
+      "extracted_vi_en_part": "Keypoint Detection & Pose Estimation",
+      "extracted_en_title": "Keypoint Detection & Pose Estimation"
+    },
+    {
+      "lesson_folder": "22-3d-gaussian-splatting",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Tự lập trình 3D Gaussian Splatting",
+      "extracted_vi_en_part": "3D Gaussian Splatting from Scratch",
+      "extracted_en_title": "3D Gaussian Splatting from Scratch"
+    },
+    {
+      "lesson_folder": "23-diffusion-transformers-rectified-flow",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Diffusion Transformers & Rectified Flow",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Diffusion Transformers & Rectified Flow"
+    },
+    {
+      "lesson_folder": "24-sam3-open-vocab-segmentation",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "SAM 3 & Phân đoạn Từ vựng mở",
+      "extracted_vi_en_part": "SAM 3 & Open-Vocabulary Segmentation",
+      "extracted_en_title": "SAM 3 & Open-Vocabulary Segmentation"
+    },
+    {
+      "lesson_folder": "25-vision-language-models",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Mô hình Thị giác - Ngôn ngữ — Cấu trúc ViT-MLP-LLM",
+      "extracted_vi_en_part": "Vision-Language Models",
+      "extracted_en_title": "Vision-Language Models — The ViT-MLP-LLM Pattern"
+    },
+    {
+      "lesson_folder": "26-monocular-depth",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Ước lượng Độ sâu Đơn nhãn & Hình học",
+      "extracted_vi_en_part": "Monocular Depth & Geometry Estimation",
+      "extracted_en_title": "Monocular Depth & Geometry Estimation"
+    },
+    {
+      "lesson_folder": "27-multi-object-tracking",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Theo dõi Đa đối tượng & Bộ nhớ Video",
+      "extracted_vi_en_part": "Multi-Object Tracking & Video Memory",
+      "extracted_en_title": "Multi-Object Tracking & Video Memory"
+    },
+    {
+      "lesson_folder": "28-world-models-video-diffusion",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Mô hình Thế giới & Khuếch tán Video",
+      "extracted_vi_en_part": "World Models & Video Diffusion",
+      "extracted_en_title": "World Models & Video Diffusion"
+    }
+  ],
+  "05-nlp-foundations-to-advanced": [
+    {
+      "lesson_folder": "01-text-processing",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Xử lý Văn bản — Tokenization, Stemming, Lemmatization",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Text Processing — Tokenization, Stemming, Lemmatization"
+    },
+    {
+      "lesson_folder": "02-bag-of-words-tfidf",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Bag of Words, TF-IDF và Biểu diễn Văn bản",
+      "extracted_vi_en_part": "Text Representation",
+      "extracted_en_title": "Bag of Words, TF-IDF, and Text Representation"
+    },
+    {
+      "lesson_folder": "03-word-embeddings-word2vec",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Nhúng Từ — Word2Vec từ con số 0",
+      "extracted_vi_en_part": "Word Embeddings",
+      "extracted_en_title": "Word Embeddings — Word2Vec from Scratch"
+    },
+    {
+      "lesson_folder": "04-glove-fasttext-subword",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "GloVe, FastText và Nhúng Từ con",
+      "extracted_vi_en_part": "Subword Embeddings",
+      "extracted_en_title": "GloVe, FastText, and Subword Embeddings"
+    },
+    {
+      "lesson_folder": "05-sentiment-analysis",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Phân tích Cảm xúc",
+      "extracted_vi_en_part": "Sentiment Analysis",
+      "extracted_en_title": "Sentiment Analysis"
+    },
+    {
+      "lesson_folder": "06-named-entity-recognition",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Nhận dạng Thực thể có tên",
+      "extracted_vi_en_part": "Named Entity Recognition - NER",
+      "extracted_en_title": "Named Entity Recognition"
+    },
+    {
+      "lesson_folder": "07-pos-tagging-parsing",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Gán nhãn Từ loại",
+      "extracted_vi_en_part": "POS Tagging) và Phân tích Cú pháp (Syntactic Parsing",
+      "extracted_en_title": "POS Tagging and Syntactic Parsing"
+    },
+    {
+      "lesson_folder": "08-cnns-rnns-for-text",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "CNN và RNN cho Văn bản",
+      "extracted_vi_en_part": "CNNs and RNNs for Text",
+      "extracted_en_title": "CNNs and RNNs for Text"
+    },
+    {
+      "lesson_folder": "09-sequence-to-sequence",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Mô hình Chuỗi-sang-Chuỗi",
+      "extracted_vi_en_part": "Sequence-to-Sequence Models",
+      "extracted_en_title": "Sequence-to-Sequence Models"
+    },
+    {
+      "lesson_folder": "10-attention-mechanism",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Cơ chế Attention (Chú ý) — Bước ngoặt vĩ đại",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Attention Mechanism — The Breakthrough"
+    },
+    {
+      "lesson_folder": "11-machine-translation",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Dịch máy",
+      "extracted_vi_en_part": "Machine Translation",
+      "extracted_en_title": "Machine Translation"
+    },
+    {
+      "lesson_folder": "12-text-summarization",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Tóm tắt văn bản",
+      "extracted_vi_en_part": "Text Summarization",
+      "extracted_en_title": "Text Summarization"
+    },
+    {
+      "lesson_folder": "13-question-answering",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Hệ thống Trả lời Câu hỏi",
+      "extracted_vi_en_part": "Question Answering Systems",
+      "extracted_en_title": "Question Answering Systems"
+    },
+    {
+      "lesson_folder": "14-information-retrieval-search",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Truy xuất thông tin và Tìm kiếm",
+      "extracted_vi_en_part": "Information Retrieval and Search",
+      "extracted_en_title": "Information Retrieval and Search"
+    },
+    {
+      "lesson_folder": "15-topic-modeling",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Mô hình hóa Chủ đề (Topic Modeling) — LDA và BERTopic",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Topic Modeling — LDA and BERTopic"
+    },
+    {
+      "lesson_folder": "16-text-generation-pre-transformer",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Tạo văn bản trước thời kỳ Transformer — Mô hình ngôn ngữ N-gram",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Text Generation Before Transformers — N-gram Language Models"
+    },
+    {
+      "lesson_folder": "17-chatbots-rule-to-neural",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Chatbots — Từ Luật lệ đến Mạng Nơ-ron và Tác nhân AI",
+      "extracted_vi_en_part": "LLM Agents",
+      "extracted_en_title": "Chatbots — Rule-Based to Neural to LLM Agents"
+    },
+    {
+      "lesson_folder": "18-multilingual-nlp",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "NLP Đa ngôn ngữ",
+      "extracted_vi_en_part": "Multilingual NLP",
+      "extracted_en_title": "Multilingual NLP"
+    },
+    {
+      "lesson_folder": "19-subword-tokenization",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Tách từ Subword (Subword Tokenization) — BPE, WordPiece, Unigram, SentencePiece",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Subword Tokenization — BPE, WordPiece, Unigram, SentencePiece"
+    },
+    {
+      "lesson_folder": "20-structured-outputs-constrained-decoding",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Đầu ra có cấu trúc và Giải mã có điều kiện",
+      "extracted_vi_en_part": "Structured Outputs & Constrained Decoding",
+      "extracted_en_title": "Structured Outputs & Constrained Decoding"
+    },
+    {
+      "lesson_folder": "21-nli-textual-entailment",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Suy luận ngôn ngữ tự nhiên — Hệ quả văn bản",
+      "extracted_vi_en_part": "Natural Language Inference — Textual Entailment",
+      "extracted_en_title": "Natural Language Inference — Textual Entailment"
+    },
+    {
+      "lesson_folder": "22-embedding-models-deep-dive",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Mô hình Embedding — Đi sâu vào công nghệ năm 2026",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Embedding Models — The 2026 Deep Dive"
+    },
+    {
+      "lesson_folder": "23-chunking-strategies-rag",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Chiến lược Chia nhỏ văn bản (Chunking) cho RAG",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Chunking Strategies for RAG"
+    },
+    {
+      "lesson_folder": "24-coreference-resolution",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Giải quyết thực thể đồng tham chiếu",
+      "extracted_vi_en_part": "Coreference Resolution",
+      "extracted_en_title": "Coreference Resolution"
+    },
+    {
+      "lesson_folder": "25-entity-linking",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Liên kết & Khử mơ hồ thực thể",
+      "extracted_vi_en_part": "Entity Linking & Disambiguation",
+      "extracted_en_title": "Entity Linking & Disambiguation"
+    },
+    {
+      "lesson_folder": "26-relation-extraction-kg",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Trích xuất quan hệ & Xây dựng Sơ đồ tri thức",
+      "extracted_vi_en_part": "Relation Extraction & Knowledge Graph Construction",
+      "extracted_en_title": "Relation Extraction & Knowledge Graph Construction"
+    },
+    {
+      "lesson_folder": "27-llm-evaluation-frameworks",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Đánh giá LLM (LLM Evaluation) — RAGAS, DeepEval, G-Eval",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "LLM Evaluation — RAGAS, DeepEval, G-Eval"
+    },
+    {
+      "lesson_folder": "28-long-context-evaluation",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Đánh giá Ngữ cảnh dài (Long-Context Evaluation) — NIAH, RULER, LongBench, MRCR",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Long-Context Evaluation — NIAH, RULER, LongBench, MRCR"
+    },
+    {
+      "lesson_folder": "29-dialogue-state-tracking",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Theo dõi Trạng thái Hội thoại",
+      "extracted_vi_en_part": "Dialogue State Tracking",
+      "extracted_en_title": "Dialogue State Tracking"
+    }
+  ],
+  "06-speech-and-audio": [
+    {
+      "lesson_folder": "01-audio-fundamentals",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Kiến thức nền tảng về Âm thanh — Dạng sóng, Lấy mẫu, Biến đổi Fourier",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Audio Fundamentals — Waveforms, Sampling, Fourier Transform"
+    },
+    {
+      "lesson_folder": "02-spectrograms-mel-features",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Phổ âm thanh, Thang đo Mel & Các Đặc trưng Âm thanh",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Spectrograms, Mel Scale & Audio Features"
+    },
+    {
+      "lesson_folder": "03-audio-classification",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Phân loại Âm thanh (Audio Classification) — Từ k-NN với MFCC đến AST và BEATs",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Audio Classification — From k-NN on MFCCs to AST and BEATs"
+    },
+    {
+      "lesson_folder": "04-speech-recognition-asr",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Nhận dạng Giọng nói (ASR) — CTC, RNN-T, Attention",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Speech Recognition (ASR) — CTC, RNN-T, Attention"
+    },
+    {
+      "lesson_folder": "05-whisper-architecture-finetuning",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Whisper — Kiến trúc & Tinh chỉnh",
+      "extracted_vi_en_part": "Fine-Tuning",
+      "extracted_en_title": "Whisper — Architecture & Fine-Tuning"
+    },
+    {
+      "lesson_folder": "06-speaker-recognition-verification",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Nhận dạng và Xác thực Người nói",
+      "extracted_vi_en_part": "Speaker Recognition & Verification",
+      "extracted_en_title": "Speaker Recognition & Verification"
+    },
+    {
+      "lesson_folder": "07-text-to-speech",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Chuyển Văn bản thành Giọng nói (TTS) — Từ Tacotron đến F5 và Kokoro",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Text-to-Speech (TTS) — From Tacotron to F5 and Kokoro"
+    },
+    {
+      "lesson_folder": "08-voice-cloning-conversion",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Nhân bản Giọng nói",
+      "extracted_vi_en_part": "Voice Cloning) & Chuyển đổi Giọng nói (Voice Conversion",
+      "extracted_en_title": "Voice Cloning & Voice Conversion"
+    },
+    {
+      "lesson_folder": "09-music-generation",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Sinh Âm nhạc (Music Generation) — MusicGen, Stable Audio, Suno, và Trận động đất Bản quyền",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Music Generation — MusicGen, Stable Audio, Suno, and the Licensing Earthquake"
+    },
+    {
+      "lesson_folder": "10-audio-language-models",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Mô hình Ngôn ngữ Âm thanh (Audio-Language Models) — Qwen2.5-Omni, Audio Flamingo, GPT-4o Audio",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Audio-Language Models — Qwen2.5-Omni, Audio Flamingo, GPT-4o Audio"
+    },
+    {
+      "lesson_folder": "11-real-time-audio-processing",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Xử lý Âm thanh Thời gian thực",
+      "extracted_vi_en_part": "Real-Time Audio Processing",
+      "extracted_en_title": "Real-Time Audio Processing"
+    },
+    {
+      "lesson_folder": "12-voice-assistant-pipeline",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Xây dựng Đường ống Trợ lý Giọng nói — Dự án Tốt nghiệp Phase 6",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Build a Voice Assistant Pipeline — The Phase 6 Capstone"
+    },
+    {
+      "lesson_folder": "13-neural-audio-codecs",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Bộ giải mã  m thanh Nơ-ron (Neural Audio Codecs) — EnCodec, SNAC, Mimi, DAC và Sự chia tách Ngữ nghĩa -  m học",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Neural Audio Codecs — EnCodec, SNAC, Mimi, DAC and the Semantic-Acoustic Split"
+    },
+    {
+      "lesson_folder": "14-voice-activity-detection-turn-taking",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Nhận diện Giọng nói",
+      "extracted_vi_en_part": "VAD) & Ngắt lượt Giao tiếp — Silero, Cobra, và Thủ thuật \"Xả nước\" (Flush Trick",
+      "extracted_en_title": "Voice Activity Detection & Turn-Taking — Silero, Cobra, and the Flush Trick"
+    },
+    {
+      "lesson_folder": "15-streaming-speech-to-speech-moshi-hibiki",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Thoại-Dịch-Thoại Thời gian thực (Streaming Speech-to-Speech) — Moshi, Hibiki, và Đàm thoại 2 chiều Full-Duplex",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Streaming Speech-to-Speech — Moshi, Hibiki, and Full-Duplex Dialogue"
+    },
+    {
+      "lesson_folder": "16-anti-spoofing-audio-watermarking",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Chống giả mạo Giọng nói & Thủy vân Âm thanh — ASVspoof 5, AudioSeal, WaveVerify",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Voice Anti-Spoofing & Audio Watermarking — ASVspoof 5, AudioSeal, WaveVerify"
+    },
+    {
+      "lesson_folder": "17-audio-evaluation-metrics",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Đánh giá Âm thanh — WER, MOS, UTMOS, MMAU, FAD, và các Bảng xếp hạng Mở",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Audio Evaluation — WER, MOS, UTMOS, MMAU, FAD, and the Open Leaderboards"
+    }
+  ],
+  "07-transformers-deep-dive": [
+    {
+      "lesson_folder": "01-why-transformers",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Tại sao chọn Transformer — Những Hạn chế của RNN",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Why Transformers — The Problems with RNNs"
+    },
+    {
+      "lesson_folder": "02-self-attention-from-scratch",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Tự lập trình Self-Attention từ đầu",
+      "extracted_vi_en_part": "Self-Attention from Scratch",
+      "extracted_en_title": "Self-Attention from Scratch"
+    },
+    {
+      "lesson_folder": "03-multi-head-attention",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Multi-Head Attention",
+      "extracted_vi_en_part": "Cơ chế chú ý đa đầu",
+      "extracted_en_title": "Multi-Head Attention"
+    },
+    {
+      "lesson_folder": "04-positional-encoding",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Mã hóa vị trí (Positional Encoding) — Sinusoidal, RoPE, ALiBi",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Positional Encoding — Sinusoidal, RoPE, ALiBi"
+    },
+    {
+      "lesson_folder": "05-full-transformer",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Kiến trúc Transformer đầy đủ — Bộ mã hóa + Bộ giải mã",
+      "extracted_vi_en_part": "Encoder + Decoder",
+      "extracted_en_title": "The Full Transformer — Encoder + Decoder"
+    },
+    {
+      "lesson_folder": "06-bert-masked-language-modeling",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "BERT — Masked Language Modeling",
+      "extracted_vi_en_part": "Mô hình hóa ngôn ngữ có mặt nạ",
+      "extracted_en_title": "BERT — Masked Language Modeling"
+    },
+    {
+      "lesson_folder": "07-gpt-causal-language-modeling",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "GPT — Causal Language Modeling",
+      "extracted_vi_en_part": "Mô hình hóa ngôn ngữ tự hồi quy",
+      "extracted_en_title": "GPT — Causal Language Modeling"
+    },
+    {
+      "lesson_folder": "08-t5-bart-encoder-decoder",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "T5, BART — Mô hình Encoder-Decoder",
+      "extracted_vi_en_part": "Bộ mã hóa - Bộ giải mã",
+      "extracted_en_title": "T5, BART — Encoder-Decoder Models"
+    },
+    {
+      "lesson_folder": "09-vision-transformers",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Vision Transformers (ViT) — Transformer cho Thị giác máy tính",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Vision Transformers"
+    },
+    {
+      "lesson_folder": "10-audio-transformers-whisper",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Audio Transformers — Kiến trúc Whisper",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Audio Transformers — Whisper Architecture"
+    },
+    {
+      "lesson_folder": "11-mixture-of-experts",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Mixture of Experts (MoE) — Mô hình kết hợp chuyên gia",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Mixture of Experts"
+    },
+    {
+      "lesson_folder": "12-kv-cache-flash-attention",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "KV Cache, Flash Attention & Tối ưu hóa suy luận",
+      "extracted_vi_en_part": "Inference Optimization",
+      "extracted_en_title": "KV Cache, Flash Attention & Inference Optimization"
+    },
+    {
+      "lesson_folder": "13-scaling-laws",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Scaling Laws — Định luật tỉ lệ quy mô",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Scaling Laws"
+    },
+    {
+      "lesson_folder": "14-build-a-transformer-capstone",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Tự tay xây dựng Transformer từ con số 0 — Dự án Tốt nghiệp",
+      "extracted_vi_en_part": "Capstone",
+      "extracted_en_title": "Build a Transformer from Scratch — The Capstone"
+    },
+    {
+      "lesson_folder": "15-attention-variants",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Các biến thể Attention — Sliding Window, Sparse, Differential",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Attention Variants — Sliding Window, Sparse, Differential"
+    },
+    {
+      "lesson_folder": "16-speculative-decoding",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Speculative Decoding — Soạn nháp, Kiểm chứng, Lặp lại",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Speculative Decoding — Draft, Verify, Repeat"
+    }
+  ],
+  "08-generative-ai": [
+    {
+      "lesson_folder": "01-generative-models-taxonomy-history",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Generative Models — Phân loại & Lịch sử phát triển",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Generative Models — Taxonomy & History"
+    },
+    {
+      "lesson_folder": "02-autoencoders-vae",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Autoencoders & Variational Autoencoders",
+      "extracted_vi_en_part": "VAE",
+      "extracted_en_title": "Autoencoders & Variational Autoencoders"
+    },
+    {
+      "lesson_folder": "03-gans-generator-discriminator",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "GANs — Generator vs Discriminator",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "GANs — Generator vs Discriminator"
+    },
+    {
+      "lesson_folder": "04-conditional-gans-pix2pix",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Conditional GANs & Pix2Pix",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Conditional GANs & Pix2Pix"
+    },
+    {
+      "lesson_folder": "05-stylegan",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "StyleGAN",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "StyleGAN"
+    },
+    {
+      "lesson_folder": "06-diffusion-ddpm-from-scratch",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Diffusion Models — Tự tay xây dựng DDPM từ con số 0",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Diffusion Models — DDPM from Scratch"
+    },
+    {
+      "lesson_folder": "07-latent-diffusion-stable-diffusion",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Latent Diffusion & Stable Diffusion",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Latent Diffusion & Stable Diffusion"
+    },
+    {
+      "lesson_folder": "08-controlnet-lora-conditioning",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "ControlNet, LoRA & Conditioning",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "ControlNet, LoRA & Conditioning"
+    },
+    {
+      "lesson_folder": "09-inpainting-outpainting-editing",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Inpainting, Outpainting & Image Editing",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Inpainting, Outpainting & Image Editing"
+    },
+    {
+      "lesson_folder": "10-video-generation",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Video Generation",
+      "extracted_vi_en_part": "Sinh Video",
+      "extracted_en_title": "Video Generation"
+    },
+    {
+      "lesson_folder": "11-audio-generation",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Audio Generation",
+      "extracted_vi_en_part": "Sinh âm thanh",
+      "extracted_en_title": "Audio Generation"
+    },
+    {
+      "lesson_folder": "12-3d-generation",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "3D Generation",
+      "extracted_vi_en_part": "Sinh dữ liệu 3D",
+      "extracted_en_title": "3D Generation"
+    },
+    {
+      "lesson_folder": "13-flow-matching-rectified-flows",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Flow Matching & Rectified Flows",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Flow Matching & Rectified Flows"
+    },
+    {
+      "lesson_folder": "14-evaluation-fid-clip-score",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Evaluation — FID, CLIP Score, Human Preference",
+      "extracted_vi_en_part": "Đánh giá mô hình sinh",
+      "extracted_en_title": "Evaluation — FID, CLIP Score, Human Preference"
+    },
+    {
+      "lesson_folder": "19-visual-autoregressive-var",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Visual Autoregressive Modeling (VAR): Next-Scale Prediction",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Visual Autoregressive Modeling (VAR): Next-Scale Prediction"
+    }
+  ],
+  "09-reinforcement-learning": [
+    {
+      "lesson_folder": "01-mdps-states-actions-rewards",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "MDPs, States, Actions & Rewards",
+      "extracted_vi_en_part": "Tiến trình Quyết định Markov",
+      "extracted_en_title": "MDPs, States, Actions & Rewards"
+    },
+    {
+      "lesson_folder": "02-dynamic-programming",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Dynamic Programming — Policy Iteration & Value Iteration",
+      "extracted_vi_en_part": "Quy hoạch động",
+      "extracted_en_title": "Dynamic Programming — Policy Iteration & Value Iteration"
+    },
+    {
+      "lesson_folder": "03-monte-carlo-methods",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Monte Carlo Methods — Learning from Complete Episodes",
+      "extracted_vi_en_part": "Phương pháp Monte Carlo",
+      "extracted_en_title": "Monte Carlo Methods — Learning from Complete Episodes"
+    },
+    {
+      "lesson_folder": "04-q-learning-sarsa",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Temporal Difference — Q-Learning & SARSA",
+      "extracted_vi_en_part": "Sai biệt thời gian",
+      "extracted_en_title": "Temporal Difference — Q-Learning & SARSA"
+    },
+    {
+      "lesson_folder": "05-dqn",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Deep Q-Networks",
+      "extracted_vi_en_part": "DQN - Mạng Q Sâu",
+      "extracted_en_title": "Deep Q-Networks"
+    },
+    {
+      "lesson_folder": "06-policy-gradients-reinforce",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Policy Gradient — REINFORCE from Scratch",
+      "extracted_vi_en_part": "Lan truyền Gradient Chiến lược",
+      "extracted_en_title": "Policy Gradient — REINFORCE from Scratch"
+    },
+    {
+      "lesson_folder": "07-actor-critic-a2c-a3c",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Actor-Critic — A2C and A3C",
+      "extracted_vi_en_part": "Mô hình Actor-Critic",
+      "extracted_en_title": "Actor-Critic — A2C and A3C"
+    },
+    {
+      "lesson_folder": "08-ppo",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Proximal Policy Optimization",
+      "extracted_vi_en_part": "PPO - Tối ưu hóa Chiến lược Cận cận",
+      "extracted_en_title": "Proximal Policy Optimization"
+    },
+    {
+      "lesson_folder": "09-reward-modeling-rlhf",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Reward Modeling & RLHF",
+      "extracted_vi_en_part": "Mô hình hóa phần thưởng & Học tăng cường từ phản hồi của con người",
+      "extracted_en_title": "Reward Modeling & RLHF"
+    },
+    {
+      "lesson_folder": "10-multi-agent-rl",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Multi-Agent RL",
+      "extracted_vi_en_part": "Học tăng cường đa tác nhân",
+      "extracted_en_title": "Multi-Agent RL"
+    },
+    {
+      "lesson_folder": "11-sim-to-real-transfer",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Sim-to-Real Transfer",
+      "extracted_vi_en_part": "Chuyển đổi từ mô phỏng sang thực tế",
+      "extracted_en_title": "Sim-to-Real Transfer"
+    },
+    {
+      "lesson_folder": "12-rl-for-games",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "RL cho Trò chơi — AlphaZero, MuZero, và Kỷ nguyên Lập luận của LLM",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "RL for Games — AlphaZero, MuZero, and the LLM-Reasoning Era"
+    }
+  ],
+  "10-llms-from-scratch": [
+    {
+      "lesson_folder": "01-tokenizers",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Bộ tách từ (Tokenizers): BPE, WordPiece, SentencePiece",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Tokenizers: BPE, WordPiece, SentencePiece"
+    },
+    {
+      "lesson_folder": "02-building-a-tokenizer",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Tự xây dựng Bộ tách từ (Tokenizer) từ con số 0",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Building a Tokenizer from Scratch"
+    },
+    {
+      "lesson_folder": "03-data-pipelines",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Đường ống Dữ liệu cho Huấn luyện Sơ bộ",
+      "extracted_vi_en_part": "Data Pipelines for Pre-Training",
+      "extracted_en_title": "Data Pipelines for Pre-Training"
+    },
+    {
+      "lesson_folder": "04-pre-training-mini-gpt",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Huấn luyện Sơ bộ Mô hình Mini GPT",
+      "extracted_vi_en_part": "124 Triệu Tham số",
+      "extracted_en_title": "Pre-Training a Mini GPT"
+    },
+    {
+      "lesson_folder": "05-scaling-distributed",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Huấn luyện Mở rộng quy mô: Huấn luyện Phân tán, FSDP, DeepSpeed",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Scaling: Distributed Training, FSDP, DeepSpeed"
+    },
+    {
+      "lesson_folder": "06-instruction-tuning-sft",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Tinh chỉnh Chỉ thị",
+      "extracted_vi_en_part": "SFT - Supervised Fine-Tuning",
+      "extracted_en_title": "Instruction Tuning"
+    },
+    {
+      "lesson_folder": "07-rlhf",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "RLHF: Mô hình Phần thưởng + PPO",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "RLHF: Reward Model + PPO"
+    },
+    {
+      "lesson_folder": "08-dpo",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "DPO: Tối ưu hóa Sở thích Trực tiếp",
+      "extracted_vi_en_part": "Direct Preference Optimization",
+      "extracted_en_title": "DPO: Direct Preference Optimization"
+    },
+    {
+      "lesson_folder": "09-constitutional-ai-self-improvement",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Constitutional AI và Tự cải thiện",
+      "extracted_vi_en_part": "Self-Improvement",
+      "extracted_en_title": "Constitutional AI and Self-Improvement"
+    },
+    {
+      "lesson_folder": "10-evaluation",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Đánh giá: Benchmarks, Evals, và LM Harness",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Evaluation: Benchmarks, Evals, LM Harness"
+    },
+    {
+      "lesson_folder": "11-quantization",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Quantization: Tối ưu dung lượng để mô hình vừa vặn với phần cứng",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Quantization: Making Models Fit"
+    },
+    {
+      "lesson_folder": "12-inference-optimization",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Tối ưu hóa suy luận",
+      "extracted_vi_en_part": "Inference Optimization",
+      "extracted_en_title": "Inference Optimization"
+    },
+    {
+      "lesson_folder": "13-building-complete-llm-pipeline",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Xây dựng Pipeline LLM Hoàn chỉnh",
+      "extracted_vi_en_part": "Building a Complete LLM Pipeline",
+      "extracted_en_title": "Building a Complete LLM Pipeline"
+    },
+    {
+      "lesson_folder": "14-open-models-architecture-walkthroughs",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Mô hình Mở: Khảo sát Kiến trúc",
+      "extracted_vi_en_part": "Open Models: Architecture Walkthroughs",
+      "extracted_en_title": "Open Models: Architecture Walkthroughs"
+    },
+    {
+      "lesson_folder": "15-speculative-decoding-eagle3",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Suy luận Phỏng đoán và EAGLE-3",
+      "extracted_vi_en_part": "Speculative Decoding and EAGLE-3",
+      "extracted_en_title": "Speculative Decoding and EAGLE-3"
+    },
+    {
+      "lesson_folder": "16-differential-attention-v2",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Attention Vi phân V2",
+      "extracted_vi_en_part": "Differential Attention V2",
+      "extracted_en_title": "Differential Attention"
+    },
+    {
+      "lesson_folder": "17-native-sparse-attention",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Attention Thưa Tự nhiên",
+      "extracted_vi_en_part": "DeepSeek Native Sparse Attention - NSA",
+      "extracted_en_title": "Native Sparse Attention"
+    },
+    {
+      "lesson_folder": "18-multi-token-prediction",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Dự báo Nhiều Token",
+      "extracted_vi_en_part": "Multi-Token Prediction - MTP",
+      "extracted_en_title": "Multi-Token Prediction"
+    },
+    {
+      "lesson_folder": "19-dualpipe-parallelism",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Cơ chế Song song DualPipe",
+      "extracted_vi_en_part": "DualPipe Parallelism",
+      "extracted_en_title": "DualPipe Parallelism"
+    },
+    {
+      "lesson_folder": "20-deepseek-v3-walkthrough",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Khảo sát Kiến trúc DeepSeek-V3",
+      "extracted_vi_en_part": "DeepSeek-V3 Architecture Walkthrough",
+      "extracted_en_title": "DeepSeek-V3 Architecture Walkthrough"
+    },
+    {
+      "lesson_folder": "21-jamba-hybrid-ssm-transformer",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Jamba — Kiến trúc Lai SSM-Transformer",
+      "extracted_vi_en_part": "Jamba — Hybrid SSM-Transformer",
+      "extracted_en_title": "Jamba — Hybrid SSM-Transformer"
+    },
+    {
+      "lesson_folder": "22-async-hogwild-inference",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Suy luận Bất đồng bộ và Cơ chế Hogwild!",
+      "extracted_vi_en_part": "Async and Hogwild! Inference",
+      "extracted_en_title": "Async and Hogwild! Inference"
+    },
+    {
+      "lesson_folder": "25-speculative-decoding",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Suy luận Phỏng đoán và Giải pháp EAGLE",
+      "extracted_vi_en_part": "Speculative Decoding and EAGLE",
+      "extracted_en_title": "Speculative Decoding and EAGLE"
+    },
+    {
+      "lesson_folder": "34-gradient-checkpointing",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Lưu vết Đạo hàm và Tính toán lại Kích hoạt",
+      "extracted_vi_en_part": "Gradient Checkpointing and Activation Recomputation",
+      "extracted_en_title": "Gradient Checkpointing and Activation Recomputation"
+    }
+  ],
+  "11-llm-engineering": [
+    {
+      "lesson_folder": "01-prompt-engineering",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Kỹ nghệ Gợi ý: Các Kỹ thuật & Khuôn mẫu",
+      "extracted_vi_en_part": "Prompt Engineering: Techniques & Patterns",
+      "extracted_en_title": "Prompt Engineering: Techniques & Patterns"
+    },
+    {
+      "lesson_folder": "02-few-shot-cot",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Học qua ví dụ, Chuỗi suy nghĩ và Cây suy nghĩ",
+      "extracted_vi_en_part": "Few-Shot, Chain-of-Thought, Tree-of-Thought",
+      "extracted_en_title": "Few-Shot, Chain-of-Thought, Tree-of-Thought"
+    },
+    {
+      "lesson_folder": "03-structured-outputs",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Đầu ra cấu trúc: JSON, Xác thực Schema và Giải mã Ràng buộc",
+      "extracted_vi_en_part": "Structured Outputs: JSON, Schema Validation, Constrained Decoding",
+      "extracted_en_title": "Structured Outputs: JSON, Schema Validation, Constrained Decoding"
+    },
+    {
+      "lesson_folder": "04-embeddings",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Vector Nhúng & Biểu diễn Vector",
+      "extracted_vi_en_part": "Embeddings & Vector Representations",
+      "extracted_en_title": "Embeddings & Vector Representations"
+    },
+    {
+      "lesson_folder": "05-context-engineering",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Kỹ nghệ Ngữ cảnh: Khung cửa sổ, Ngân sách, Bộ nhớ và Truy vết",
+      "extracted_vi_en_part": "Context Engineering: Windows, Budgets, Memory, and Retrieval",
+      "extracted_en_title": "Context Engineering: Windows, Budgets, Memory, and Retrieval"
+    },
+    {
+      "lesson_folder": "06-rag",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "RAG",
+      "extracted_vi_en_part": "Sinh mẫu Tăng cường Truy vết - Retrieval-Augmented Generation",
+      "extracted_en_title": "RAG"
+    },
+    {
+      "lesson_folder": "07-advanced-rag",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "RAG Nâng cao: Phân mảnh, Tái xếp hạng và Tìm kiếm Kết hợp",
+      "extracted_vi_en_part": "Advanced RAG: Chunking, Reranking, Hybrid Search",
+      "extracted_en_title": "Advanced RAG"
+    },
+    {
+      "lesson_folder": "08-fine-tuning-lora",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Tinh chỉnh Mô hình hiệu quả với LoRA & QLoRA",
+      "extracted_vi_en_part": "Fine-Tuning with LoRA & QLoRA",
+      "extracted_en_title": "Fine-Tuning with LoRA & QLoRA"
+    },
+    {
+      "lesson_folder": "09-function-calling",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Gọi Hàm & Sử dụng Công cụ",
+      "extracted_vi_en_part": "Function Calling & Tool Use",
+      "extracted_en_title": "Function Calling & Tool Use"
+    },
+    {
+      "lesson_folder": "10-evaluation",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Kiểm thử & Đánh giá Ứng dụng LLM",
+      "extracted_vi_en_part": "Evaluation & Testing LLM Applications",
+      "extracted_en_title": "Evaluation & Testing LLM Applications"
+    },
+    {
+      "lesson_folder": "11-caching-cost",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Lưu trữ đệm, Giới hạn Tần suất & Tối ưu hóa Chi phí",
+      "extracted_vi_en_part": "Caching, Rate Limiting & Cost Optimization",
+      "extracted_en_title": "Caching, Rate Limiting & Cost Optimization"
+    },
+    {
+      "lesson_folder": "12-guardrails",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Rào chắn Bảo vệ, An toàn & Lọc Nội dung",
+      "extracted_vi_en_part": "Guardrails, Safety & Content Filtering",
+      "extracted_en_title": "Guardrails, Safety & Content Filtering"
+    },
+    {
+      "lesson_folder": "13-production-app",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Xây dựng Ứng dụng LLM Sẵn sàng cho Sản xuất",
+      "extracted_vi_en_part": "Building a Production LLM Application",
+      "extracted_en_title": "Building a Production LLM Application"
+    },
+    {
+      "lesson_folder": "14-model-context-protocol",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Giao thức Ngữ cảnh Mô hình",
+      "extracted_vi_en_part": "Model Context Protocol - MCP",
+      "extracted_en_title": "Model Context Protocol"
+    },
+    {
+      "lesson_folder": "15-prompt-caching",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Lưu đệm Prompt và Lưu đệm Ngữ cảnh",
+      "extracted_vi_en_part": "Prompt Caching and Context Caching",
+      "extracted_en_title": "Prompt Caching and Context Caching"
+    },
+    {
+      "lesson_folder": "16-langgraph-state-machines",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "LangGraph — Máy Trạng Thái cho Tác Vụ Tự Động",
+      "extracted_vi_en_part": "LangGraph — State Machines for Agents",
+      "extracted_en_title": "LangGraph — State Machines for Agents"
+    },
+    {
+      "lesson_folder": "17-agent-framework-tradeoffs",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "So Sánh Các Khung Tác Vụ Tự Động — LangGraph vs CrewAI vs AutoGen vs Agno",
+      "extracted_vi_en_part": "Agent Framework Tradeoffs",
+      "extracted_en_title": "Agent Framework Tradeoffs — LangGraph vs CrewAI vs AutoGen vs Agno"
+    }
+  ],
+  "12-multimodal-ai": [
+    {
+      "lesson_folder": "01-vision-transformer-patch-tokens",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Vision Transformers và Nguyên mẫu Patch-Token",
+      "extracted_vi_en_part": "Vision Transformers and the Patch-Token Primitive",
+      "extracted_en_title": "Vision Transformers and the Patch-Token Primitive"
+    },
+    {
+      "lesson_folder": "02-clip-contrastive-pretraining",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "CLIP và Tiền Huấn luyện Tương phản Đa phương tiện",
+      "extracted_vi_en_part": "CLIP and Contrastive Vision-Language Pretraining",
+      "extracted_en_title": "CLIP and Contrastive Vision-Language Pretraining"
+    },
+    {
+      "lesson_folder": "03-blip2-qformer-bridge",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Từ CLIP đến BLIP-2 — Q-Former đóng vai trò Cầu nối Đa phương thức",
+      "extracted_vi_en_part": "Q-Former as Modality Bridge",
+      "extracted_en_title": "From CLIP to BLIP-2 — Q-Former as Modality Bridge"
+    },
+    {
+      "lesson_folder": "04-flamingo-gated-cross-attention",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Flamingo và Cơ chế Chú ý Chéo có Cổng cho các Mô hình VLM Few-Shot",
+      "extracted_vi_en_part": "Flamingo and Gated Cross-Attention",
+      "extracted_en_title": "Flamingo and Gated Cross-Attention for Few-Shot VLMs"
+    },
+    {
+      "lesson_folder": "05-llava-visual-instruction-tuning",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "LLaVA và Tinh chỉnh Hướng dẫn Thị giác",
+      "extracted_vi_en_part": "LLaVA and Visual Instruction Tuning",
+      "extracted_en_title": "LLaVA and Visual Instruction Tuning"
+    },
+    {
+      "lesson_folder": "06-any-resolution-patch-n-pack",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Thị giác Mọi Độ phân giải: Patch-n'-Pack và NaFlex",
+      "extracted_vi_en_part": "Any-Resolution Vision",
+      "extracted_en_title": "Any-Resolution Vision: Patch-n'-Pack and NaFlex"
+    },
+    {
+      "lesson_folder": "07-open-weight-vlm-recipes",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Công thức Huấn luyện VLM Nguồn mở: Điều gì Thực sự Quan trọng",
+      "extracted_vi_en_part": "Open-Weight VLM Recipes",
+      "extracted_en_title": "Open-Weight VLM Recipes: What Actually Matters"
+    },
+    {
+      "lesson_folder": "08-llava-onevision-single-multi-video",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "LLaVA-OneVision: Ảnh đơn, Đa ảnh và Video trong Một Mô hình duy nhất",
+      "extracted_vi_en_part": "LLaVA-OneVision",
+      "extracted_en_title": "LLaVA-OneVision: Single-Image, Multi-Image, Video in One Model"
+    },
+    {
+      "lesson_folder": "09-qwen-vl-family-dynamic-fps",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Dòng mô hình Qwen-VL và Xử lý Video có FPS Động",
+      "extracted_vi_en_part": "Qwen-VL Family",
+      "extracted_en_title": "Qwen-VL Family and Dynamic-FPS Video"
+    },
+    {
+      "lesson_folder": "10-internvl3-native-multimodal",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "InternVL3: Huấn luyện Tiền đề Đa phương thức Tự nhiên",
+      "extracted_vi_en_part": "InternVL3",
+      "extracted_en_title": "InternVL3: Native Multimodal Pretraining"
+    },
+    {
+      "lesson_folder": "11-chameleon-early-fusion-tokens",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Chameleon và Mô hình Đa phương thức Hội tụ sớm dựa trên Token duy nhất",
+      "extracted_vi_en_part": "Chameleon",
+      "extracted_en_title": "Chameleon and Early-Fusion Token-Only Multimodal Models"
+    },
+    {
+      "lesson_folder": "12-emu3-next-token-for-generation",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Emu3: Dự đoán Token tiếp theo trong Sinh ảnh và Video",
+      "extracted_vi_en_part": "Emu3",
+      "extracted_en_title": "Emu3: Next-Token Prediction for Image and Video Generation"
+    },
+    {
+      "lesson_folder": "13-transfusion-autoregressive-diffusion",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Transfusion: Văn bản Tự hồi quy + Hình ảnh Khuếch tán trong Một Transformer duy nhất",
+      "extracted_vi_en_part": "Transfusion",
+      "extracted_en_title": "Transfusion: Autoregressive Text + Diffusion Image in One Transformer"
+    },
+    {
+      "lesson_folder": "14-show-o-discrete-diffusion-unified",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Show-o và Các Mô hình Thống nhất Khuếch tán Rời rạc",
+      "extracted_vi_en_part": "Show-o",
+      "extracted_en_title": "Show-o and Discrete-Diffusion Unified Models"
+    },
+    {
+      "lesson_folder": "15-janus-pro-decoupled-encoders",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Janus-Pro: Các bộ mã hóa Phân tách cho Mô hình Đa phương thức Thống nhất",
+      "extracted_vi_en_part": "Janus-Pro",
+      "extracted_en_title": "Janus-Pro: Decoupled Encoders for Unified Multimodal Models"
+    },
+    {
+      "lesson_folder": "16-mio-any-to-any-streaming",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "MIO và Mô hình Đa phương thức Truyền phát Bất kỳ-đến-Bất kỳ",
+      "extracted_vi_en_part": "MIO",
+      "extracted_en_title": "MIO and Any-to-Any Streaming Multimodal Models"
+    },
+    {
+      "lesson_folder": "17-video-language-temporal-grounding",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Mô hình Ngôn ngữ Video: Token Thời gian và Xác định Tọa độ Thời gian",
+      "extracted_vi_en_part": "Video Grounding",
+      "extracted_en_title": "Video-Language Models: Temporal Tokens and Grounding"
+    },
+    {
+      "lesson_folder": "18-long-video-million-token",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Hiểu Video dài ở Ngữ cảnh Hàng triệu Token",
+      "extracted_vi_en_part": "Long-Video Understanding",
+      "extracted_en_title": "Long-Video Understanding at Million-Token Context"
+    },
+    {
+      "lesson_folder": "19-audio-language-whisper-to-af3",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Mô hình Ngôn ngữ Âm thanh: Hành trình từ Whisper đến Audio Flamingo 3",
+      "extracted_vi_en_part": "Audio-Language Models",
+      "extracted_en_title": "Audio-Language Models: the Whisper to Audio Flamingo 3 Arc"
+    },
+    {
+      "lesson_folder": "20-omni-models-thinker-talker",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Mô hình Omni: Qwen2.5-Omni và Sự Phân tách Người tư duy - Người nói",
+      "extracted_vi_en_part": "Thinker-Talker",
+      "extracted_en_title": "Omni Models: Qwen2.5-Omni and the Thinker-Talker Split"
+    },
+    {
+      "lesson_folder": "21-embodied-vlas-openvla-pi0-groot",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Mô hình VLA Nhúng (Embodied VLAs): RT-2, OpenVLA, π0, GR00T",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Embodied VLAs: RT-2, OpenVLA, π0, GR00T"
+    },
+    {
+      "lesson_folder": "22-document-diagram-understanding",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Thấu hiểu Tài liệu và Sơ đồ",
+      "extracted_vi_en_part": "Document & Diagram Understanding",
+      "extracted_en_title": "Document and Diagram Understanding"
+    },
+    {
+      "lesson_folder": "23-colpali-vision-native-rag",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "ColPali và Mô hình RAG Thị giác Thống nhất",
+      "extracted_vi_en_part": "Vision-Native RAG",
+      "extracted_en_title": "ColPali and Vision-Native Document RAG"
+    },
+    {
+      "lesson_folder": "24-multimodal-rag-cross-modal",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "RAG Đa phương thức và Truy hồi Đa phương thức Chéo",
+      "extracted_vi_en_part": "Cross-Modal Retrieval",
+      "extracted_en_title": "Multimodal RAG and Cross-Modal Retrieval"
+    },
+    {
+      "lesson_folder": "25-multimodal-agents-computer-use",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Tác nhân Đa phương thức và Sử dụng Máy tính",
+      "extracted_vi_en_part": "Multimodal Agents & Computer-Use - Capstone Project",
+      "extracted_en_title": "Multimodal Agents and Computer-Use"
+    }
+  ],
+  "13-tools-and-protocols": [
+    {
+      "lesson_folder": "01-the-tool-interface",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Giao diện Công cụ — Tại sao các Tác nhân cần Vào/Ra có Cấu trúc",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "The Tool Interface — Why Agents Need Structured I/O"
+    },
+    {
+      "lesson_folder": "02-function-calling-deep-dive",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Đi sâu vào Gọi hàm — OpenAI, Anthropic, Gemini",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Function Calling Deep Dive — OpenAI, Anthropic, Gemini"
+    },
+    {
+      "lesson_folder": "03-parallel-and-streaming-tool-calls",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Gọi công cụ Song song và Truyền dòng với Công cụ",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Parallel Tool Calls and Streaming with Tools"
+    },
+    {
+      "lesson_folder": "04-structured-output",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Đầu ra có Cấu trúc — JSON Schema, Pydantic, Zod, Giải mã Ràng buộc",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Structured Output — JSON Schema, Pydantic, Zod, Constrained Decoding"
+    },
+    {
+      "lesson_folder": "05-tool-schema-design",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Thiết kế Lược đồ Công cụ — Đặt tên, Mô tả và Ràng buộc Tham số",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Tool Schema Design — Naming, Descriptions, Parameter Constraints"
+    },
+    {
+      "lesson_folder": "06-mcp-fundamentals",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Cơ bản về MCP — Các Nguyên mẫu, Vòng đời và Nền tảng JSON-RPC",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "MCP Fundamentals — Primitives, Lifecycle, JSON-RPC Base"
+    },
+    {
+      "lesson_folder": "07-building-an-mcp-server",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Xây dựng Máy chủ MCP — Các SDK Python và TypeScript",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Building an MCP Server — Python + TypeScript SDKs"
+    },
+    {
+      "lesson_folder": "08-building-an-mcp-client",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Xây dựng Máy khách MCP — Phát hiện, Kích hoạt chạy và Quản lý Phiên",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Building an MCP Client — Discovery, Invocation, Session Management"
+    },
+    {
+      "lesson_folder": "09-mcp-transports",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Các Kênh truyền MCP — stdio đối lập với Streamable HTTP và Di trú SSE",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "MCP Transports — stdio vs Streamable HTTP vs SSE Migration"
+    },
+    {
+      "lesson_folder": "10-mcp-resources-and-prompts",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Tài nguyên và Prompt mẫu của MCP — Phơi bày Ngữ cảnh Vượt ra ngoài Công cụ",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "MCP Resources and Prompts — Context Exposure Beyond Tools"
+    },
+    {
+      "lesson_folder": "11-mcp-sampling",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Cơ chế Lấy mẫu MCP — LLM sinh token theo Yêu cầu Máy chủ và Vòng lặp Tác nhân",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "MCP Sampling — Server-Requested LLM Completions and Agent Loops"
+    },
+    {
+      "lesson_folder": "12-mcp-roots-and-elicitation",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Roots và Gợi mở — Định giới hạn Phạm vi và Thu thập Đầu vào của Người dùng giữa chừng",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Roots and Elicitation — Scoping and Mid-Flight User Input"
+    },
+    {
+      "lesson_folder": "13-mcp-async-tasks",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Các Tác vụ Bất đồng bộ (SEP-1686) — Gọi ngay, Lấy sau cho Quy trình chạy dài hạn",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Async Tasks (SEP-1686) — Call-Now, Fetch-Later for Long-Running Work"
+    },
+    {
+      "lesson_folder": "14-mcp-apps",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Ứng dụng MCP — Các Tài nguyên Giao diện Tương tác qua `ui://`",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "MCP Apps — Interactive UI Resources via `ui://`"
+    },
+    {
+      "lesson_folder": "15-mcp-security-tool-poisoning",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Bảo mật MCP I — Đầu độc Công cụ, Rug Pulls, và Che khuất Máy chủ chéo",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "MCP Security I — Tool Poisoning, Rug Pulls, Cross-Server Shadowing"
+    },
+    {
+      "lesson_folder": "16-mcp-security-oauth-2-1",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Bảo mật MCP II — OAuth 2.1, Các Chỉ định Tài nguyên, và Phân quyền Tăng dần",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "MCP Security II — OAuth 2.1, Resource Indicators, Incremental Scopes"
+    },
+    {
+      "lesson_folder": "17-mcp-gateways-and-registries",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Các Cổng kết nối và Kho đăng ký MCP — Mặt phẳng Điều khiển cho Doanh nghiệp",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "MCP Gateways and Registries — Enterprise Control Planes"
+    },
+    {
+      "lesson_folder": "18-mcp-auth-production",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Xác thực MCP trong Production — DCR, Xoay vòng JWKS, và các Token ghim Đối tượng trên các Nguyên mẫu iii",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "MCP Auth in Production — DCR, JWKS Rotation, Audience-Pinned Tokens on iii Primitives"
+    },
+    {
+      "lesson_folder": "19-a2a-protocol",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "A2A — Giao thức Tác nhân tới Tác nhân",
+      "extracted_vi_en_part": "Agent-to-Agent Protocol",
+      "extracted_en_title": "A2A — Agent-to-Agent Protocol"
+    },
+    {
+      "lesson_folder": "20-opentelemetry-genai",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "OpenTelemetry GenAI — Giám sát các Cuộc gọi Công cụ Đầu-cuối",
+      "extracted_vi_en_part": "Tracing End-to-End",
+      "extracted_en_title": "OpenTelemetry GenAI — Tracing Tool Calls End-to-End"
+    },
+    {
+      "lesson_folder": "21-llm-routing-layer",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Tầng Định tuyến LLM — LiteLLM, OpenRouter, và Portkey",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "LLM Routing Layer — LiteLLM, OpenRouter, Portkey"
+    },
+    {
+      "lesson_folder": "22-skills-and-agent-sdks",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Các Kỹ năng và Bộ công cụ Phát triển Tác nhân AI — Anthropic Skills, AGENTS.md, và OpenAI Apps SDK",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Skills and Agent SDKs — Anthropic Skills, AGENTS.md, OpenAI Apps SDK"
+    },
+    {
+      "lesson_folder": "23-capstone-tool-ecosystem",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Bài tốt nghiệp — Xây dựng một Hệ sinh thái Công cụ hoàn chỉnh",
+      "extracted_vi_en_part": "Capstone",
+      "extracted_en_title": "Capstone — Build a Complete Tool Ecosystem"
+    }
+  ],
+  "14-agent-engineering": [
+    {
+      "lesson_folder": "01-the-agent-loop",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Vòng lặp Tác nhân (Agent Loop): Quan sát, Suy nghĩ, Hành động",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "The Agent Loop: Observe, Think, Act"
+    },
+    {
+      "lesson_folder": "02-rewoo-plan-and-execute",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "ReWOO và Plan-and-Execute: Lập kế hoạch tách biệt",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "ReWOO and Plan-and-Execute: Decoupled Planning"
+    },
+    {
+      "lesson_folder": "03-reflexion-verbal-rl",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Reflexion: Học tăng cường bằng ngôn ngữ tự nhiên",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Reflexion: Verbal Reinforcement Learning"
+    },
+    {
+      "lesson_folder": "04-tree-of-thoughts-lats",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Tree of Thoughts và LATS: Tìm kiếm cân nhắc",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Tree of Thoughts and LATS: Deliberate Search"
+    },
+    {
+      "lesson_folder": "05-self-refine-and-critic",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Self-Refine và CRITIC: Cải thiện đầu ra lặp",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Self-Refine and CRITIC: Iterative Output Improvement"
+    },
+    {
+      "lesson_folder": "06-tool-use-and-function-calling",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Sử dụng công cụ và Gọi hàm",
+      "extracted_vi_en_part": "Tool Use and Function Calling",
+      "extracted_en_title": "Tool Use and Function Calling"
+    },
+    {
+      "lesson_folder": "07-memory-virtual-context-memgpt",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Bộ nhớ: Ngữ cảnh ảo và MemGPT",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Memory: Virtual Context and MemGPT"
+    },
+    {
+      "lesson_folder": "08-memory-blocks-sleep-time-compute",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Các khối bộ nhớ và Tính toán trong thời gian nghỉ",
+      "extracted_vi_en_part": "Letta",
+      "extracted_en_title": "Memory Blocks and Sleep-Time Compute"
+    },
+    {
+      "lesson_folder": "09-hybrid-memory-mem0",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Bộ nhớ lai: Vector + Đồ thị + KV",
+      "extracted_vi_en_part": "Mem0",
+      "extracted_en_title": "Hybrid Memory: Vector + Graph + KV"
+    },
+    {
+      "lesson_folder": "10-skill-libraries-voyager",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Thư viện kỹ năng và Học tập trọn đời",
+      "extracted_vi_en_part": "Voyager",
+      "extracted_en_title": "Skill Libraries and Lifelong Learning"
+    },
+    {
+      "lesson_folder": "11-planning-htn-and-evolutionary",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Lập kế hoạch với HTN và Tìm kiếm tiến hóa",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Planning with HTN and Evolutionary Search"
+    },
+    {
+      "lesson_folder": "12-anthropic-workflow-patterns",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Các mẫu quy trình công việc của Anthropic: Đơn giản hơn phức tạp",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Anthropic's Workflow Patterns: Simple Over Complex"
+    },
+    {
+      "lesson_folder": "13-langgraph-stateful-graphs",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "LangGraph: Đồ thị quản lý trạng thái và Thực thi bền bỉ",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "LangGraph: Stateful Graphs and Durable Execution"
+    },
+    {
+      "lesson_folder": "14-autogen-actor-model",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "AutoGen v0.4: Mô hình Actor và Framework Tác nhân",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "AutoGen v0.4: Actor Model and Agent Framework"
+    },
+    {
+      "lesson_folder": "15-crewai-role-based-crews",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "CrewAI: Đội ngũ theo Vai trò và Quy trình Luồng",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "CrewAI: Role-Based Crews and Flows"
+    },
+    {
+      "lesson_folder": "16-openai-agents-sdk",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "OpenAI Agents SDK: Bàn giao, Rào bảo vệ, Giám sát",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "OpenAI Agents SDK: Handoffs, Guardrails, Tracing"
+    },
+    {
+      "lesson_folder": "17-claude-agent-sdk",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Claude Agent SDK: Tác nhân phụ và Kho lưu trữ phiên",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Claude Agent SDK: Subagents and Session Store"
+    },
+    {
+      "lesson_folder": "18-agno-and-mastra-runtimes",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Agno và Mastra: Các môi trường vận hành thực tế",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Agno and Mastra: Production Runtimes"
+    },
+    {
+      "lesson_folder": "19-benchmarks-swebench-gaia",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Các hệ thống đánh giá: SWE-bench, GAIA, AgentBench",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Benchmarks: SWE-bench, GAIA, AgentBench"
+    },
+    {
+      "lesson_folder": "20-benchmarks-webarena-osworld",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Các hệ thống đánh giá: WebArena và OSWorld",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Benchmarks: WebArena and OSWorld"
+    },
+    {
+      "lesson_folder": "21-computer-use-agents",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Điều khiển máy tính: Claude, OpenAI CUA, Gemini",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Computer Use: Claude, OpenAI CUA, Gemini"
+    },
+    {
+      "lesson_folder": "22-voice-agents-pipecat-livekit",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Voice Agents: Pipecat và LiveKit",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Voice Agents: Pipecat and LiveKit"
+    },
+    {
+      "lesson_folder": "23-otel-genai-conventions",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Quy ước ngữ nghĩa OpenTelemetry GenAI",
+      "extracted_vi_en_part": "OpenTelemetry GenAI Semantic Conventions",
+      "extracted_en_title": "OpenTelemetry GenAI Semantic Conventions"
+    },
+    {
+      "lesson_folder": "24-agent-observability-platforms",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Khả quan sát của Tác nhân (Agent Observability): Langfuse, Phoenix, Opik",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Agent Observability: Langfuse, Phoenix, Opik"
+    },
+    {
+      "lesson_folder": "25-multi-agent-debate",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Tranh luận và Hợp tác Đa tác nhân",
+      "extracted_vi_en_part": "Multi-Agent Debate and Collaboration",
+      "extracted_en_title": "Multi-Agent Debate and Collaboration"
+    },
+    {
+      "lesson_folder": "26-failure-modes-agentic",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Các mô hình Thất bại: Tại sao Tác nhân lại Hỏng",
+      "extracted_vi_en_part": "Failure Modes: Why Agents Break",
+      "extracted_en_title": "Failure Modes: Why Agents Break"
+    },
+    {
+      "lesson_folder": "27-prompt-injection-defense",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Tiêm mã độc Prompt (Prompt Injection) và Lớp phòng thủ PVE",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Prompt Injection and the PVE Defense"
+    },
+    {
+      "lesson_folder": "28-orchestration-patterns",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Các Mẫu Điều phối (Orchestration Patterns): Supervisor, Swarm, Hierarchical",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Orchestration Patterns: Supervisor, Swarm, Hierarchical"
+    },
+    {
+      "lesson_folder": "29-production-runtimes",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Môi trường chạy (Production Runtimes): Queue, Event, Cron",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Production Runtimes: Queue, Event, Cron"
+    },
+    {
+      "lesson_folder": "30-eval-driven-agent-development",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Phát triển Tác nhân theo Định hướng Đánh giá",
+      "extracted_vi_en_part": "Eval-Driven Agent Development",
+      "extracted_en_title": "Eval-Driven Agent Development"
+    },
+    {
+      "lesson_folder": "31-agent-workbench-why-models-fail",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Kỹ nghệ Agent Workbench: Vì sao các Mô hình Năng lực Cao vẫn Thất bại",
+      "extracted_vi_en_part": "Agent Workbench Engineering",
+      "extracted_en_title": "Agent Workbench Engineering: Why Capable Models Still Fail"
+    },
+    {
+      "lesson_folder": "32-minimal-agent-workbench",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Agent Workbench Tối giản",
+      "extracted_vi_en_part": "Minimal Agent Workbench",
+      "extracted_en_title": "The Minimal Agent Workbench"
+    },
+    {
+      "lesson_folder": "33-instructions-as-executable-constraints",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Hướng dẫn Tác nhân dạng Ràng buộc Thực thi",
+      "extracted_vi_en_part": "Executable Constraints",
+      "extracted_en_title": "Agent Instructions as Executable Constraints"
+    },
+    {
+      "lesson_folder": "34-repo-memory-and-state",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Bộ nhớ Repo và Trạng thái Bền vững",
+      "extracted_vi_en_part": "Repo Memory and Durable State",
+      "extracted_en_title": "Repo Memory and Durable State"
+    },
+    {
+      "lesson_folder": "35-initialization-scripts",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Các Kịch bản Khởi tạo (Initialization Scripts) cho Tác nhân",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Initialization Scripts for Agents"
+    },
+    {
+      "lesson_folder": "36-scope-contracts",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Hợp đồng Phạm vi (Scope Contracts) và Ranh giới Tác vụ",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Scope Contracts and Task Boundaries"
+    },
+    {
+      "lesson_folder": "37-runtime-feedback-loops",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Vòng lặp Phản hồi ở Runtime",
+      "extracted_vi_en_part": "Runtime Feedback Loops",
+      "extracted_en_title": "Runtime Feedback Loops"
+    },
+    {
+      "lesson_folder": "38-verification-gates",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Cổng Xác minh",
+      "extracted_vi_en_part": "Verification Gates",
+      "extracted_en_title": "Verification Gates"
+    },
+    {
+      "lesson_folder": "39-reviewer-agent",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Tác nhân Thẩm định",
+      "extracted_vi_en_part": "Reviewer Agent): Tách biệt Vai trò Xây dựng (Builder) và Kiểm duyệt (Reviewer",
+      "extracted_en_title": "Reviewer Agent: Separate Builder from Marker"
+    },
+    {
+      "lesson_folder": "40-multi-session-handoff",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Bàn giao Liên phiên",
+      "extracted_vi_en_part": "Multi-Session Handoff",
+      "extracted_en_title": "Multi-Session Handoff"
+    },
+    {
+      "lesson_folder": "41-workbench-for-real-repos",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Ứng dụng Workbench vào Kho mã nguồn Thực tế",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "The Workbench on a Real Repo"
+    },
+    {
+      "lesson_folder": "42-agent-workbench-capstone",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Khóa luận (Capstone): Đóng gói và Phát hành (Ship) bộ Agent Workbench Tái sử dụng",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Capstone: Ship a Reusable Agent Workbench Pack"
+    }
+  ],
+  "15-autonomous-systems": [
+    {
+      "lesson_folder": "01-long-horizon-agents",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Sự chuyển dịch từ Chatbot sang Tác nhân Dài hạn",
+      "extracted_vi_en_part": "Long-Horizon Agents",
+      "extracted_en_title": "The Shift from Chatbots to Long-Horizon Agents"
+    },
+    {
+      "lesson_folder": "02-star-family-reasoning",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "STaR, V-STaR, Quiet-STaR — Tự học Lý luận",
+      "extracted_vi_en_part": "Self-Taught Reasoning",
+      "extracted_en_title": "STaR, V-STaR, Quiet-STaR — Self-Taught Reasoning"
+    },
+    {
+      "lesson_folder": "03-alphaevolve-evolutionary-coding",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "AlphaEvolve — Tác nhân Lập trình Tiến hóa",
+      "extracted_vi_en_part": "Evolutionary Coding Agents",
+      "extracted_en_title": "AlphaEvolve — Evolutionary Coding Agents"
+    },
+    {
+      "lesson_folder": "04-darwin-godel-machine",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Darwin Godel Machine — Tác nhân Tự sửa đổi Kết thúc mở",
+      "extracted_vi_en_part": "Open-Ended Self-Modifying Agents",
+      "extracted_en_title": "Darwin Godel Machine — Open-Ended Self-Modifying Agents"
+    },
+    {
+      "lesson_folder": "05-ai-scientist-v2",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "AI Scientist v2 — Nghiên cứu Tự trị cấp độ Workshop",
+      "extracted_vi_en_part": "Workshop-Level Autonomous Research",
+      "extracted_en_title": "AI Scientist v2 — Workshop-Level Autonomous Research"
+    },
+    {
+      "lesson_folder": "06-automated-alignment-research",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Nghiên cứu Căn chỉnh Tự động",
+      "extracted_vi_en_part": "Automated Alignment Research - Anthropic AAR",
+      "extracted_en_title": "Automated Alignment Research"
+    },
+    {
+      "lesson_folder": "07-recursive-self-improvement",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Tự cải thiện Đệ quy (Recursive Self-Improvement) — Năng lực vs Căn chỉnh",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Recursive Self-Improvement — Capability vs Alignment"
+    },
+    {
+      "lesson_folder": "08-bounded-self-improvement",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Các thiết kế Tự cải thiện Có giới hạn",
+      "extracted_vi_en_part": "Bounded Self-Improvement Designs",
+      "extracted_en_title": "Bounded Self-Improvement Designs"
+    },
+    {
+      "lesson_folder": "09-coding-agent-landscape",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Bức tranh Tác nhân Lập trình Tự trị",
+      "extracted_vi_en_part": "The Autonomous Coding Agent Landscape 2026",
+      "extracted_en_title": "The Autonomous Coding Agent Landscape"
+    },
+    {
+      "lesson_folder": "10-claude-code-permission-modes",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Claude Code như một Tác nhân Tự trị: Các Chế độ Cấp quyền và Chế độ Tự động",
+      "extracted_vi_en_part": "Auto Mode",
+      "extracted_en_title": "Claude Code as an Autonomous Agent: Permission Modes and Auto Mode"
+    },
+    {
+      "lesson_folder": "11-browser-agents",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Tác nhân Trình duyệt và Các Tác vụ Web Dài hạn",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Browser Agents and Long-Horizon Web Tasks"
+    },
+    {
+      "lesson_folder": "12-durable-execution",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Các Tác nhân Chạy ngầm Dài hạn: Thực thi Bền bỉ",
+      "extracted_vi_en_part": "Durable Execution",
+      "extracted_en_title": "Long-Running Background Agents: Durable Execution"
+    },
+    {
+      "lesson_folder": "13-cost-governors",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Ngân sách Hành động, Giới hạn Vòng lặp và Bộ kiểm soát Chi phí",
+      "extracted_vi_en_part": "Cost Governors",
+      "extracted_en_title": "Action Budgets, Iteration Caps, and Cost Governors"
+    },
+    {
+      "lesson_folder": "14-kill-switches-canaries",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Công tắc Tiêu diệt, Cầu dao Điện và Token Cảnh báo",
+      "extracted_vi_en_part": "Kill Switches, Circuit Breakers, and Canary Tokens",
+      "extracted_en_title": "Kill Switches, Circuit Breakers, and Canary Tokens"
+    },
+    {
+      "lesson_folder": "15-propose-then-commit",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Human-in-the-Loop: Đề xuất-Rồi-Cam kết",
+      "extracted_vi_en_part": "Propose-Then-Commit",
+      "extracted_en_title": "Human-in-the-Loop: Propose-Then-Commit"
+    },
+    {
+      "lesson_folder": "16-checkpoints-rollback",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Điểm lưu và Hoàn tác",
+      "extracted_vi_en_part": "Checkpoints and Rollback",
+      "extracted_en_title": "Checkpoints and Rollback"
+    },
+    {
+      "lesson_folder": "17-constitutional-ai",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Trí tuệ Nhân tạo Hiến pháp và Việc Ghi đè Quy tắc",
+      "extracted_vi_en_part": "Constitutional AI and Rule Overrides",
+      "extracted_en_title": "Constitutional AI and Rule Overrides"
+    },
+    {
+      "lesson_folder": "18-llama-guard",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Llama Guard và Phân loại Đầu vào/Đầu ra",
+      "extracted_vi_en_part": "Llama Guard and Input/Output Classification",
+      "extracted_en_title": "Llama Guard and Input/Output Classification"
+    },
+    {
+      "lesson_folder": "19-anthropic-rsp",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Chính sách Mở rộng quy mô Có Trách nhiệm (RSP) v3.0 của Anthropic",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Anthropic Responsible Scaling Policy v3.0"
+    },
+    {
+      "lesson_folder": "20-openai-preparedness-deepmind-fsf",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Khung Chuẩn bị của OpenAI và Khung An toàn Tiên phong của DeepMind",
+      "extracted_vi_en_part": "OpenAI Preparedness Framework and DeepMind Frontier Safety Framework",
+      "extracted_en_title": "OpenAI Preparedness Framework and DeepMind Frontier Safety Framework"
+    },
+    {
+      "lesson_folder": "21-metr-external-evaluation",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Thời gian theo METR (Time Horizons) và Việc Đánh giá Năng lực từ Bên ngoài",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "METR Time Horizons and External Capability Evaluation"
+    },
+    {
+      "lesson_folder": "22-cais-caisi-societal-risk",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "CAIS, CAISI và Rủi ro Quy mô Xã hội",
+      "extracted_vi_en_part": "Societal-Scale Risk",
+      "extracted_en_title": "CAIS, CAISI, and Societal-Scale Risk"
+    }
+  ],
+  "16-multi-agent-and-swarms": [
+    {
+      "lesson_folder": "01-why-multi-agent",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Tại sao lại cần Đa tác nhân (Multi-Agent)?",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Why Multi-Agent?"
+    },
+    {
+      "lesson_folder": "02-fipa-acl-heritage",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Di sản của FIPA-ACL và Các Hành vi Ngôn ngữ",
+      "extracted_vi_en_part": "Speech Acts",
+      "extracted_en_title": "Heritage of FIPA-ACL and Speech Acts"
+    },
+    {
+      "lesson_folder": "03-communication-protocols",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Các Giao thức Giao tiếp",
+      "extracted_vi_en_part": "Communication Protocols",
+      "extracted_en_title": "Communication Protocols"
+    },
+    {
+      "lesson_folder": "04-primitive-model",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Mô hình Nguyên thủy của Đa Tác Nhân",
+      "extracted_vi_en_part": "The Multi-Agent Primitive Model",
+      "extracted_en_title": "The Multi-Agent Primitive Model"
+    },
+    {
+      "lesson_folder": "05-supervisor-orchestrator-pattern",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Supervisor / Orchestrator-Worker Pattern",
+      "extracted_vi_en_part": "Mẫu Người giám sát / Điều phối viên - Công nhân",
+      "extracted_en_title": "Supervisor / Orchestrator-Worker Pattern"
+    },
+    {
+      "lesson_folder": "06-hierarchical-architecture",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Kiến trúc Phân cấp (Hierarchical Architecture) và Kiểu lỗi của nó",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Hierarchical Architecture and Its Failure Mode"
+    },
+    {
+      "lesson_folder": "07-society-of-mind-debate",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Tâm trí Xã hội",
+      "extracted_vi_en_part": "Society of Mind) và Tranh luận Đa Tác nhân (Multi-Agent Debate",
+      "extracted_en_title": "Society of Mind and Multi-Agent Debate"
+    },
+    {
+      "lesson_folder": "08-role-specialization",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Chuyên môn hóa Vai trò (Role Specialization) — Planner, Critic, Executor, Verifier",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Role Specialization — Planner, Critic, Executor, Verifier"
+    },
+    {
+      "lesson_folder": "09-parallel-swarm-networks",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Kiến trúc Bầy đàn song song / Mạng lưới",
+      "extracted_vi_en_part": "Parallel / Swarm / Networked Architectures",
+      "extracted_en_title": "Parallel / Swarm / Networked Architectures"
+    },
+    {
+      "lesson_folder": "10-group-chat-speaker-selection",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Group Chat",
+      "extracted_vi_en_part": "Hội thoại nhóm) và Chọn người nói (Speaker Selection",
+      "extracted_en_title": "Group Chat and Speaker Selection"
+    },
+    {
+      "lesson_folder": "11-handoffs-and-routines",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Bàn giao và Thói quen (Handoffs and Routines) — Điều phối Phi trạng thái",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Handoffs and Routines — Stateless Orchestration"
+    },
+    {
+      "lesson_folder": "12-a2a-protocol",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "A2A — Giao thức Tác nhân - Tác nhân",
+      "extracted_vi_en_part": "The Agent-to-Agent Protocol",
+      "extracted_en_title": "A2A — The Agent-to-Agent Protocol"
+    },
+    {
+      "lesson_folder": "13-shared-memory-blackboard",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Bộ nhớ dùng chung và Mô hình Bảng đen",
+      "extracted_vi_en_part": "Shared Memory and Blackboard Patterns",
+      "extracted_en_title": "Shared Memory and Blackboard Patterns"
+    },
+    {
+      "lesson_folder": "14-consensus-and-bft",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Đồng thuận và Khả năng chịu lỗi Byzantine (BFT) cho Tác nhân",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Consensus and Byzantine Fault Tolerance for Agents"
+    },
+    {
+      "lesson_folder": "15-voting-debate-topology",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Bình chọn (Voting), Tự Nhất quán (Self-Consistency), và Cấu trúc hình học (Topology) của Tranh luận",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Voting, Self-Consistency, and Debate Topology"
+    },
+    {
+      "lesson_folder": "16-negotiation-bargaining",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Đàm phán và Thương lượng",
+      "extracted_vi_en_part": "Negotiation and Bargaining",
+      "extracted_en_title": "Negotiation and Bargaining"
+    },
+    {
+      "lesson_folder": "17-generative-agents-simulation",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Tác nhân Sinh mã",
+      "extracted_vi_en_part": "Generative Agents) và Mô phỏng Đột biến (Emergent Simulation",
+      "extracted_en_title": "Generative Agents and Emergent Simulation"
+    },
+    {
+      "lesson_folder": "18-theory-of-mind-coordination",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Lý thuyết Tâm trí",
+      "extracted_vi_en_part": "Theory of Mind) và Sự Phối hợp Đột biến (Emergent Coordination",
+      "extracted_en_title": "Theory of Mind and Emergent Coordination"
+    },
+    {
+      "lesson_folder": "19-swarm-optimization-pso-aco",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Tối ưu hóa Bầy đàn cho LLMs",
+      "extracted_vi_en_part": "Swarm Optimization - PSO, ACO",
+      "extracted_en_title": "Swarm Optimization for LLMs"
+    },
+    {
+      "lesson_folder": "20-marl-maddpg-qmix-mappo",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "MARL — MADDPG, QMIX, MAPPO",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "MARL — MADDPG, QMIX, MAPPO"
+    },
+    {
+      "lesson_folder": "21-agent-economies",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Nền Kinh tế Tác nhân (Agent Economies), Động lực Token và Danh tiếng",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Agent Economies, Token Incentives, Reputation"
+    },
+    {
+      "lesson_folder": "22-production-scaling-queues-checkpoints",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Quy mô Sản xuất",
+      "extracted_vi_en_part": "Production Scaling) — Hàng đợi, Điểm kiểm tra và Độ bền (Queues, Checkpoints, Durability",
+      "extracted_en_title": "Production Scaling — Queues, Checkpoints, Durability"
+    },
+    {
+      "lesson_folder": "23-failure-modes-mast-groupthink",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Điểm mù Hỏng hóc",
+      "extracted_vi_en_part": "Failure Modes) — MAST, Tư duy Tập thể (Groupthink), Hệ Sinh thái Đơn điệu (Monoculture) và Lỗi Bùng nổ Dây chuyền (Cascading Errors",
+      "extracted_en_title": "Failure Modes — MAST, Groupthink, Monoculture, Cascading Errors"
+    },
+    {
+      "lesson_folder": "24-evaluation-coordination-benchmarks",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Đánh giá và Các Bộ Đo kiểm Điều phối",
+      "extracted_vi_en_part": "Evaluation and Coordination Benchmarks",
+      "extracted_en_title": "Evaluation and Coordination Benchmarks"
+    },
+    {
+      "lesson_folder": "25-case-studies-2026-sota",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Nghiên cứu Điển hình và Công nghệ Tiên phong năm 2026",
+      "extracted_vi_en_part": "Case Studies and the 2026 State of the Art",
+      "extracted_en_title": "Case Studies and the 2026 State of the Art"
+    }
+  ],
+  "17-infrastructure-and-production": [
+    {
+      "lesson_folder": "01-managed-llm-platforms",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Các Nền tảng LLM Quản lý (Managed LLM Platforms) — Bedrock, Vertex AI, Azure OpenAI",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Managed LLM Platforms — Bedrock, Vertex AI, Azure OpenAI"
+    },
+    {
+      "lesson_folder": "02-inference-platform-economics",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Kinh tế học Nền tảng Suy luận (Inference Platform Economics) — Fireworks, Together, Baseten, Modal, Replicate, Anyscale",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Inference Platform Economics — Fireworks, Together, Baseten, Modal, Replicate, Anyscale"
+    },
+    {
+      "lesson_folder": "03-gpu-autoscaling-kubernetes",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Tự động Giãn nở GPU trên Kubernetes — Karpenter, KAI Scheduler, Gang Scheduling",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "GPU Autoscaling on Kubernetes — Karpenter, KAI Scheduler, Gang Scheduling"
+    },
+    {
+      "lesson_folder": "04-vllm-serving-internals",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Nội tạng vLLM Serving: PagedAttention, Continuous Batching, Chunked Prefill",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "vLLM Serving Internals: PagedAttention, Continuous Batching, Chunked Prefill"
+    },
+    {
+      "lesson_folder": "05-eagle3-speculative-decoding",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Giải mã Suy đoán EAGLE-3 trong Môi trường Sản xuất",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "EAGLE-3 Speculative Decoding in Production"
+    },
+    {
+      "lesson_folder": "06-sglang-radixattention",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "SGLang và RadixAttention cho các Luồng Công việc Nặng Tiền tố",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "SGLang and RadixAttention for Prefix-Heavy Workloads"
+    },
+    {
+      "lesson_folder": "07-tensorrt-llm-blackwell",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "TensorRT-LLM trên Blackwell với định dạng FP8 và NVFP4",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "TensorRT-LLM on Blackwell with FP8 and NVFP4"
+    },
+    {
+      "lesson_folder": "08-inference-metrics-goodput",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Các Chỉ số Suy luận (Inference Metrics) — TTFT, TPOT, ITL, Goodput, P99",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Inference Metrics — TTFT, TPOT, ITL, Goodput, P99"
+    },
+    {
+      "lesson_folder": "09-production-quantization",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Lượng tử hóa trong Sản xuất — AWQ, GPTQ, GGUF K-quants, FP8, MXFP4/NVFP4",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Production Quantization — AWQ, GPTQ, GGUF K-quants, FP8, MXFP4/NVFP4"
+    },
+    {
+      "lesson_folder": "10-cold-start-mitigation",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Giảm thiểu Khởi động Lạnh cho các Hệ thống LLM Không Máy chủ",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Cold Start Mitigation for Serverless LLMs"
+    },
+    {
+      "lesson_folder": "11-multi-region-kv-locality",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Phục vụ LLM Đa Vùng và Tính Cục bộ của Bộ đệm KV Cache",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Multi-Region LLM Serving and KV Cache Locality"
+    },
+    {
+      "lesson_folder": "12-edge-inference",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Suy luận trên Thiết bị Biên — Apple Neural Engine, Qualcomm Hexagon, WebGPU/WebLLM, Jetson",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Edge Inference — Apple Neural Engine, Qualcomm Hexagon, WebGPU/WebLLM, Jetson"
+    },
+    {
+      "lesson_folder": "13-llm-observability",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Lựa chọn Ngăn xếp Giám sát LLM",
+      "extracted_vi_en_part": "LLM Observability Stack Selection",
+      "extracted_en_title": "LLM Observability Stack Selection"
+    },
+    {
+      "lesson_folder": "14-prompt-semantic-caching",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Kinh tế học Bộ đệm Prompt Caching và Bộ đệm Ngữ nghĩa Semantic Caching",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Prompt Caching and Semantic Caching Economics"
+    },
+    {
+      "lesson_folder": "15-batch-apis",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "API Xử lý theo Lô — Mức Chiết khấu 50% Tiêu chuẩn Toàn Ngành",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Batch APIs — the 50% Discount as Industry Standard"
+    },
+    {
+      "lesson_folder": "16-model-routing",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Định tuyến Mô hình như một Công cụ Cốt lõi để Giảm thiểu Chi phí",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Model Routing as a Cost-Reduction Primitive"
+    },
+    {
+      "lesson_folder": "17-disaggregated-prefill-decode",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Phục vụ Tách biệt Prefill/Decode — NVIDIA Dynamo và llm-d",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Disaggregated Prefill/Decode — NVIDIA Dynamo and llm-d"
+    },
+    {
+      "lesson_folder": "18-vllm-production-stack-lmcache",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Ngăn xếp Vận hành vLLM kết hợp Giải phóng KV qua LMCache",
+      "extracted_vi_en_part": "vLLM Production Stack with LMCache KV Offloading",
+      "extracted_en_title": "vLLM Production Stack with LMCache KV Offloading"
+    },
+    {
+      "lesson_folder": "19-ai-gateways",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Cổng kết nối AI — LiteLLM, Portkey, Kong AI Gateway, Bifrost",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "AI Gateways — LiteLLM, Portkey, Kong AI Gateway, Bifrost"
+    },
+    {
+      "lesson_folder": "20-shadow-canary-progressive",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Lưu lượng Bóng tối Shadow Traffic, Triển khai Canary, và Triển khai Tăng dần cho LLM",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "Shadow Traffic, Canary Rollout, and Progressive Deployment for LLMs"
+    },
+    {
+      "lesson_folder": "21-ab-testing-llm-features",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Thử nghiệm A/B cho các Tính năng LLM — GrowthBook, Statsig, và Vấn nạn Trực giác",
+      "extracted_vi_en_part": "A/B Testing LLM Features — GrowthBook, Statsig, and the Vibes Problem",
+      "extracted_en_title": "A/B Testing LLM Features — GrowthBook, Statsig, and the Vibes Problem"
+    },
+    {
+      "lesson_folder": "22-load-testing-llm-apis",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Kiểm thử Tải cho các API LLM — Tại sao k6 và Locust có thể đưa ra kết quả sai lệch",
+      "extracted_vi_en_part": "Load Testing LLM APIs — Why k6 and Locust Lie",
+      "extracted_en_title": "Load Testing LLM APIs — Why k6 and Locust Lie"
+    },
+    {
+      "lesson_folder": "23-sre-for-ai",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "SRE cho Hệ thống AI — Xử lý Sự cố Đa Tác nhân, Tài liệu Vận hành dạng Mã nguồn, và Phát hiện Dự báo Trước",
+      "extracted_vi_en_part": null,
+      "extracted_en_title": "SRE for AI — Multi-Agent Incident Response, Runbooks, Predictive Detection"
+    },
+    {
+      "lesson_folder": "24-chaos-engineering-llm",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Kỹ thuật Hỗn loạn cho LLM Production",
+      "extracted_vi_en_part": "Chaos Engineering for LLM Production",
+      "extracted_en_title": "Chaos Engineering for LLM Production"
+    },
+    {
+      "lesson_folder": "25-security-secrets-audit",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Bảo mật — Secrets, Xoay vòng API Key, Nhật ký Kiểm toán, và Rào Bảo vệ",
+      "extracted_vi_en_part": "Security — Secrets, API Key Rotation, Audit Logs, Guardrails",
+      "extracted_en_title": "Security — Secrets, API Key Rotation, Audit Logs, Guardrails"
+    },
+    {
+      "lesson_folder": "26-compliance-frameworks",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Tuân thủ — SOC 2, HIPAA, GDPR, PCI-DSS, EU AI Act, ISO 42001",
+      "extracted_vi_en_part": "Compliance — SOC 2, HIPAA, GDPR, PCI-DSS, EU AI Act, ISO 42001",
+      "extracted_en_title": "Compliance — SOC 2, HIPAA, GDPR, PCI-DSS, EU AI Act, ISO 42001"
+    },
+    {
+      "lesson_folder": "27-finops-llms",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "FinOps cho LLMs — Kinh tế học Đơn vị và Phân bổ Chi phí Đa khách hàng",
+      "extracted_vi_en_part": "FinOps for LLMs — Unit Economics and Multi-Tenant Attribution",
+      "extracted_en_title": "FinOps for LLMs — Unit Economics and Multi-Tenant Attribution"
+    },
+    {
+      "lesson_folder": "28-self-hosted-serving-selection",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Lựa chọn Bộ Engine Suy luận Tự dựng — llama.cpp, Ollama, TGI, vLLM, SGLang",
+      "extracted_vi_en_part": "Self-Hosted Serving Selection — llama.cpp, Ollama, TGI, vLLM, SGLang",
+      "extracted_en_title": "Self-Hosted Serving Selection — llama.cpp, Ollama, TGI, vLLM, SGLang"
+    }
+  ],
+  "18-ethics-safety-alignment": [
+    {
+      "lesson_folder": "01-instruction-following-alignment-signal",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Khả năng Tuân thủ Chỉ dẫn như Tín hiệu Căn chỉnh",
+      "extracted_vi_en_part": "Instruction-Following as Alignment Signal",
+      "extracted_en_title": "Instruction-Following as Alignment Signal"
+    },
+    {
+      "lesson_folder": "02-reward-hacking-goodhart",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Hiện tượng Hacking Phần thưởng và Định luật Goodhart",
+      "extracted_vi_en_part": "Reward Hacking and Goodhart's Law",
+      "extracted_en_title": "Reward Hacking and Goodhart's Law"
+    },
+    {
+      "lesson_folder": "03-direct-preference-optimization-family",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Gia đình Thuật toán Tối ưu hóa Sở thích Trực tiếp",
+      "extracted_vi_en_part": "The Direct Preference Optimization Family",
+      "extracted_en_title": "The Direct Preference Optimization Family"
+    },
+    {
+      "lesson_folder": "04-sycophancy-rlhf-amplification",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Sự nịnh bợ như một cơ chế khuếch đại của RLHF",
+      "extracted_vi_en_part": "Sycophancy as RLHF Amplification",
+      "extracted_en_title": "Sycophancy as RLHF Amplification"
+    },
+    {
+      "lesson_folder": "05-constitutional-ai-rlaif",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "AI Hiến pháp và RLAIF",
+      "extracted_vi_en_part": "Constitutional AI and RLAIF",
+      "extracted_en_title": "Constitutional AI and RLAIF"
+    },
+    {
+      "lesson_folder": "06-mesa-optimization-deceptive-alignment",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Tối ưu hóa phân cấp và Căn chỉnh lừa dối",
+      "extracted_vi_en_part": "Mesa-Optimization and Deceptive Alignment",
+      "extracted_en_title": "Mesa-Optimization and Deceptive Alignment"
+    },
+    {
+      "lesson_folder": "07-sleeper-agents-persistent-deception",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Tác nhân ngủ ngầm — Sự lừa dối bền bỉ",
+      "extracted_vi_en_part": "Sleeper Agents — Persistent Deception",
+      "extracted_en_title": "Sleeper Agents — Persistent Deception"
+    },
+    {
+      "lesson_folder": "08-in-context-scheming-frontier-models",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Mưu đồ trong bối cảnh trên các mô hình biên",
+      "extracted_vi_en_part": "In-Context Scheming in Frontier Models",
+      "extracted_en_title": "In-Context Scheming in Frontier Models"
+    },
+    {
+      "lesson_folder": "09-alignment-faking",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Căn chỉnh giả vờ",
+      "extracted_vi_en_part": "Alignment Faking",
+      "extracted_en_title": "Alignment Faking"
+    },
+    {
+      "lesson_folder": "10-ai-control-subversion",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Kiểm Soát AI — An Toàn Bất Chấp Sự Phá Hoại",
+      "extracted_vi_en_part": "AI Control — Safety Despite Subversion",
+      "extracted_en_title": "AI Control — Safety Despite Subversion"
+    },
+    {
+      "lesson_folder": "11-scalable-oversight-weak-to-strong",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Giám Sát Có Thể Mở Rộng và Tổng Quát Hóa từ Yếu sang Mạnh",
+      "extracted_vi_en_part": "Scalable Oversight and Weak-to-Strong Generalization",
+      "extracted_en_title": "Scalable Oversight and Weak-to-Strong Generalization"
+    },
+    {
+      "lesson_folder": "12-red-teaming-pair-automated-attacks",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Kiểm Thử Đối Kháng: PAIR và các Phương Pháp Tấn Công Tự Động",
+      "extracted_vi_en_part": "Red-Teaming: PAIR and Automated Attacks",
+      "extracted_en_title": "Red-Teaming: PAIR and Automated Attacks"
+    },
+    {
+      "lesson_folder": "13-many-shot-jailbreaking",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Tấn Công Nhiều Lượt",
+      "extracted_vi_en_part": "Many-Shot Jailbreaking",
+      "extracted_en_title": "Many-Shot Jailbreaking"
+    },
+    {
+      "lesson_folder": "14-ascii-art-visual-jailbreaks",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Nghệ Thuật ASCII và Tấn Công Jailbreak Thị Giác",
+      "extracted_vi_en_part": "ASCII Art and Visual Jailbreaks",
+      "extracted_en_title": "ASCII Art and Visual Jailbreaks"
+    },
+    {
+      "lesson_folder": "15-indirect-prompt-injection",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Tấn Công Chèn Câu Lệnh Gián Tiếp — Bề Mặt Tấn Công Thực Chiến",
+      "extracted_vi_en_part": "Indirect Prompt Injection — Production Attack Surface",
+      "extracted_en_title": "Indirect Prompt Injection — Production Attack Surface"
+    },
+    {
+      "lesson_folder": "16-red-team-tooling-garak-llamaguard-pyrit",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Bộ Công Cụ Kiểm Thử Đối Kháng — Garak, Llama Guard, PyRIT",
+      "extracted_vi_en_part": "Red-Team Tooling — Garak, Llama Guard, PyRIT",
+      "extracted_en_title": "Red-Team Tooling — Garak, Llama Guard, PyRIT"
+    },
+    {
+      "lesson_folder": "17-wmdp-dual-use-evaluation",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "WMDP và Kiểm Toán Năng Lực Lưỡng Dụng",
+      "extracted_vi_en_part": "WMDP and Dual-Use Capability Evaluation",
+      "extracted_en_title": "WMDP and Dual-Use Capability Evaluation"
+    },
+    {
+      "lesson_folder": "18-frontier-safety-frameworks-rsp-pf-fsf",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Khung An Toàn Biên Giới — RSP, PF, FSF",
+      "extracted_vi_en_part": "Frontier Safety Frameworks — RSP, PF, FSF",
+      "extracted_en_title": "Frontier Safety Frameworks — RSP, PF, FSF"
+    },
+    {
+      "lesson_folder": "19-model-welfare-research",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Chương Trình Phúc Lợi Mô Hình của Anthropic",
+      "extracted_vi_en_part": "Anthropic's Model Welfare Program",
+      "extracted_en_title": "Anthropic's Model Welfare Program"
+    },
+    {
+      "lesson_folder": "20-bias-representational-harm",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Định Kiến và Hiểm Họa Biểu Diễn trong LLMs",
+      "extracted_vi_en_part": "Bias and Representational Harm in LLMs",
+      "extracted_en_title": "Bias and Representational Harm in LLMs"
+    },
+    {
+      "lesson_folder": "21-fairness-criteria-group-individual-counterfactual",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Tiêu Chí Công Bằng — Nhóm, Cá Nhân, Đối Chứng",
+      "extracted_vi_en_part": "Fairness Criteria — Group, Individual, Counterfactual",
+      "extracted_en_title": "Fairness Criteria — Group, Individual, Counterfactual"
+    },
+    {
+      "lesson_folder": "22-differential-privacy-for-llms",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Bảo Mật Vi Phân trong LLMs",
+      "extracted_vi_en_part": "Differential Privacy for LLMs",
+      "extracted_en_title": "Differential Privacy for LLMs"
+    },
+    {
+      "lesson_folder": "23-watermarking-synthid-stable-signature-c2pa",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Đóng Dấu Bản Quyền — SynthID, Stable Signature, C2PA",
+      "extracted_vi_en_part": "Watermarking — SynthID, Stable Signature, C2PA",
+      "extracted_en_title": "Watermarking — SynthID, Stable Signature, C2PA"
+    },
+    {
+      "lesson_folder": "24-regulatory-frameworks-eu-us-uk-korea",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Khung Pháp Lý và Quản Trị AI — EU, US, UK, Hàn Quốc",
+      "extracted_vi_en_part": "Regulatory Frameworks — EU, US, UK, Korea",
+      "extracted_en_title": "Regulatory Frameworks — EU, US, UK, Korea"
+    },
+    {
+      "lesson_folder": "25-echoleak-cves-for-ai",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "EchoLeak và Sự Trỗi Dậy của CVEs cho AI",
+      "extracted_vi_en_part": "EchoLeak and the Emergence of CVEs for AI",
+      "extracted_en_title": "EchoLeak and the Emergence of CVEs for AI"
+    },
+    {
+      "lesson_folder": "26-model-system-dataset-cards",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Thẻ Mô Hình, Hệ Thống và Dữ Liệu",
+      "extracted_vi_en_part": "Model, System, and Dataset Cards",
+      "extracted_en_title": "Model, System, and Dataset Cards"
+    },
+    {
+      "lesson_folder": "27-data-provenance-training-governance",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Nguồn Gốc Dữ Liệu và Quản Trị Dữ Liệu Huấn Luyện",
+      "extracted_vi_en_part": "Data Provenance and Training-Data Governance",
+      "extracted_en_title": "Data Provenance and Training-Data Governance"
+    },
+    {
+      "lesson_folder": "28-alignment-research-ecosystem",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Hệ Sinh Thái Nghiên Cứu Căn Chỉnh — MATS, Redwood, Apollo, METR",
+      "extracted_vi_en_part": "Alignment Research Ecosystem",
+      "extracted_en_title": "Alignment Research Ecosystem — MATS, Redwood, Apollo, METR"
+    },
+    {
+      "lesson_folder": "29-moderation-systems-openai-perspective-llamaguard",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Hệ Thống Kiểm Duyệt — OpenAI, Perspective, Llama Guard",
+      "extracted_vi_en_part": "Moderation Systems",
+      "extracted_en_title": "Moderation Systems — OpenAI, Perspective, Llama Guard"
+    },
+    {
+      "lesson_folder": "30-dual-use-risk-cyber-bio-chem-nuclear",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Rủi Ro Lưỡng Dụng — Năng Lực Tấn Công Mạng, Sinh, Hóa, Hạt Nhân",
+      "extracted_vi_en_part": "Dual-Use Risk — Cyber, Bio, Chem, Nuclear Uplift",
+      "extracted_en_title": "Dual-Use Risk — Cyber, Bio, Chem, Nuclear Uplift"
+    }
+  ],
+  "19-capstone-projects": [
+    {
+      "lesson_folder": "01-terminal-native-coding-agent",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Capstone 01 — Terminal-Native Coding Agent",
+      "extracted_vi_en_part": "Tác nhân lập trình tích hợp terminal",
+      "extracted_en_title": "Capstone 01 — Terminal-Native Coding Agent"
+    },
+    {
+      "lesson_folder": "02-rag-over-codebase",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Capstone 02 — RAG over Codebase",
+      "extracted_vi_en_part": "Cross-Repo Semantic Search - RAG trên hệ thống mã nguồn",
+      "extracted_en_title": "Capstone 02 — RAG over Codebase"
+    },
+    {
+      "lesson_folder": "03-realtime-voice-assistant",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Capstone 03 — Real-Time Voice Assistant",
+      "extracted_vi_en_part": "Trợ lý giọng nói thời gian thực: ASR -> LLM -> TTS",
+      "extracted_en_title": "Capstone 03 — Real-Time Voice Assistant"
+    },
+    {
+      "lesson_folder": "04-multimodal-document-qa",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Capstone 04 — Multimodal Document QA",
+      "extracted_vi_en_part": "Hỏi đáp tài liệu đa phương thức: Vision-First PDF, Bảng biểu, Biểu đồ",
+      "extracted_en_title": "Capstone 04 — Multimodal Document QA"
+    },
+    {
+      "lesson_folder": "05-autonomous-research-agent",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Capstone 05 — Autonomous Research Agent",
+      "extracted_vi_en_part": "Tác nhân nghiên cứu khoa học tự chủ dòng AI-Scientist",
+      "extracted_en_title": "Capstone 05 — Autonomous Research Agent"
+    },
+    {
+      "lesson_folder": "06-devops-troubleshooting-agent",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Capstone 06 — DevOps Troubleshooting Agent for Kubernetes",
+      "extracted_vi_en_part": "Tác nhân tự động chẩn đoán và khắc phục sự cố DevOps cho Kubernetes",
+      "extracted_en_title": "Capstone 06 — DevOps Troubleshooting Agent for Kubernetes"
+    },
+    {
+      "lesson_folder": "07-end-to-end-fine-tuning-pipeline",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Capstone 07 — End-to-End Fine-Tuning Pipeline",
+      "extracted_vi_en_part": "Đường ống tinh chỉnh mô hình khép kín: Từ xử lý dữ liệu, huấn luyện SFT, DPO đến triển khai",
+      "extracted_en_title": "Capstone 07 — End-to-End Fine-Tuning Pipeline"
+    },
+    {
+      "lesson_folder": "08-production-rag-chatbot",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Capstone 08 — Production RAG Chatbot for a Regulated Vertical",
+      "extracted_vi_en_part": "Hệ thống RAG Chatbot doanh nghiệp thực tế cho các lĩnh vực được kiểm soát nghiêm ngặt",
+      "extracted_en_title": "Capstone 08 — Production RAG Chatbot for a Regulated Vertical"
+    },
+    {
+      "lesson_folder": "09-code-migration-agent",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Capstone 09 — Code Migration Agent",
+      "extracted_vi_en_part": "Tác nhân tự động di trú và nâng cấp mã nguồn quy mô lớn",
+      "extracted_en_title": "Capstone 09 — Code Migration Agent"
+    },
+    {
+      "lesson_folder": "10-multi-agent-software-team",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Capstone 10 — Multi-Agent Software Engineering Team",
+      "extracted_vi_en_part": "Đội ngũ kỹ sư phần mềm đa tác nhân tự động",
+      "extracted_en_title": "Capstone 10 — Multi-Agent Software Engineering Team"
+    },
+    {
+      "lesson_folder": "11-llm-observability-dashboard",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Capstone 11 — LLM Observability & Eval Dashboard",
+      "extracted_vi_en_part": "Bảng điều khiển giám sát khả năng quan sát và đánh giá hệ thống LLM",
+      "extracted_en_title": "Capstone 11 — LLM Observability & Eval Dashboard"
+    },
+    {
+      "lesson_folder": "12-video-understanding-pipeline",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Capstone 12 — Video Understanding Pipeline",
+      "extracted_vi_en_part": "Đường ống xử lý tự động phân tích và hiểu video quy mô lớn",
+      "extracted_en_title": "Capstone 12 — Video Understanding Pipeline"
+    },
+    {
+      "lesson_folder": "13-mcp-server-with-registry",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Capstone 13 — MCP Server with Registry and Governance",
+      "extracted_vi_en_part": "Hệ thống máy chủ MCP tích hợp cơ chế đăng ký và quản trị an toàn",
+      "extracted_en_title": "Capstone 13 — MCP Server with Registry and Governance"
+    },
+    {
+      "lesson_folder": "14-speculative-decoding-server",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Capstone 14 — Speculative-Decoding Inference Server",
+      "extracted_vi_en_part": "Máy chủ phục vụ suy luận hiệu năng cao sử dụng kỹ thuật giải mã suy đoán",
+      "extracted_en_title": "Capstone 14 — Speculative-Decoding Inference Server"
+    },
+    {
+      "lesson_folder": "15-constitutional-safety-harness",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Capstone 15 — Constitutional Safety Harness + Red-Team Range",
+      "extracted_vi_en_part": "Khung gác cổng bảo mật an toàn hiến pháp + Trường bắn Red-Team đối kháng",
+      "extracted_en_title": "Capstone 15 — Constitutional Safety Harness + Red-Team Range"
+    },
+    {
+      "lesson_folder": "16-github-issue-to-pr-agent",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Capstone 16 — GitHub Issue-to-PR Autonomous Agent",
+      "extracted_vi_en_part": "Tác nhân tự trị tự động giải quyết GitHub Issue thành Pull Request hoàn chỉnh",
+      "extracted_en_title": "Capstone 16 — GitHub Issue-to-PR Autonomous Agent"
+    },
+    {
+      "lesson_folder": "17-personal-ai-tutor",
+      "vi_path_exists": true,
+      "en_path_exists": true,
+      "extracted_vi_title": "Capstone 17 — Personal AI Tutor",
+      "extracted_vi_en_part": "Hệ thống Tác nhân Gia sư AI Cá nhân hóa: Thích ứng, Đa phương thức và Tích hợp Bộ nhớ dài hạn",
+      "extracted_en_title": "Capstone 17 — Personal AI Tutor"
+    }
+  ]
+}

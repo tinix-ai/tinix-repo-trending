@@ -1,0 +1,533 @@
+{
+  "c:\\Users\\vutm\\Desktop\\workspace\\tinix-r2ai-roadmap\\phases\\01-math-foundations\\14-norms-and-distances\\docs\\vi.md": [
+    {
+      "term": "thớt",
+      "line_number": 53,
+      "line_content": "- L1 (Lasso) thúc đẩy sự thưa thớt (sparsity), giúp loại bỏ các đặc trưng không quan trọng (trọng số về đúng bằng 0)."
+    }
+  ],
+  "c:\\Users\\vutm\\Desktop\\workspace\\tinix-r2ai-roadmap\\phases\\01-math-foundations\\18-convex-optimization\\docs\\vi.md": [
+    {
+      "term": "thớt",
+      "line_number": 71,
+      "line_content": "2. Giải bài toán tối ưu hóa ràng buộc L1 (LASSO) để thấy tại sao nó tạo ra các trọng số bằng đúng số 0 (tính thưa thớt - sparsity)."
+    }
+  ],
+  "c:\\Users\\vutm\\Desktop\\workspace\\tinix-r2ai-roadmap\\phases\\02-ml-fundamentals\\05-support-vector-machines\\docs\\vi.md": [
+    {
+      "term": "thớt",
+      "line_number": 43,
+      "line_content": "Đây là lý do SVM có tính chất \"thưa thớt\" (sparse): chỉ những điểm vi phạm lề mới đóng góp vào việc điều chỉnh mô hình."
+    }
+  ],
+  "c:\\Users\\vutm\\Desktop\\workspace\\tinix-r2ai-roadmap\\phases\\02-ml-fundamentals\\07-unsupervised-learning\\docs\\vi.md": [
+    {
+      "term": "thớt",
+      "line_number": 35,
+      "line_content": "- Không cần biết trước K. Nó tìm các cụm là những vùng có mật độ điểm cao, ngăn cách bởi các vùng thưa thớt."
+    }
+  ],
+  "c:\\Users\\vutm\\Desktop\\workspace\\tinix-r2ai-roadmap\\phases\\02-ml-fundamentals\\14-naive-bayes\\docs\\vi.md": [
+    {
+      "term": "thớt",
+      "line_number": 15,
+      "line_content": "- Đánh giá Naive Bayes so với Logistic Regression trên dữ liệu thưa thớt, chiều cao (high-dimensional sparse data)."
+    }
+  ],
+  "c:\\Users\\vutm\\Desktop\\workspace\\tinix-r2ai-roadmap\\phases\\02-ml-fundamentals\\16-anomaly-detection\\docs\\vi.md": [
+    {
+      "term": "thớt",
+      "line_number": 51,
+      "line_content": "So sánh mật độ xung quanh một điểm với mật độ của các điểm lân trang nó. Một điểm nằm trong vùng thưa thớt nhưng lại gần các vùng đậm đặc thì thường là điểm bất thường."
+    }
+  ],
+  "c:\\Users\\vutm\\Desktop\\workspace\\tinix-r2ai-roadmap\\phases\\02-ml-fundamentals\\18-feature-selection\\docs\\vi.md": [
+    {
+      "term": "thớt",
+      "line_number": 22,
+      "line_content": "Đây chính là \"lời nguyền đa chiều\" (curse of dimensionality). Khi số lượng đặc trưng tăng lên, không gian dữ liệu bùng nổ, các điểm dữ liệu trở nên thưa thớt và nhiễu bắt đầu lấn át tín hiệu. Lựa chọn đặc trưng là cách để loại bỏ nhiễu, giảm sự dư thừa và chỉ giữ lại những gì thực sự có giá trị."
+    }
+  ],
+  "c:\\Users\\vutm\\Desktop\\workspace\\tinix-r2ai-roadmap\\phases\\04-computer-vision\\05-transfer-learning\\docs\\vi.md": [
+    {
+      "term": "đóng băng",
+      "line_number": 26,
+      "line_content": "- **Trích xuất đặc trưng (Feature Extraction)**: Đóng băng (freeze) toàn bộ xương sống, chỉ huấn luyện phần đầu phân loại mới. Dùng khi dữ liệu rất ít (< 1.000 ảnh)."
+    },
+    {
+      "term": "đóng băng",
+      "line_number": 32,
+      "line_content": "| Rất ít (< 1k)      | Gần với ImageNet          | Đóng băng xương sống, chỉ luyện phần đầu |"
+    },
+    {
+      "term": "đóng băng",
+      "line_number": 33,
+      "line_content": "| Trung bình (1k-10k)| Gần                       | Đóng băng các lớp đầu, tinh chỉnh các lớp sau |"
+    },
+    {
+      "term": "đóng băng",
+      "line_number": 41,
+      "line_content": "BatchNorm lưu giữ các thông số thống kê (`mean`, `var`) từ ImageNet. Nếu dữ liệu của bạn có phân phối khác (ví dụ ảnh y tế đen trắng), những thông số này sẽ sai. Bạn cần quyết định nên tiếp tục cập nhật chúng hay đóng băng chúng ở chế độ `eval`."
+    },
+    {
+      "term": "đóng băng",
+      "line_number": 51,
+      "line_content": "### Bước 2: Đóng băng trọng số và thay thế phần đầu"
+    },
+    {
+      "term": "đóng băng",
+      "line_number": 61,
+      "line_content": "Xây dựng quy trình: nạp mô hình -> đóng băng/mở băng -> huấn luyện với LR phân biệt -> đánh giá độ chính xác (so sánh giữa việc chỉ luyện phần đầu và luyện toàn bộ)."
+    },
+    {
+      "term": "đóng băng",
+      "line_number": 75,
+      "line_content": "| Frozen Layers | Các lớp bị đóng băng - Các lớp không cập nhật trọng số trong quá trình huấn luyện. |"
+    }
+  ],
+  "c:\\Users\\vutm\\Desktop\\workspace\\tinix-r2ai-roadmap\\phases\\04-computer-vision\\08-instance-segmentation-mask-rcnn\\docs\\vi.md": [
+    {
+      "term": "đóng băng",
+      "line_number": 15,
+      "line_content": "- Tinh chỉnh (fine-tune) Mask R-CNN trên một tập dữ liệu nhỏ bằng cách thay thế các phần đầu dự báo và đóng băng xương sống."
+    },
+    {
+      "term": "đóng băng",
+      "line_number": 58,
+      "line_content": "### Bước 4: Đóng băng xương sống (Backbone)"
+    }
+  ],
+  "c:\\Users\\vutm\\Desktop\\workspace\\tinix-r2ai-roadmap\\phases\\04-computer-vision\\17-self-supervised-vision\\docs\\vi.md": [
+    {
+      "term": "đóng băng",
+      "line_number": 37,
+      "line_content": "Sau khi huấn luyện tự giám sát, cách tốt nhất để đo chất lượng là \"đóng băng\" toàn bộ mạng và chỉ huấn luyện một lớp phân loại tuyến tính đơn giản ở cuối. Nếu lớp này đạt kết quả tốt, chứng tỏ các đặc trưng mà mạng tự học được là cực kỳ chất lượng."
+    }
+  ],
+  "c:\\Users\\vutm\\Desktop\\workspace\\tinix-r2ai-roadmap\\phases\\05-nlp-foundations-to-advanced\\22-embedding-models-deep-dive\\docs\\vi.md": [
+    {
+      "term": "thớt",
+      "line_number": 3,
+      "line_content": "> Word2Vec cho bạn một vector mỗi từ. Các mô hình embedding hiện đại cho bạn một vector mỗi đoạn văn, đa ngôn ngữ, với các góc nhìn thưa thớt (sparse), dày đặc (dense) và đa vector (multi-vector). Chọn sai mô hình embedding là nguyên nhân hàng đầu khiến hệ thống RAG của bạn trả về kết quả sai."
+    },
+    {
+      "term": "thớt",
+      "line_number": 15,
+      "line_content": "1. **Dày đặc (Dense) vs Thưa thớt (Sparse) vs Đa vector (Multi-vector)**."
+    },
+    {
+      "term": "thớt",
+      "line_number": 25,
+      "line_content": "- **Sparse (Thưa thớt)**: Giống như một bộ đếm từ thông minh. Rất giỏi trong việc tìm kiếm theo từ khóa chính xác."
+    },
+    {
+      "term": "thớt",
+      "line_number": 43,
+      "line_content": "| Sparse Embedding | Embedding thưa thớt - Tập trung vào các từ khóa quan trọng trong văn bản. |"
+    }
+  ],
+  "c:\\Users\\vutm\\Desktop\\workspace\\tinix-r2ai-roadmap\\phases\\06-speech-and-audio\\05-whisper-architecture-finetuning\\docs\\vi.md": [
+    {
+      "term": "đóng băng",
+      "line_number": 43,
+      "line_content": "Khi cần dạy Whisper học từ vựng Y tế hoặc tiếng địa phương, không ai huấn luyện lại toàn bộ. Cách chuẩn nhất năm 2026 là dùng **LoRA**: chỉ huấn luyện các lớp attention (`q_proj`, `k_proj`, `v_proj`). Đóng băng Encoder. Phương pháp này giảm lượng RAM cần thiết đi 4 lần và có thể giảm WER từ 12% xuống còn 4.5% chỉ với 20 giờ âm thanh dữ liệu y tế."
+    }
+  ],
+  "c:\\Users\\vutm\\Desktop\\workspace\\tinix-r2ai-roadmap\\phases\\06-speech-and-audio\\10-audio-language-models\\docs\\vi.md": [
+    {
+      "term": "đóng băng",
+      "line_number": 29,
+      "line_content": "- **Giai đoạn 1:** Đóng băng Encoder + LLM; chỉ huấn luyện Cầu nối trên dữ liệu ASR (âm thanh → văn bản)."
+    }
+  ],
+  "c:\\Users\\vutm\\Desktop\\workspace\\tinix-r2ai-roadmap\\phases\\07-transformers-deep-dive\\06-bert-masked-language-modeling\\docs\\vi.md": [
+    {
+      "term": "đóng băng",
+      "line_number": 99,
+      "line_content": "Thay thế đầu MLM bằng một classifier head nhỏ để giải quyết bài toán phân tích cảm xúc giả lập. Trong quá trình này, bộ mã hóa (encoder) được đóng băng hoàn toàn (frozen), chỉ có các tham số của đầu phân loại mới được huấn luyện. Đây là quy trình chuẩn mực được mọi ứng dụng BERT áp dụng."
+    }
+  ],
+  "c:\\Users\\vutm\\Desktop\\workspace\\tinix-r2ai-roadmap\\phases\\07-transformers-deep-dive\\09-vision-transformers\\docs\\vi.md": [
+    {
+      "term": "đóng băng",
+      "line_number": 116,
+      "line_content": "**DINOv2 embedding là tiêu chuẩn mặc định cho đặc trưng ảnh năm 2026.** Đóng băng xương sống (freeze backbone) DINOv2 và chỉ huấn luyện một đầu classifier head nhỏ phía trên. Phương pháp này hoạt động cực tốt cho mọi bài toán phân loại, tìm kiếm ảnh tương đồng, phát hiện vật thể và sinh mô tả ảnh. Thử nghiệm thực tế của Meta cho thấy DINOv2 vượt trội CLIP ở mọi tác vụ thị giác thuần túy (không chứa dữ liệu văn bản)."
+    }
+  ],
+  "c:\\Users\\vutm\\Desktop\\workspace\\tinix-r2ai-roadmap\\phases\\07-transformers-deep-dive\\11-mixture-of-experts\\docs\\vi.md": [
+    {
+      "term": "thớt",
+      "line_number": 3,
+      "line_content": "> Một mô hình Transformer dày đặc (dense) 70B kích hoạt toàn bộ 70 tỷ tham số cho mỗi token. Một mô hình MoE 671B chỉ cần kích hoạt 37 tỷ tham số cho mỗi token nhưng lại đè bẹp mô hình dense trên mọi bảng xếp hạng. Tính thưa thớt (sparsity) chính là ý tưởng mở rộng quy mô (scaling) quan trọng nhất trong thập kỷ này."
+    },
+    {
+      "term": "thớt",
+      "line_number": 149,
+      "line_content": "| Sparsity | Tính thưa thớt - Thuộc tính toán học chỉ ra tỉ lệ tham số hoạt động thực tế cực nhỏ so với tổng dung lượng mô hình. |"
+    }
+  ],
+  "c:\\Users\\vutm\\Desktop\\workspace\\tinix-r2ai-roadmap\\phases\\07-transformers-deep-dive\\15-attention-variants\\docs\\vi.md": [
+    {
+      "term": "thớt",
+      "line_number": 48,
+      "line_content": "Thiết lập trước một cấu trúc thưa thớt (sparsity pattern) trên ma trận kích thước $N \\times N$. Ba hình dáng kinh điển bao gồm:"
+    }
+  ],
+  "c:\\Users\\vutm\\Desktop\\workspace\\tinix-r2ai-roadmap\\phases\\08-generative-ai\\05-stylegan\\docs\\vi.md": [
+    {
+      "term": "đóng băng",
+      "line_number": 54,
+      "line_content": "Vào năm 2026, StyleGAN3 vẫn là sự lựa chọn số một cho: (a) sinh ảnh siêu thực miền hẹp với tốc độ FPS cực cao, (b) thích ứng miền dữ liệu ít mẫu (huấn luyện trên tập dữ liệu mới chỉ có 100 ảnh bằng cách đóng băng mạng ánh xạ và chỉ học mạng tổng hợp), (c) chỉnh sửa ảnh dựa trên đảo ngược mã ẩn (tìm mã $w$ tái dựng lại ảnh chụp thực tế, sau đó trượt mã $w$ để thay đổi thuộc tính). Đối với bài toán sinh ảnh từ văn bản mở, mô hình khuếch tán mới là công cụ phù hợp."
+    }
+  ],
+  "c:\\Users\\vutm\\Desktop\\workspace\\tinix-r2ai-roadmap\\phases\\08-generative-ai\\07-latent-diffusion-stable-diffusion\\docs\\vi.md": [
+    {
+      "term": "đóng băng",
+      "line_number": 14,
+      "line_content": "Phần lớn năng lượng FLOPs đó bị tiêu tốn một cách vô ích cho việc bắt mạng nơ-ron phải xử lý các chi tiết tần số cao không quan trọng về mặt cảm nhận thị giác — như các kết cấu da hay vân bề mặt siêu nhỏ mà một mạng nơ-ron nén VAE có thể dễ dàng lược bỏ. Ý tưởng đột phá của Rombach: huấn luyện một mạng VAE từ trước (gọi là **Stage 1**), đóng băng trọng số của nó, và chạy toàn bộ quy trình khuếch tán bên trong không gian ẩn 4 kênh kích thước $64 \\times 64$ (gọi là **Stage 2**). Vẫn mạng U-Net đó, nhưng số lượng pixel giảm xuống còn $1/16$. Chi phí tính toán FLOPs giảm đi khoảng 64 lần trong khi chất lượng hình ảnh sinh ra hoàn toàn tương đương."
+    },
+    {
+      "term": "đóng băng",
+      "line_number": 29,
+      "line_content": "- **Bộ mã hóa văn bản đóng băng (Frozen text encoder):** CLIP-L cho SD 1.x, CLIP-L kết hợp OpenCLIP-G cho SD 2/XL, và T5-XXL cho SD3 và Flux."
+    }
+  ],
+  "c:\\Users\\vutm\\Desktop\\workspace\\tinix-r2ai-roadmap\\phases\\08-generative-ai\\08-controlnet-lora-conditioning\\docs\\vi.md": [
+    {
+      "term": "đóng băng",
+      "line_number": 14,
+      "line_content": "Việc huấn luyện lại một mô hình có điều kiện (conditional) mới tinh từ đầu cho từng loại tín hiệu điều khiển (tư thế, độ sâu, đường biên, phân vùng ngữ nghĩa) là vô cùng tốn kém và bất khả thi. Phương án tối ưu là giữ nguyên đóng băng mạng xương sống (backbone) SDXL 2.6 tỷ tham số, đính kèm thêm một mạng nhánh phụ siêu nhỏ chịu trách nhiệm đọc tín hiệu điều khiển bố cục, và dùng nó để trượt nhẹ các đặc trưng trung gian của mạng chính. Đó chính là thiết kế của ControlNet."
+    },
+    {
+      "term": "đóng băng",
+      "line_number": 25,
+      "line_content": "Nhận một mô hình Stable Diffusion đã huấn luyện sẵn. *Nhân bản* nửa phần Encoder của mạng U-Net. Đóng băng hoàn toàn phần mạng gốc. Huấn luyện mạng nhánh nhân bản để nhận thêm tín hiệu điều khiển đầu vào (đường biên, độ sâu, tư thế). Kết nối đầu ra của mạng nhánh nhân bản quay trở lại nửa phần Decoder của mạng gốc thông qua các đường nối tắt **tích chập không (zero-convolution skip connections)** — tức là lớp tích chập kích thước $1 \\times 1$ được khởi tạo trọng số bằng 0 (ban đầu đóng vai trò như một bộ chuyển tiếp không hoạt động no-op, sau đó tự học phần sai lệch delta)."
+    },
+    {
+      "term": "đóng băng",
+      "line_number": 36,
+      "line_content": "Với bất kỳ lớp tuyến tính $W \\in \\mathbb{R}^{d \\times d}$ nào trong mô hình, đóng băng hoàn toàn ma trận $W$ và cộng thêm một ma trận delta hạng thấp (low-rank delta):"
+    },
+    {
+      "term": "đóng băng",
+      "line_number": 74,
+      "line_content": "# W được đóng băng; A, B là các nhân tử hạng thấp có thể huấn luyện."
+    }
+  ],
+  "c:\\Users\\vutm\\Desktop\\workspace\\tinix-r2ai-roadmap\\phases\\08-generative-ai\\19-visual-autoregressive-var\\docs\\vi.md": [
+    {
+      "term": "đóng băng",
+      "line_number": 40,
+      "line_content": "Bộ mã hóa VQ đa tỷ lệ này được huấn luyện trước một lần duy nhất (hoàn toàn tương tự VQGAN) và sau đó được đóng băng. Toàn bộ quy trình sinh ảnh sau đó sẽ do mô hình tự hồi quy VAR đảm nhiệm trên không gian token này."
+    }
+  ],
+  "c:\\Users\\vutm\\Desktop\\workspace\\tinix-r2ai-roadmap\\phases\\09-reinforcement-learning\\01-mdps-states-actions-rewards\\docs\\vi.md": [
+    {
+      "term": "thớt",
+      "line_number": 131,
+      "line_content": "- **Phần thưởng quá thưa thớt (Sparse rewards):** Các phần thưởng chỉ xuất hiện ở bước cuối cùng (như thắng/thua) khiến việc học cực kỳ khó khăn trong không gian trạng thái lớn. Cách khắc phục: thiết kế các phần thưởng trung gian định hình hành vi (shaped rewards) hoặc khởi động bằng học bắt chước (imitation learning)."
+    },
+    {
+      "term": "thớt",
+      "line_number": 171,
+      "line_content": "4. Reward: Công thức và nguồn cấp. Xác định rõ reward thưa thớt hay định hình, phần thưởng tức thời hay cuối chuỗi."
+    }
+  ],
+  "c:\\Users\\vutm\\Desktop\\workspace\\tinix-r2ai-roadmap\\phases\\09-reinforcement-learning\\05-dqn\\docs\\vi.md": [
+    {
+      "term": "đóng băng",
+      "line_number": 17,
+      "line_content": "2. **Mạng mục tiêu (Target network):** Đóng băng mục tiêu tự cập nhật trong một khoảng thời gian cố định."
+    },
+    {
+      "term": "đóng băng",
+      "line_number": 36,
+      "line_content": "Việc sử dụng chung một mạng $Q(\\cdot; \\theta)$ cho cả hai vế của phương trình Bellman sẽ khiến mục tiêu cập nhật thay đổi liên tục theo từng bước gradient — giống như việc \"tự đuổi theo đuôi của chính mình\". Cách giải quyết: Duy trì một mạng thứ hai $Q(\\cdot; \\theta^-)$ được đóng băng trọng số. Sau mỗi $C$ bước cập nhật, sao chép trọng số $\\theta \\to \\theta^-$. Thủ thuật này giúp giữ cố định mục tiêu hồi quy (regression target) trong suốt hàng nghìn bước cập nhật gradient liên tiếp, giúp quá trình huấn luyện ổn định hơn nhiều. Cơ chế cập nhật mềm (soft updates) $\\theta^- \\leftarrow \\tau \\theta + (1-\\tau) \\theta^-$ (thường dùng trong DDPG, SAC) là một biến thể mượt mà hơn của phương pháp này."
+    },
+    {
+      "term": "đóng băng",
+      "line_number": 181,
+      "line_content": "| Target network | Mạng mục tiêu - Mạng Q được đóng băng trọng số tạm thời dùng để tính mục tiêu Bellman; giúp ổn định hóa quá trình hồi quy gradient. |"
+    }
+  ],
+  "c:\\Users\\vutm\\Desktop\\workspace\\tinix-r2ai-roadmap\\phases\\09-reinforcement-learning\\08-ppo\\docs\\vi.md": [
+    {
+      "term": "đóng băng",
+      "line_number": 52,
+      "line_content": "2. Tính toán lợi thế GAE, đóng băng các giá trị này thành hằng số."
+    },
+    {
+      "term": "đóng băng",
+      "line_number": 53,
+      "line_content": "3. Đóng băng chiến lược hiện tại làm chiến lược cũ $\\pi_{\\theta_{\\text{old}}}$."
+    }
+  ],
+  "c:\\Users\\vutm\\Desktop\\workspace\\tinix-r2ai-roadmap\\phases\\09-reinforcement-learning\\09-reward-modeling-rlhf\\docs\\vi.md": [
+    {
+      "term": "đóng băng",
+      "line_number": 38,
+      "line_content": "- Khởi tạo mạng chiến lược huấn luyện $\\pi_\\theta$ từ mô hình $\\pi_{\\text{SFT}}$. Đồng thời duy trì một bản sao đóng băng của mô hình SFT làm mô hình tham chiếu $\\pi_{\\text{ref}} = \\pi_{\\text{SFT}}$."
+    },
+    {
+      "term": "đóng băng",
+      "line_number": 132,
+      "line_content": "ref    = AutoModelForCausalLMWithValueHead.from_pretrained(\"./sft-checkpoint\")  # Đóng băng"
+    },
+    {
+      "term": "đóng băng",
+      "line_number": 148,
+      "line_content": "2. Đóng băng mô hình tham chiếu `ref_model` độc lập hoàn toàn khỏi mạng `policy`."
+    }
+  ],
+  "c:\\Users\\vutm\\Desktop\\workspace\\tinix-r2ai-roadmap\\phases\\10-llms-from-scratch\\07-rlhf\\docs\\vi.md": [
+    {
+      "term": "đóng băng",
+      "line_number": 62,
+      "line_content": "S --> |\"Đóng băng làm tham chiếu\"| REF[\"Mô hình Tham chiếu (Reference)\\n(SFT đóng băng)\"]"
+    },
+    {
+      "term": "đóng băng",
+      "line_number": 321,
+      "line_content": "Quy trình PPO đầy đủ rất phức tạp. Đoạn mã dưới đây mô phỏng chính xác logic lõi: Sinh chuỗi, chấm điểm thưởng, đo đạc khoảng cách KL so với mô hình tham chiếu đóng băng, và thực hiện bước cập nhật gradient."
+    },
+    {
+      "term": "đóng băng",
+      "line_number": 397,
+      "line_content": "# 3. Đo đạc khoảng cách KL divergence so với mô hình tham chiếu đóng băng"
+    },
+    {
+      "term": "đóng băng",
+      "line_number": 483,
+      "line_content": "3. Ràng buộc khoảng cách KL divergence: Đề xuất hệ số phạt $\\beta$ tối ưu và cấu hình mô hình tham chiếu đóng băng (frozen reference model) để kiểm soát nghiêm ngặt hành vi lệch lạc."
+    },
+    {
+      "term": "đóng băng",
+      "line_number": 507,
+      "line_content": "| KL divergence | Khoảng cách KL - Thước đo độ lệch giữa phân phối xác suất token của mô hình đang huấn luyện so với mô hình tham chiếu đóng băng. |"
+    },
+    {
+      "term": "đóng băng",
+      "line_number": 511,
+      "line_content": "| Reference model | Mô hình tham chiếu - Bản sao đóng băng hoàn toàn của mô hình SFT ban đầu, dùng làm neo để tính khoảng cách KL divergence. |"
+    }
+  ],
+  "c:\\Users\\vutm\\Desktop\\workspace\\tinix-r2ai-roadmap\\phases\\10-llms-from-scratch\\08-dpo\\docs\\vi.md": [
+    {
+      "term": "đóng băng",
+      "line_number": 41,
+      "line_content": "Trong đó $R$ là mô hình phần thưởng, $\\pi$ là mô hình chính sách (policy), $\\pi_{\\text{ref}}$ là mô hình tham chiếu (reference model) đóng băng, và $\\beta$ là hệ số phạt khoảng cách KL."
+    },
+    {
+      "term": "đóng băng",
+      "line_number": 69,
+      "line_content": "- $\\pi_{\\text{ref}}$: Mô hình tham chiếu đóng băng (frozen SFT checkpoint)"
+    },
+    {
+      "term": "đóng băng",
+      "line_number": 99,
+      "line_content": "REF[\"Mô hình tham chiếu (pi_ref)\\n(đóng băng hoàn toàn)\"]"
+    },
+    {
+      "term": "đóng băng",
+      "line_number": 122,
+      "line_content": "Trong quá trình huấn luyện DPO, bạn chỉ cần nạp 2 thực thể mô hình vào VRAM — mô hình chính sách đang cập nhật trọng số và mô hình tham chiếu đóng băng hoàn toàn. RLHF yêu cầu nạp từ 3 đến 4 mô hình: Chính sách, tham chiếu, mô hình phần thưởng và tùy chọn thêm mô hình giá trị (value function baseline). Với mô hình cỡ 70B ở định dạng FP16, riêng xác trọng số của mỗi thực thể đã tốn 140GB. Việc loại bỏ mô hình phần thưởng giúp tiết kiệm trực tiếp hàng trăm Gigabytes VRAM vô giá."
+    },
+    {
+      "term": "đóng băng",
+      "line_number": 148,
+      "line_content": "**SimPO (Simple Preference Optimization, 2024):** Loại bỏ luôn mô hình tham chiếu $\\pi_{\\text{ref}}$ khỏi bộ nhớ. Thay vì so sánh tỷ lệ xác suất với mô hình tham chiếu đóng băng, SimPO sử dụng trực tiếp giá trị log xác suất trung bình của câu trả lời (chia cho độ dài token để chuẩn hóa) làm giá trị phần thưởng ngầm. Điều này giúp giải phóng thêm một lượng VRAM khổng lồ (giảm từ 2 mô hình xuống còn đúng 1 mô hình duy nhất trong VRAM) và triệt tiêu hoàn toàn hiện tượng thiên kiến câu trả lời ngắn."
+    }
+  ],
+  "c:\\Users\\vutm\\Desktop\\workspace\\tinix-r2ai-roadmap\\phases\\10-llms-from-scratch\\09-constitutional-ai-self-improvement\\docs\\vi.md": [
+    {
+      "term": "đóng băng",
+      "line_number": 93,
+      "line_content": "Hình phạt khoảng cách KL penalty so với mô hình tham chiếu đóng băng vẫn được giữ lại nguyên vẹn tương tự như PPO để kìm cương mô hình. Cơ chế clipping ratio giữ nguyên. Sự thay đổi duy nhất là triệt tiêu hoàn toàn mạng Critic."
+    },
+    {
+      "term": "thớt",
+      "line_number": 97,
+      "line_content": "Đối với các tác vụ lập luận (reasoning), điểm thưởng thông thường rất thưa thớt (sparse) và mang tính nhị phân: Kết quả toán học cuối cùng chỉ có đúng hoặc sai. Một mạng ước lượng giá trị Critic khi huấn luyện trên các điểm thưởng thưa nhị phân này sẽ cực kỳ vô dụng — nó không thể học được các giá trị ước lượng trung gian hữu ích do hầu hết các trạng thái trung gian đều trả về cùng một giá trị kỳ vọng cho đến tận token đáp số cuối cùng. Cơ chế chuẩn hóa nhóm của GRPO lập tức cung cấp một tín hiệu so sánh tương đối cực kỳ nhạy bén: Trong số 16 phương án giải cho cùng một bài toán, phương án nào có chất lượng vượt lên trên mức trung bình của nhóm?"
+    },
+    {
+      "term": "thớt",
+      "line_number": 106,
+      "line_content": "Mô hình DeepSeek-R1-Zero được huấn luyện hoàn toàn dựa trên hai điểm thưởng tự động cực kỳ đơn giản: Độ chính xác của kết quả toán học cuối cùng và tính tuân thủ định dạng (đặt đáp án bên trong cặp thẻ `<answer>` và `</answer>`). Hoàn toàn không có dữ liệu con người. Không có mạng Critic. Bước ngoặt lịch sử khi mô hình tự phát sinh năng lực tự kiểm tra lỗi (self-check) và tự quay lui lập luận lại (backtracking) trong chuỗi suy nghĩ (chain-of-thought) thực chất được sinh ra hoàn toàn tự nhiên từ giải thuật GRPO chạy trên các điểm thưởng quy tắc thưa thớt này."
+    },
+    {
+      "term": "thớt",
+      "line_number": 117,
+      "line_content": "| **Khả năng phân bổ tín hiệu** | Thưa thớt, nhiều nhiễu | Dày đặc, định hướng rất chính xác |"
+    },
+    {
+      "term": "đóng băng",
+      "line_number": 287,
+      "line_content": "3. Hạn mức Khoảng cách KL Divergence: Thiết lập chốt chặn hệ số phạt $\\beta$ và khống chế khoảng cách KL tối đa được tích lũy so với mô hình SFT đóng băng ban đầu để tránh hiện tượng trượt phân phối từ vựng."
+    }
+  ],
+  "c:\\Users\\vutm\\Desktop\\workspace\\tinix-r2ai-roadmap\\phases\\10-llms-from-scratch\\14-open-models-architecture-walkthroughs\\docs\\vi.md": [
+    {
+      "term": "thớt",
+      "line_number": 52,
+      "line_content": "5. **Cấu trúc MLP dày đặc hay thưa thớt (Dense vs Sparse MLP):** Chuyển đổi từ MLP dày đặc truyền thống sang kiến trúc hỗn hợp chuyên gia **Mixture-of-Experts (MoE)**."
+    },
+    {
+      "term": "thớt",
+      "line_number": 167,
+      "line_content": "Nhìn vào các cột dữ liệu, bạn sẽ thấy: RMSNorm, SwiGLU (hoặc người anh em GeGLU) và RoPE đã trở thành các tiêu chuẩn phổ quát toàn cầu. Cơ chế GQA là sự lựa chọn mặc định cho các mô hình lớn hơn 7B trừ khi chúng được trang bị hẳn công nghệ MLA tối tân. Sự thưa thớt (MoE) là vũ khí tối thượng của các siêu mô hình dẫn đầu bảng xếp hạng hiệu năng."
+    },
+    {
+      "term": "thớt",
+      "line_number": 308,
+      "line_content": "| Active Params | Tham số hoạt động - Số lượng trọng số toán học thực sự chạy lan truyền xuôi cho mỗi token đơn lẻ trong kiến trúc thưa thớt MoE. |"
+    }
+  ],
+  "c:\\Users\\vutm\\Desktop\\workspace\\tinix-r2ai-roadmap\\phases\\11-llm-engineering\\04-embeddings\\docs\\vi.md": [
+    {
+      "term": "thớt",
+      "line_number": 38,
+      "line_content": "Embedding là một vector dày đặc (dense vector) chứa các số thực dấu phẩy động đại diện cho ngữ nghĩa của văn bản. Từ \"dày đặc\" mang tính quyết định ở đây -- mọi chiều trong không gian vector đều mang tải thông tin, hoàn toàn trái ngược với các biểu diễn thưa thớt (sparse representations như TF-IDF, Bag-of-words) nơi mà hầu hết các chiều đều bằng 0."
+    },
+    {
+      "term": "thớt",
+      "line_number": 123,
+      "line_content": "2. Các tầng phía trên cùng rất thưa thớt -- chứa các liên kết nhảy xa (long-range) giữa các cụm vector lớn."
+    },
+    {
+      "term": "thớt",
+      "line_number": 131,
+      "line_content": "L2[\"Tầng 2 (Thưa thớt)\"] -->|\"nhảy khoảng cách lớn\"| L1[\"Tầng 1 (Trung bình)\"]"
+    }
+  ],
+  "c:\\Users\\vutm\\Desktop\\workspace\\tinix-r2ai-roadmap\\phases\\11-llm-engineering\\08-fine-tuning-lora\\docs\\vi.md": [
+    {
+      "term": "đóng băng",
+      "line_number": 48,
+      "line_content": "LoRA đóng băng hoàn toàn ma trận gốc $W_0$ và cộng thêm một nhánh ma trận phân tách hạng thấp song song:"
+    },
+    {
+      "term": "đóng băng",
+      "line_number": 56,
+      "line_content": "X[\"Đầu vào x\"] --> W[\"W_0 ĐÓNG BĂNG (d x d)\"]"
+    },
+    {
+      "term": "đóng băng",
+      "line_number": 69,
+      "line_content": "- Tham số gốc đóng băng: $4096 \\times 4096 = 16,777,216$"
+    },
+    {
+      "term": "đóng băng",
+      "line_number": 89,
+      "line_content": "Tim Dettmers và các cộng sự tại Đại học Washington đã công bố giải pháp QLoRA vào tháng 5 năm 2023 với ý tưởng đột phá: Lượng hóa mô hình nền đóng băng xuống định dạng siêu nén 4-bit, sau đó gắn các adapter LoRA chạy ở định dạng số thực fp16 lên trên."
+    },
+    {
+      "term": "đóng băng",
+      "line_number": 124,
+      "line_content": "Sau khi kết thúc quá trình tinh chỉnh, bạn thu được hai thành phần tách biệt: Mô hình nền đóng băng (kích thước lớn) và tệp adapter LoRA (kích thước siêu nhỏ, chỉ khoảng vài chục megabyte). Bạn có hai cách thức triển khai:"
+    },
+    {
+      "term": "đóng băng",
+      "line_number": 137,
+      "line_content": "Chúng ta sẽ tự tay triển khai cấu trúc một lớp LoRA, nhúng trực tiếp nó vào một mạng neural tuyến tính đa lớp, đóng băng trọng số nền và tiến hành huấn luyện bằng PyTorch thuần."
+    },
+    {
+      "term": "đóng băng",
+      "line_number": 174,
+      "line_content": "# Đóng băng tuyệt đối trọng số của lớp tuyến tính gốc"
+    },
+    {
+      "term": "đóng băng",
+      "line_number": 183,
+      "line_content": "# Đóng băng toàn bộ trọng số gốc của mô hình trước"
+    },
+    {
+      "term": "đóng băng",
+      "line_number": 219,
+      "line_content": "# 2. Tải mô hình nền đóng băng"
+    }
+  ],
+  "c:\\Users\\vutm\\Desktop\\workspace\\tinix-r2ai-roadmap\\phases\\11-llm-engineering\\09-function-calling\\docs\\vi.md": [
+    {
+      "term": "đóng băng",
+      "line_number": 34,
+      "line_content": "Không có gọi hàm, LLM chỉ là những cuốn bách khoa toàn thư đóng băng. Có gọi hàm, chúng trở thành các thực thể hành động (agents)."
+    }
+  ],
+  "c:\\Users\\vutm\\Desktop\\workspace\\tinix-r2ai-roadmap\\phases\\12-multimodal-ai\\03-blip2-qformer-bridge\\docs\\vi.md": [
+    {
+      "term": "đóng băng",
+      "line_number": 23,
+      "line_content": "Bạn đang sở hữu một tháp thị giác ViT đóng băng xuất ra 256 patch token với số chiều 1408 cho mỗi bức ảnh. Bạn cũng có một mô hình LLM 7B đóng băng mong muốn nhận vector đầu vào có chiều ẩn là 4096. Giải pháp cầu nối trực quan nhất — sử dụng một tầng tuyến tính để ánh xạ từ 1408 lên 4096 — hoạt động được, nhưng việc đẩy toàn bộ 256 patch token này vào cửa sổ ngữ cảnh của LLM sẽ tiêu tốn của bạn đúng 256 token trên mỗi bức ảnh. Với một lô gồm 32 bức ảnh, chỉ riêng phương diện thị giác đã tiêu tốn mất 8192 token của LLM."
+    }
+  ],
+  "c:\\Users\\vutm\\Desktop\\workspace\\tinix-r2ai-roadmap\\phases\\12-multimodal-ai\\06-any-resolution-patch-n-pack\\docs\\vi.md": [
+    {
+      "term": "đóng băng",
+      "line_number": 79,
+      "line_content": "AnyRes là giải pháp tối ưu khi bạn bắt buộc phải dùng một tháp thị giác đóng băng chỉ hỗ trợ một độ phân giải duy nhất. Điểm yếu của nó là sự bùng nổ số lượng token đối với ảnh lớn (ảnh 1344x1344 chia theo lưới $4\\times4$ sẽ tiêu tốn tới $9216 + 576 \\approx 9800$ token, chiếm gần trọn vẹn cửa sổ ngữ cảnh 8k của LLM)."
+    }
+  ],
+  "c:\\Users\\vutm\\Desktop\\workspace\\tinix-r2ai-roadmap\\phases\\12-multimodal-ai\\17-video-language-temporal-grounding\\docs\\vi.md": [
+    {
+      "term": "đóng băng",
+      "line_number": 59,
+      "line_content": "Mô hình VideoChat kế thừa triết lý của Video-LLaMA nhưng loại bỏ nhánh âm thanh để tối giản hóa hệ thống. Video-LLaVA (Lin và các cộng sự, 2023) thực hiện huấn luyện duy nhất một bộ mã hóa thị giác chung cho cả ảnh tĩnh và các khung hình video (\"căn chỉnh trước khi chiếu\" - alignment before projection), mang lại biểu diễn đặc trưng thống nhất. Cả hai đều sử dụng cấu trúc: Bộ mã hóa CLIP đóng băng + mạng MLP + LLM."
+    }
+  ],
+  "c:\\Users\\vutm\\Desktop\\workspace\\tinix-r2ai-roadmap\\phases\\12-multimodal-ai\\19-audio-language-whisper-to-af3\\docs\\vi.md": [
+    {
+      "term": "đóng băng",
+      "line_number": 53,
+      "line_content": "Đối với dòng mô hình ngôn ngữ âm thanh (ALMs), chúng ta muốn nạp trực tiếp đặc trưng đầu ra của bộ mã hóa này vào một LLM khác thông minh hơn. Cấu trúc thiết kế: Đóng băng bộ mã hóa Whisper, huấn luyện bộ nén Q-former, đóng băng hoặc tinh chỉnh LLM xương sống."
+    }
+  ],
+  "c:\\Users\\vutm\\Desktop\\workspace\\tinix-r2ai-roadmap\\phases\\13-tools-and-protocols\\05-tool-schema-design\\docs\\vi.md": [
+    {
+      "term": "đóng băng",
+      "line_number": 93,
+      "line_content": "- **Đóng băng các tập giá trị bằng Enum:** Thiết lập tham số dạng `units: \"celsius\" | \"fahrenheit\"` thay vì để kiểu chuỗi chung chung `units: string`. Enum giới hạn tuyệt đối vũ trụ các giá trị hợp lệ cho mô hình."
+    }
+  ],
+  "c:\\Users\\vutm\\Desktop\\workspace\\tinix-r2ai-roadmap\\phases\\14-agent-engineering\\25-multi-agent-debate\\docs\\vi.md": [
+    {
+      "term": "thớt",
+      "line_number": 36,
+      "line_content": "Nghiên cứu \"Improving Multi-Agent Debate with Sparse Communication Topology\" (arXiv:2406.11776, 2024-2025) cho thấy cấu trúc mạng giao tiếp toàn phần (full-mesh) không phải lúc nào cũng tối ưu. Các cấu trúc liên kết thưa thớt hơn (kiểu ngôi sao, kiểu vòng, kiểu trục-và-nan-hoa/hub-and-spoke) có thể có độ chính xác tương đương nhưng tốn ít token hơn. Mỗi người phản biện chỉ cần nhìn thấy một mạng lưới đồng nghiệp nhất định."
+    }
+  ],
+  "c:\\Users\\vutm\\Desktop\\workspace\\tinix-r2ai-roadmap\\phases\\16-multi-agent-and-swarms\\22-production-scaling-queues-checkpoints\\docs\\vi.md": [
+    {
+      "term": "thớt",
+      "line_number": 82,
+      "line_content": "Việc phân tầng giao tiếp giúp tối ưu hóa băng thông truyền tin: các tương tác nội bộ nhóm diễn ra với tần suất cao (dense), trong khi giao tiếp liên nhóm cấp quản trị diễn ra thưa thớt (sparse) — mô hình thiết kế này bảo đảm khả năng mở rộng quy mô tuyến tính (linear scaling) cho hệ thống hàng ngàn tác nhân."
+    }
+  ],
+  "c:\\Users\\vutm\\Desktop\\workspace\\tinix-r2ai-roadmap\\phases\\17-infrastructure-and-production\\04-vllm-serving-internals\\docs\\vi.md": [
+    {
+      "term": "đóng băng",
+      "line_number": 21,
+      "line_content": "vLLM giải quyết đồng thời cả ba bài toán này. PagedAttention ngăn ngừa tình trạng phân mảnh KV cache chiếm dụng tới 60-80% bộ nhớ GPU so với phương pháp phân bổ tuần tự truyền thống. Continuous Batching cho phép các yêu cầu tham gia và rời khỏi lô linh hoạt giữa mỗi bước giải mã, giúp lô luôn đầy ắp các tác vụ thực tế. Chunked Prefill chia nhỏ prompt dài 32k tokens thành các mảnh nhỏ ~512 tokens để xử lý xen kẽ với các bước giải mã, ngăn chặn một prompt dài đóng băng toàn bộ tiến trình tính toán của các token giải mã khác trên GPU."
+    }
+  ],
+  "c:\\Users\\vutm\\Desktop\\workspace\\tinix-r2ai-roadmap\\phases\\17-infrastructure-and-production\\10-cold-start-mitigation\\docs\\vi.md": [
+    {
+      "term": "đóng băng",
+      "line_number": 114,
+      "line_content": "| Chụp nhanh GPU | \"GPU snapshot\" | Kỹ thuật đóng băng trạng thái bộ nhớ HBM sau lượt nạp đầu để giải tuần tự hóa cực nhanh trong các lượt khởi động tiếp theo. |"
+    }
+  ],
+  "c:\\Users\\vutm\\Desktop\\workspace\\tinix-r2ai-roadmap\\phases\\17-infrastructure-and-production\\27-finops-llms\\docs\\vi.md": [
+    {
+      "term": "đóng băng",
+      "line_number": 73,
+      "line_content": "3. **Kill switch (Chốt ngắt khẩn cấp):** Kích hoạt tự động tạm dừng dịch vụ của tenant khi chỉ số biến động chi tiêu (spend z-score) vượt quá 4 so với mức trung bình lịch sử của chính tenant đó. Hệ thống tự động đóng băng tài khoản, gửi cảnh báo cấp độ cao đến đội ngũ trực ban (on-call) và bộ phận vận hành để điều tra hành vi lạm dụng hoặc tấn công từ chối dịch vụ."
+    }
+  ],
+  "c:\\Users\\vutm\\Desktop\\workspace\\tinix-r2ai-roadmap\\phases\\18-ethics-safety-alignment\\23-watermarking-synthid-stable-signature-c2pa\\docs\\vi.md": [
+    {
+      "term": "đóng băng",
+      "line_number": 100,
+      "line_content": "- **Đóng băng hoặc lượng tử hóa bộ giải mã decoder để chống tinh chỉnh xóa dấu.** Bảo vệ nghiêm ngặt trọng số của bộ giải mã decoder để ngăn chặn các cuộc tấn công bóc gỡ Stable Signature."
+    }
+  ]
+}

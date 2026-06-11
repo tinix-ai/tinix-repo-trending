@@ -1,0 +1,112 @@
+=== phases\04-computer-vision\05-transfer-learning\docs\vi.md ===
+Line 41 [đóng băng]: BatchNorm lưu giữ các thông số thống kê (`mean`, `var`) từ ImageNet. Nếu dữ liệu của bạn có phân phối khác (ví dụ ảnh y tế đen trắng), những thông số này sẽ sai. Bạn cần quyết định nên tiếp tục cập nhật chúng hay đóng băng chúng ở chế độ `eval`.
+
+=== phases\06-speech-and-audio\04-speech-recognition-asr\docs\vi.md ===
+Line 31 [ngốn]: - Nhược điểm: Rất khó huấn luyện và ngốn RAM.
+
+=== phases\08-generative-ai\08-controlnet-lora-conditioning\docs\vi.md ===
+Line 74 [đóng băng]: # W được đóng băng; A, B là các nhân tử hạng thấp có thể huấn luyện.
+
+=== phases\09-reinforcement-learning\05-dqn\docs\vi.md ===
+Line 17 [đóng băng]: 2. **Mạng mục tiêu (Target network):** Đóng băng mục tiêu tự cập nhật trong một khoảng thời gian cố định.
+
+=== phases\09-reinforcement-learning\08-ppo\docs\vi.md ===
+Line 52 [đóng băng]: 2. Tính toán lợi thế GAE, đóng băng các giá trị này thành hằng số.
+Line 53 [đóng băng]: 3. Đóng băng chiến lược hiện tại làm chiến lược cũ $\pi_{\theta_{\text{old}}}$.
+
+=== phases\09-reinforcement-learning\09-reward-modeling-rlhf\docs\vi.md ===
+Line 132 [đóng băng]: ref    = AutoModelForCausalLMWithValueHead.from_pretrained("./sft-checkpoint")  # Đóng băng
+
+=== phases\10-llms-from-scratch\04-pre-training-mini-gpt\docs\vi.md ===
+Line 158 [ngốn]: Với một chuỗi dài 1024 tokens, KV Cache chiếm khoảng 75MB bộ nhớ ở định dạng FP32. Đối với mô hình khổng lồ Llama 3 405B với 128 tầng, dung lượng KV Cache cho một lượt chạy suy luận đơn lẻ có thể dễ dàng vượt quá 10GB. Đây chính là lý do giải thích tại sao tác vụ suy luận chuỗi dài (long-context inference) cực kỳ ngốn bộ nhớ GPU.
+
+=== phases\10-llms-from-scratch\05-scaling-distributed\docs\vi.md ===
+Line 27 [ngốn]: Bây giờ hãy tưởng tượng với mô hình 70B. Riêng phần trọng số đã ngốn mất 140GB bộ nhớ ở định dạng FP16. Nó hoàn toàn không thể nằm vừa trên một GPU. Bạn cần tối thiểu 2 card A100 (2 x 80GB = 160GB) chỉ để chứa xác trọng số mô hình thô. Cộng thêm các trạng thái tối ưu và gradients, con số thực tế sẽ bùng nổ lên rất nhiều: Yêu cầu ít nhất 3 GPU ở cấu hình tối thiểu lý thuyết, và thực tế cần từ 8 đến 16 GPU tùy thuộc vào chiến lược phân mảnh dữ liệu.
+Line 209 [ngốn]: Huấn luyện độ chính xác hỗn hợp giúp tiết kiệm trực tiếp 28GB bộ nhớ cho mô hình này. Trạng thái tối ưu hóa bắt buộc phải giữ ở FP32 — đây mới chính là nơi ngốn nhiều bộ nhớ nhất của hệ thống.
+
+=== phases\10-llms-from-scratch\07-rlhf\docs\vi.md ===
+Line 101 [ngất ngưởng]: Tại sao phải cần hình phạt KL? Nếu không có nó, mô hình sẽ lập tức tìm ra các kẽ hở toán học để lách luật (reward hacking). Mô hình phần thưởng được huấn luyện trên một tập dữ liệu giới hạn nên chắc chắn sẽ tồn tại các điểm mù toán học. Mô hình ngôn ngữ với hàng tỷ tham số sẽ nhanh chóng dò ra và khai thác các điểm mù này để tạo ra các câu trả lời có điểm số cao ngất ngưởng trên mô hình phần thưởng nhưng thực tế lại hoàn toàn vô nghĩa hoặc kỳ dị đối với con người. Một số ví dụ kinh điển:
+
+=== phases\10-llms-from-scratch\08-dpo\docs\vi.md ===
+Line 21 [ngốn]: Bạn đã tự tay xây dựng một hệ thống RLHF trong Bài 07. Ba giai đoạn. Ba mô hình. Mô hình SFT, mô hình phần thưởng, và mô hình chính sách được tối ưu bằng PPO. Chỉ riêng mô hình phần thưởng đã ngốn hàng nghìn cặp so sánh sở thích của con người và một vòng lặp huấn luyện độc lập đầy rẫy lỗi làm tròn số học. Thuật toán PPO thì nổi tiếng là "đỏng đảnh" khi yêu cầu tinh chỉnh cực kỳ tỉ mỉ hệ số KL, tốc độ học, tỷ lệ clipping và số lượng epochs.
+
+=== phases\10-llms-from-scratch\09-constitutional-ai-self-improvement\docs\vi.md ===
+Line 21 [ngốn]: Bạn đã xây dựng thành công hệ thống RLHF trong Bài 07 và DPO trong Bài 08. Cả hai giải pháp này đều bị phụ thuộc tuyệt đối vào cùng một nguồn tài nguyên đầu vào đắt đỏ: Các cặp so sánh sở thích của con người. Quy trình thời kỳ đầu của Anthropic và OpenAI sử dụng khoảng 33.000 so sánh cặp. Siêu mô hình Llama 2 Chat ngốn tới hơn 1,5 triệu cặp. Claude 3 và các thế hệ sau thậm chí còn sử dụng lượng dữ liệu khổng lồ hơn thế nhiều lần. Nguồn dữ liệu này cực kỳ chậm chạp, đắt đỏ và luôn mang nặng định kiến chủ quan của những người tham gia dán nhãn tại thời điểm chấm điểm.
+
+=== phases\10-llms-from-scratch\11-quantization\docs\vi.md ===
+Line 125 [ngốn]: **Bộ nhớ đệm KV Cache (KV Cache - Nhạy cảm cao):** KV cache lưu trữ trạng thái Attention của toàn bộ các token đã xử lý trước đó. Khi chiều dài ngữ cảnh (context length) tăng lên, KV cache sẽ phình to và chiếm trọn dung lượng bộ nhớ. Với mô hình 70B chạy ở ngữ cảnh 32K, riêng KV cache đã ngốn tới 40GB ở định dạng FP16. Lượng tử hóa KV cache sang FP8 hoặc INT8 giúp tiết kiệm lượng lớn bộ nhớ nhưng các sai số làm tròn sẽ tích tụ và khuếch đại liên tục qua từng token tiếp theo trong phép toán Attention. Tác động suy giảm chất lượng sẽ càng nghiêm trọng khi chuỗi càng dài.
+
+=== phases\10-llms-from-scratch\12-inference-optimization\docs\vi.md ===
+Line 96 [ngốn]: Một phiên hội thoại đơn lẻ với chiều dài ngữ cảnh 128K của Llama 3 70B ngốn tới 40GB KV Cache — chiếm trọn một nửa dung lượng bộ nhớ của GPU A100. Nếu có 100 người dùng đồng thời với chiều dài ngữ cảnh trung bình 4K mỗi người, riêng KV Cache đã yêu cầu tới 128GB VRAM. Đây là lý do tại sao việc quản trị và tối ưu hóa bộ nhớ KV Cache trở thành bài toán sống còn trong công nghệ suy luận LLM.
+
+=== phases\10-llms-from-scratch\13-building-complete-llm-pipeline\docs\vi.md ===
+Line 25 [ngốn]: Một chu trình huấn luyện LLM thực tế trong doanh nghiệp không bao giờ vận hành trên các file notebook. Việc huấn luyện Llama 3 405B tiêu tốn tới 30 triệu giờ chạy GPU H100 trong vòng khoảng 54 ngày liên tục. Siêu mô hình DeepSeek-V3 cũng ngốn khoảng 2.8 triệu giờ chạy GPU H800. Trong suốt thời gian dài dằng dặc đó, chỉ cần một checkpoint bị lỗi, một tệp dữ liệu bị nhiễm độc (data contamination), hoặc điểm số đánh giá bị tụt lùi (eval regression) cũng có thể cuốn phăng đi cả tuần làm việc của cả đội ngũ và đốt cháy hàng trăm nghìn USD ngân sách GPU.
+
+=== phases\10-llms-from-scratch\17-native-sparse-attention\docs\vi.md ===
+Line 3 [ngốn]: > Tại ngữ cảnh dài 64k tokens, cơ chế Attention ngốn tới 70-80% tổng độ trễ giải mã (decode latency). Mọi phòng nghiên cứu mô hình mở hàng đầu thế giới đều sở hữu một kế hoạch để giải quyết điểm nghẽn này. Giải pháp **Native Sparse Attention (NSA)** của DeepSeek (đoạt giải bài báo xuất sắc nhất tại ACL 2025) là giải pháp thực sự thành công và được ứng dụng rộng rãi: Kết hợp song song 3 nhánh Attention khác nhau — nhánh nén token thô (coarse-grained), nhánh giữ lại chọn lọc các token mịn (fine-grained), và nhánh cửa sổ trượt (sliding window) để xử lý ngữ cảnh cục bộ — tất cả được dung hòa thông qua một cổng học được (learned gate). Phương pháp này đồng bộ hoàn hảo với phần cứng (thân thiện với các GPU kernel), hỗ trợ huấn luyện trực tiếp (hoạt động ngay từ giai đoạn pre-training, không phải giải pháp tạm thời lúc suy luận), và đạt tốc độ thực thi vượt trội hơn hẳn **FlashAttention** ở ngữ cảnh 64k trong khi vẫn bảo toàn nguyên vẹn chất lượng của Attention đầy đủ (full attention). Bài học này sẽ hướng dẫn bạn xây dựng trọn vẹn cả 3 nhánh tính toán từ con số 0 và chứng minh vì sao tính chất thưa (sparsity) của NSA hoàn toàn khả vi từ đầu đến cuối.
+
+=== phases\10-llms-from-scratch\20-deepseek-v3-walkthrough\docs\vi.md ===
+Line 44 [ngốn]: Trong khi đó, một mô hình giả định sử dụng cơ chế GQA truyền thống (tương đương cấu trúc của Llama 3 70B với 8 đầu KV, kích thước đầu 128) sẽ ngốn:
+
+=== phases\10-llms-from-scratch\22-async-hogwild-inference\docs\vi.md ===
+Line 23 [ngốn]: Các mô hình LLM thế hệ mới giải quyết các bài toán hóc búa bằng cách sinh ra các chuỗi suy luận cực kỳ dài — việc tạo ra chuỗi logic từng bước dài 5000 tokens là rất phổ biến, thậm chí lên tới hàng chục nghìn tokens đối với các bài toán toán học chuyên sâu. Với tốc độ giải mã 35 tokens/giây trên một mô hình 70B, một chuỗi dài 50k tokens sẽ ngốn tới 24 phút. Đây hoàn toàn không phải là một trải nghiệm tương tác thời gian thực.
+
+=== phases\10-llms-from-scratch\34-gradient-checkpointing\docs\vi.md ===
+Line 16 [ngốn]: Với cấu hình $d=8192, L=8192, B=1$, hệ thống tiêu tốn khoảng **800 MB** bộ nhớ kích hoạt cho mỗi tầng ở định dạng số BF16. Một mô hình gồm 64 tầng sẽ ngốn tới **51 GB** bộ nhớ kích hoạt — và con số này là trước khi bạn nhân với kích thước microbatch, trước khi cộng dung lượng trung gian của Attention-Softmax (tăng theo hàm bình phương $L^2$ chéo các đầu), và trước khi tính tới các bản sao song song chéo các GPU.
+
+=== phases\11-llm-engineering\05-context-engineering\docs\vi.md ===
+Line 50 [đống rác]: Bài học thực tế rút ra: Khung cửa sổ hỗ trợ 200K token không đồng nghĩa với việc nhồi nhét đủ 200K token vào đó là hiệu quả. Một ngữ cảnh 10K token được tinh lọc kỹ lưỡng thường cho ra kết quả vượt trội hơn hẳn một ngữ cảnh 100K token bị đổ đống rác dữ liệu. Kỹ nghệ ngữ cảnh là nghệ thuật tối đa hóa **tỷ lệ tín hiệu trên nhiễu (signal-to-noise ratio)** bên trong khung cửa sổ.
+Line 83 [ngốn]: - **System prompt (Chỉ thị hệ thống):** Thiết lập vai trò, các giới hạn và quy tắc ứng xử của mô hình. Đi kèm với nó là định nghĩa công cụ (tool definitions). Mỗi định nghĩa công cụ chiếm từ 50-200 token. Nếu hệ thống khai báo 50 công cụ tĩnh, nó ngốn tới 7,500 token trước khi người dùng kịp đặt câu hỏi. Kỹ thuật lọc bỏ bớt công cụ không liên quan (tool pruning) sẽ giúp cắt giảm 60% đến 80% phần hao phí này.
+Line 85 [ngốn]: - **Conversation history (Lịch sử hội thoại):** Các lượt trò chuyện trước đó. Thành phần này tăng trưởng tuyến tính theo thời gian. Lịch sử hội thoại dài 50 lượt có thể ngốn tới 10,000 token, trong khi phần lớn nội dung trao đổi cũ đã không còn liên quan trực tiếp đến câu hỏi hiện tại.
+Line 93 [ngốn]: **1. Tóm tắt lịch sử (History summarization):** Thay vì giữ nguyên xi từng câu chữ của các lượt hội thoại cũ, định kỳ kích hoạt một tác vụ phụ tóm tắt toàn bộ tiến trình trao đổi. Cụm câu *"Chúng ta đã thảo luận về chủ đề X, thống nhất giải pháp Y, và người dùng hiện đang yêu cầu Z"* chỉ tốn 100 token nhưng có thể thay thế hiệu quả cho 10 lượt hội thoại cũ ngốn tới 2,000 token.
+Line 272 [ngốn]: 1. Phân tích Tỷ lệ Hao phí: Chỉ ra các thành phần ngốn quá nhiều token một cách vô ích (ví dụ: định nghĩa công cụ tĩnh, lịch sử hội thoại thô quá dài).
+
+=== phases\11-llm-engineering\08-fine-tuning-lora\docs\vi.md ===
+Line 26 [ngốn]: Tinh chỉnh toàn phần bắt buộc phải cập nhật từng tham số trong mô hình. Llama 3 8B chứa 8 tỷ tham số. Ở định dạng số thực 16-bit (fp16), mỗi tham số chiếm 2 byte, ngốn đến 16GB chỉ để tải trọng số vào bộ nhớ. Khi huấn luyện, bạn cần thêm bộ nhớ lưu trữ độ dốc (gradients - 16GB), trạng thái bộ tối ưu hóa Adam (32GB cho momentum + variance) và các giá trị kích hoạt (activations). Tổng cộng bạn cần xấp xỉ **56GB VRAM** chỉ để huấn luyện một mô hình 8B đơn lẻ.
+Line 48 [đóng băng]: LoRA đóng băng hoàn toàn ma trận gốc $W_0$ và cộng thêm một nhánh ma trận phân tách hạng thấp song song:
+Line 56 [đóng băng]: X["Đầu vào x"] --> W["W_0 ĐÓNG BĂNG (d x d)"]
+Line 69 [đóng băng]: - Tham số gốc đóng băng: $4096 \times 4096 = 16,777,216$
+Line 102 [ngốn]: 2. **Lượng hóa kép (Double quantization):** Bản thân các hằng số lượng hóa (quantization constants) cũng ngốn một lượng bộ nhớ đáng kể. QLoRA thực hiện lượng hóa tiếp các hằng số này từ fp32 xuống định dạng fp8, tiết kiệm thêm hàng trăm megabyte bộ nhớ quý giá.
+
+=== phases\11-llm-engineering\09-function-calling\docs\vi.md ===
+Line 34 [đóng băng]: Không có gọi hàm, LLM chỉ là những cuốn bách khoa toàn thư đóng băng. Có gọi hàm, chúng trở thành các thực thể hành động (agents).
+
+=== phases\11-llm-engineering\11-caching-cost\docs\vi.md ===
+Line 3 [ngốn]: > Hầu hết các startup AI thất bại không phải vì mô hình ngôn ngữ kém thông minh. Họ thất bại vì kinh tế đơn vị (unit economics) quá tồi tệ. Một lượt gọi GPT-4o đơn lẻ chỉ tốn một phần nhỏ của cent. Nhưng mười nghìn người dùng thực hiện mười lượt gọi mỗi ngày sẽ ngốn tới $250 chỉ riêng cho token đầu vào — trước khi bạn kiếm được một đồng doanh thu nào từ họ. Những công ty sống sót là những người đối xử với mỗi lượt gọi API như một giao dịch tài chính thực thụ, chứ không đơn thuần là một dòng mã gọi hàm thông thường.
+
+=== phases\11-llm-engineering\13-production-app\docs\vi.md ===
+Line 32 [ngốn]: - Hóa đơn API hàng tháng của bạn cán mốc $12,000 và bạn hoàn toàn không biết tính năng hay tài khoản người dùng nào đang ngốn tiền nhiều nhất.
+
+=== phases\11-llm-engineering\15-prompt-caching\docs\vi.md ===
+Line 14 [ngốn]: Một trợ lý lập trình liên tục gửi cùng một prompt hệ thống dài 15,000 token tới mô hình Claude của Anthropic trên mỗi lượt trò chuyện của cuộc hội thoại. Hai mươi lượt trò chuyện với đơn giá $3/M token đầu vào sẽ ngốn hết $0.90 chỉ riêng cho chi phí token đầu vào — trước khi tính thêm tin nhắn thực tế của người dùng. Nhân lên với 10,000 cuộc hội thoại mỗi ngày và hóa đơn API của bạn sẽ chạm mức $9,000/ngày cho những đoạn văn bản tĩnh hoàn toàn không bao giờ thay đổi.
+
+=== phases\11-llm-engineering\17-agent-framework-tradeoffs\docs\vi.md ===
+Line 80 [ngốn]: 4. **Chi phí vận hành:** Việc định tuyến động bằng LLM ngốn thêm rất nhiều token trên từng lượt quyết định. Nếu tác vụ chạy hàng nghìn lần mỗi ngày, hãy chọn định tuyến tĩnh (LangGraph).
+
+=== phases\12-multimodal-ai\03-blip2-qformer-bridge\docs\vi.md ===
+Line 23 [ngốn]: Bạn đang sở hữu một tháp thị giác ViT đông băng xuất ra 256 patch token với số chiều 1408 cho mỗi bức ảnh. Bạn cũng có một mô hình LLM 7B đông băng mong muốn nhận vector đầu vào có chiều ẩn là 4096. Giải pháp cầu nối trực quan nhất — sử dụng một tầng tuyến tính để ánh xạ từ 1408 lên 4096 — hoạt động được, nhưng việc đẩy toàn bộ 256 patch token này vào cửa sổ ngữ cảnh của LLM sẽ tiêu tốn của bạn đúng 256 token trên mỗi bức ảnh. Với một lô gồm 32 bức ảnh, chỉ riêng phương diện thị giác đã ngốn mất 8192 token của LLM.
+
+=== phases\12-multimodal-ai\06-any-resolution-patch-n-pack\docs\vi.md ===
+Line 79 [ngốn]: AnyRes là giải pháp tối ưu khi bạn bắt buộc phải dùng một tháp thị giác đông băng chỉ hỗ trợ một độ phân giải duy nhất. Điểm yếu của nó là sự bùng nổ số lượng token đối với ảnh lớn (ảnh 1344x1344 chia theo lưới $4\times4$ sẽ ngốn tới $9216 + 576 \approx 9800$ token, chiếm gần trọn vẹn cửa sổ ngữ cảnh 8k của LLM).
+
+=== phases\13-tools-and-protocols\01-the-tool-interface\docs\vi.md ===
+Line 127 [ngốn]: Đừng bao giờ triển khai một tác nhân ra thực tế mà không có một bộ ngắt mạch tự động cứng. Những bài học xương máu về việc *"tác nhân tự chạy vòng lặp ngốn mất $400 tiền API chỉ trong một đêm"* xuất hiện liên tục trên các diễn đàn công nghệ là minh chứng rõ nhất cho việc thiếu bộ ngắt mạch này.
+
+=== phases\13-tools-and-protocols\03-parallel-and-streaming-tool-calls\docs\vi.md ===
+Line 3 [ngốn]: > Việc thực hiện tuần tự ba truy vấn thời tiết độc lập sẽ ngốn tới ba lượt gọi mạng (round trips). Hãy chạy chúng song song, và tổng thời gian phản hồi sẽ giảm xuống chỉ bằng thời gian của cuộc gọi đơn lẻ chậm nhất. Mọi nhà cung cấp mô hình hàng đầu hiện nay đều có khả năng phát ra nhiều lệnh gọi công cụ đồng thời chỉ trong một lượt đàm thoại đơn lẻ. Lợi ích mang lại là vô cùng to lớn; nhưng kỹ thuật triển khai lại vô cùng tinh tế. Bài học này sẽ mổ xẻ cả hai cấu phần: Cơ chế rẽ nhánh song song (parallel fan-out) và tái ráp nối đối số truyền dòng (streamed-argument reassembly), đặc biệt nhấn mạnh vào cạm bẫy đối chiếu mã ID (id-correlation trap).
+Line 36 [ngốn]: Chu trình này ngốn tới 3 lượt gọi mạng LLM khứ hồi, cộng dồn thêm độ trễ thực thi của từng công cụ. Tổng thời gian chạy thực tế gấp khoảng 4 lần thời gian lý tưởng.
+
+=== phases\13-tools-and-protocols\04-structured-output\docs\vi.md ===
+Line 27 [ngốn]: **Hướng tiếp cận 2: Xác thực sau khi sinh (Validate after generation).** Cho phép mô hình tự do sinh văn bản thô, sau đó chạy bộ giải cú pháp, xác thực kết quả dựa trên lược đồ, và gọi lại mô hình để sửa đổi nếu phát hiện lỗi. Phương pháp này hoạt động tin cậy nhưng cực kỳ đắt đỏ — bạn phải trả phí cho mọi lượt gọi thử lại, và lỗi cắt cụt token sẽ ngốn thêm tối thiểu một lượt gọi mạng đầy đủ cho mỗi lần xuất hiện.
+
+=== phases\13-tools-and-protocols\07-building-an-mcp-server\docs\vi.md ===
+Line 383 [ngốn]: - **Rủi ro rò rỉ bộ nhớ do tiến trình con bị mồ côi (Orphan process risk):** Nếu máy khách bị sập hoặc tắt đột ngột, tiến trình con chạy máy chủ MCP stdio có nguy cơ bị biến thành tiến trình mồ côi và tiếp tục ngốn tài nguyên RAM của hệ thống. Hãy đảm bảo kiểm tra điều kiện kết thúc vòng lặp `readline` trả về chuỗi rỗng (EOF) để chủ động kết thúc tiến trình một cách an toàn.
+
+=== phases\13-tools-and-protocols\13-mcp-async-tasks\docs\vi.md ===
+Line 340 [bốc hơi]: - **Rủi ro gián đoạn do sập nguồn mất trạng thái đang chạy (In-flight state loss):** Đừng bao giờ chỉ lưu giữ trạng thái tác vụ `working` trong bộ nhớ RAM tạm thời. Hãy bắt buộc ghi trạng thái cập nhật tiến độ ra **Durable Store** để khi khởi động lại, máy chủ có thể tự phục hồi và thông báo lỗi `CRASH_RECOVERY` sạch sẽ cho máy khách, thay vì khiến máy khách bị treo cứng vô hạn vì liên tục thăm dò một ID tác vụ đã bốc hơi hoàn toàn khỏi RAM máy chủ.
+
+=== phases\13-tools-and-protocols\21-llm-routing-layer\docs\vi.md ===
+Line 249 [đóng băng]: - **Lỗi nghẽn sập chuỗi dự phòng do không cấu hình thời gian chờ (Timeout trap):** Khi một nhà cung cấp LLM gặp sự cố nghẽn mạng nhưng không sập hẳn (không trả về lỗi 5xx ngay lập tức), cuộc gọi API có thể bị treo tới 30 giây trước khi báo lỗi. Nếu bạn không thiết lập cấu hình thời gian chờ tối đa (timeout) cực kỳ ngắn cho mỗi cuộc gọi trong chuỗi dự phòng, toàn bộ trải nghiệm phản hồi của tác nhân AI sẽ bị đóng băng.
+
+=== phases\16-multi-agent-and-swarms\09-parallel-swarm-networks\docs\vi.md ===
+Line 57 [đẻ ra]: LangGraph docs bản 2025 công khai tuyên bố "Swarm Architecture" là 1 trong những mô hình (patterns) đa tác nhân kinh điển: mỗi tác nhân (agents) hóa thành các nút (nodes), các cạnh (edges) xoắn xuýt tạo thành một cái đồ thị có hướng (directed graph) cho phép nhảy lặp (cycles) và đẻ ra đặc tính bất cứ nút nào cũng có thể bị kích hoạt rớt xuống (activated) từ trên hồ bơi chứa (pool). Một con worker nhặt việc từ mớ có sẵn dựa trên điều kiện (by condition), chứ khỏi cần chờ ông supervisor chỉ mặt đặt tên (supervisor assignment).

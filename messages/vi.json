@@ -1,0 +1,40 @@
+{
+  "HomePage": {
+    "heroTitle": "Theo dõi dự án tiềm năng",
+    "heroHighlight": "trước khi bùng nổ.",
+    "heroDesc": "Bảng xếp hạng dựa trên đà tăng trưởng (momentum) từ GitHub & HuggingFace. Khám phá các repository, model, và dataset thịnh hành.",
+    "liveTracking": "Theo dõi trực tiếp",
+    "updatedHourly": "Cập nhật hàng giờ",
+    "projects": "Dự án",
+    "trending": "Thịnh hành",
+    "lastSync": "Đồng bộ",
+    "showing": "Hiển thị",
+    "ranking": "Bảng xếp hạng"
+  },
+  "Navigation": {
+    "trending": "Thịnh hành",
+    "categories": "Danh mục",
+    "stats": "Thống kê",
+    "submit": "Gửi Dự Án",
+    "admin": "Quản trị"
+  },
+  "Submit": {
+    "title": "Gửi Dự Án",
+    "subtitle": "Đưa repository hoặc mô hình AI của bạn lên bảng xếp hạng để cộng đồng cùng biết đến.",
+    "inputPlaceholder": "Dán đường dẫn GitHub hoặc HuggingFace vào đây...",
+    "button": "Gửi Dự Án",
+    "submitting": "Đang xử lý...",
+    "success": "Dự án đã được đưa vào hàng đợi phân tích!",
+    "errorUrl": "Vui lòng nhập đường dẫn hợp lệ từ GitHub hoặc HuggingFace."
+  },
+  "Admin": {
+    "dashboard": "Bảng điều khiển",
+    "desc": "Tổng quan hệ thống và quản lý crawler.",
+    "stats": "Thống kê Dữ liệu",
+    "totalItems": "Tổng số lượng",
+    "repos": "Kho lưu trữ (Repo)",
+    "models": "Mô hình AI",
+    "crawlerJobs": "Tác vụ Crawler",
+    "runNow": "Chạy ngay"
+  }
+}

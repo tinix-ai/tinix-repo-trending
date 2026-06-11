@@ -1,0 +1,622 @@
+{
+  "phases\\00-setup-and-tooling\\01-dev-environment\\quiz.json": {
+    "md5": "9ac253b650f584ed437ee7130c1039a0",
+    "translated_at": "2026-05-22T13:27:06.820182",
+    "success": true
+  },
+  "phases\\00-setup-and-tooling\\02-git-and-collaboration\\quiz.json": {
+    "md5": "d1bcabb882b1e034fb8e915bfdb3f080",
+    "translated_at": "2026-05-22T13:27:06.823153",
+    "success": true
+  },
+  "phases\\00-setup-and-tooling\\03-gpu-setup-and-cloud\\quiz.json": {
+    "md5": "0925c72109579c4dd6c043c29fcc03f0",
+    "translated_at": "2026-05-22T13:27:06.825154",
+    "success": true
+  },
+  "phases\\00-setup-and-tooling\\04-apis-and-keys\\quiz.json": {
+    "md5": "661d4e3881647a1febe773c71e611ed9",
+    "translated_at": "2026-05-22T13:27:06.828180",
+    "success": true
+  },
+  "phases\\00-setup-and-tooling\\05-jupyter-notebooks\\quiz.json": {
+    "md5": "6d93b92646d3463b95c6760922091a05",
+    "translated_at": "2026-05-22T13:27:06.830175",
+    "success": true
+  },
+  "phases\\00-setup-and-tooling\\06-python-environments\\quiz.json": {
+    "md5": "e2589d4bea446a2aad0bd9416dbd80fc",
+    "translated_at": "2026-05-22T13:27:06.833176",
+    "success": true
+  },
+  "phases\\00-setup-and-tooling\\07-docker-for-ai\\quiz.json": {
+    "md5": "a407f4a802deab79ce459aa2b66d42ec",
+    "translated_at": "2026-05-22T13:27:06.835179",
+    "success": true
+  },
+  "phases\\00-setup-and-tooling\\08-editor-setup\\quiz.json": {
+    "md5": "2d8cddcfbdfc089dbc69902570062aee",
+    "translated_at": "2026-05-22T13:27:06.838177",
+    "success": true
+  },
+  "phases\\00-setup-and-tooling\\09-data-management\\quiz.json": {
+    "md5": "59cfa73ac640a918ff4427ba968667af",
+    "translated_at": "2026-05-22T13:27:06.840177",
+    "success": true
+  },
+  "phases\\00-setup-and-tooling\\10-terminal-and-shell\\quiz.json": {
+    "md5": "d023f83845166a11d0fa03501f3ff62b",
+    "translated_at": "2026-05-22T13:27:06.843177",
+    "success": true
+  },
+  "phases\\00-setup-and-tooling\\11-linux-for-ai\\quiz.json": {
+    "md5": "b1658aeae48ac41edf397485d3dc0b44",
+    "translated_at": "2026-05-22T13:27:06.845175",
+    "success": true
+  },
+  "phases\\00-setup-and-tooling\\12-debugging-and-profiling\\quiz.json": {
+    "md5": "7027be047254c491b30525778e1142e8",
+    "translated_at": "2026-05-22T13:27:06.847729",
+    "success": true
+  },
+  "phases\\01-math-foundations\\01-linear-algebra-intuition\\quiz.json": {
+    "md5": "1715908146eb65c368aab816d3bd2cd9",
+    "translated_at": "2026-05-22T13:27:06.850752",
+    "success": true
+  },
+  "phases\\01-math-foundations\\02-vectors-matrices-operations\\quiz.json": {
+    "md5": "fc36bae0da2213044f0b8890e7ddc3c2",
+    "translated_at": "2026-05-22T13:27:06.852752",
+    "success": true
+  },
+  "phases\\01-math-foundations\\03-matrix-transformations\\quiz.json": {
+    "md5": "db0a4b5f7195f743a8fccf09a4f8a517",
+    "translated_at": "2026-05-22T13:27:06.855752",
+    "success": true
+  },
+  "phases\\01-math-foundations\\04-calculus-for-ml\\quiz.json": {
+    "md5": "b26ab761eb725c6470e9061778d36904",
+    "translated_at": "2026-05-22T13:27:06.857848",
+    "success": true
+  },
+  "phases\\01-math-foundations\\05-chain-rule-and-autodiff\\quiz.json": {
+    "md5": "90275af12a1fc657134707ee4634de1c",
+    "translated_at": "2026-05-22T13:27:06.860873",
+    "success": true
+  },
+  "phases\\01-math-foundations\\06-probability-and-distributions\\quiz.json": {
+    "md5": "230bf202cb98686aefbbebf5b9a74d1c",
+    "translated_at": "2026-05-22T13:27:06.863855",
+    "success": true
+  },
+  "phases\\01-math-foundations\\07-bayes-theorem\\quiz.json": {
+    "md5": "3d42eacae75047fe2825e3a4ec7fe292",
+    "translated_at": "2026-05-22T13:27:06.865871",
+    "success": true
+  },
+  "phases\\01-math-foundations\\08-optimization\\quiz.json": {
+    "md5": "2c35dbecc9df3010b89709ba9bd0608a",
+    "translated_at": "2026-05-22T13:27:06.868872",
+    "success": true
+  },
+  "phases\\01-math-foundations\\09-information-theory\\quiz.json": {
+    "md5": "20d9ad6e2f3b90ddeb9bf1be9d0ad51b",
+    "translated_at": "2026-05-22T13:27:06.871872",
+    "success": true
+  },
+  "phases\\01-math-foundations\\10-dimensionality-reduction\\quiz.json": {
+    "md5": "a329bbc1396af7049a3424dd580c7750",
+    "translated_at": "2026-05-22T13:27:06.873985",
+    "success": true
+  },
+  "phases\\01-math-foundations\\11-singular-value-decomposition\\quiz.json": {
+    "md5": "d7075c1a7b39e89d8c1accb02028dedd",
+    "translated_at": "2026-05-22T13:27:06.876963",
+    "success": true
+  },
+  "phases\\01-math-foundations\\12-tensor-operations\\quiz.json": {
+    "md5": "0dae552d00ba5bd020c5466878a14c08",
+    "translated_at": "2026-05-22T13:27:06.878962",
+    "success": true
+  },
+  "phases\\01-math-foundations\\13-numerical-stability\\quiz.json": {
+    "md5": "2f2018e9a8b5742366ce059410615519",
+    "translated_at": "2026-05-22T13:27:06.881987",
+    "success": true
+  },
+  "phases\\01-math-foundations\\14-norms-and-distances\\quiz.json": {
+    "md5": "8295d6cd60d0d0b634ed5e2acda20fbb",
+    "translated_at": "2026-05-22T13:27:06.883989",
+    "success": true
+  },
+  "phases\\01-math-foundations\\15-statistics-for-ml\\quiz.json": {
+    "md5": "fd57ebf77f93cc583eaed3b5e94d4b32",
+    "translated_at": "2026-05-22T13:27:06.886986",
+    "success": true
+  },
+  "phases\\01-math-foundations\\16-sampling-methods\\quiz.json": {
+    "md5": "c34b12c6025093e992204816b1815900",
+    "translated_at": "2026-05-22T13:27:06.889131",
+    "success": true
+  },
+  "phases\\01-math-foundations\\17-linear-systems\\quiz.json": {
+    "md5": "1c23668558ae981cd2b7baa37c82dee0",
+    "translated_at": "2026-05-22T13:27:06.892106",
+    "success": true
+  },
+  "phases\\01-math-foundations\\18-convex-optimization\\quiz.json": {
+    "md5": "c15504eb2dec26ee096251f7e5b8eb7b",
+    "translated_at": "2026-05-22T13:27:06.894742",
+    "success": true
+  },
+  "phases\\01-math-foundations\\19-complex-numbers\\quiz.json": {
+    "md5": "13b3dd47c634c4a01104fbbe80ac7729",
+    "translated_at": "2026-05-22T13:27:06.896744",
+    "success": true
+  },
+  "phases\\01-math-foundations\\20-fourier-transform\\quiz.json": {
+    "md5": "493df5eb782181ed4ebf189b0df6189b",
+    "translated_at": "2026-05-22T13:27:06.899742",
+    "success": true
+  },
+  "phases\\01-math-foundations\\21-graph-theory\\quiz.json": {
+    "md5": "200ea6b34b20dbe863e66e99aaa36f1d",
+    "translated_at": "2026-05-22T13:27:06.901742",
+    "success": true
+  },
+  "phases\\01-math-foundations\\22-stochastic-processes\\quiz.json": {
+    "md5": "a02be637068c2c3b86f12cc42874c033",
+    "translated_at": "2026-05-22T13:27:06.904742",
+    "success": true
+  },
+  "phases\\02-ml-fundamentals\\01-what-is-machine-learning\\quiz.json": {
+    "md5": "2d84f839658927b5f1b23e3f07d31aaa",
+    "translated_at": "2026-05-22T13:27:06.906746",
+    "success": true
+  },
+  "phases\\02-ml-fundamentals\\02-linear-regression\\quiz.json": {
+    "md5": "322f74a4b83d90b20b70ae0beb567a1d",
+    "translated_at": "2026-05-22T13:27:06.909794",
+    "success": true
+  },
+  "phases\\02-ml-fundamentals\\03-logistic-regression\\quiz.json": {
+    "md5": "981cca975f9a644213342c354d307b12",
+    "translated_at": "2026-05-22T13:27:06.911743",
+    "success": true
+  },
+  "phases\\02-ml-fundamentals\\04-decision-trees\\quiz.json": {
+    "md5": "59a87bbd785c4144da4bb07762b773ec",
+    "translated_at": "2026-05-22T13:27:06.914744",
+    "success": true
+  },
+  "phases\\02-ml-fundamentals\\05-support-vector-machines\\quiz.json": {
+    "md5": "9daa97ad3f3204248bc9f2fcfe9933fa",
+    "translated_at": "2026-05-22T13:27:06.917718",
+    "success": true
+  },
+  "phases\\02-ml-fundamentals\\06-knn-and-distances\\quiz.json": {
+    "md5": "fc5ae35f09af6c95c7dc2d1b8014d0c7",
+    "translated_at": "2026-05-22T13:27:06.919869",
+    "success": true
+  },
+  "phases\\02-ml-fundamentals\\07-unsupervised-learning\\quiz.json": {
+    "md5": "52c8e3a6a2106046f23947c283fd9ce7",
+    "translated_at": "2026-05-22T13:27:06.922895",
+    "success": true
+  },
+  "phases\\02-ml-fundamentals\\08-feature-engineering\\quiz.json": {
+    "md5": "4828b33e89becdf504dabf2bdd2fd76a",
+    "translated_at": "2026-05-22T13:27:06.925871",
+    "success": true
+  },
+  "phases\\02-ml-fundamentals\\09-model-evaluation\\quiz.json": {
+    "md5": "a38a4a832dfeb33cae164f67c471a91c",
+    "translated_at": "2026-05-22T13:27:06.927870",
+    "success": true
+  },
+  "phases\\02-ml-fundamentals\\10-bias-variance\\quiz.json": {
+    "md5": "864fb81097bc1f80d42fe13cb468a9bd",
+    "translated_at": "2026-05-22T13:27:06.930896",
+    "success": true
+  },
+  "phases\\02-ml-fundamentals\\11-ensemble-methods\\quiz.json": {
+    "md5": "68e06684a618863cc4fb37cb2f2f2a26",
+    "translated_at": "2026-05-22T13:27:06.933893",
+    "success": true
+  },
+  "phases\\02-ml-fundamentals\\12-hyperparameter-tuning\\quiz.json": {
+    "md5": "22b94ca312e98907dc568e0e0cffb8e3",
+    "translated_at": "2026-05-22T13:27:06.936895",
+    "success": true
+  },
+  "phases\\02-ml-fundamentals\\13-ml-pipelines\\quiz.json": {
+    "md5": "f8ccc130e5e3231558412a7c5b50a142",
+    "translated_at": "2026-05-22T13:27:06.939869",
+    "success": true
+  },
+  "phases\\02-ml-fundamentals\\14-naive-bayes\\quiz.json": {
+    "md5": "be4719cb486ed24e529125a3d96b52b4",
+    "translated_at": "2026-05-22T13:27:06.942453",
+    "success": true
+  },
+  "phases\\02-ml-fundamentals\\15-time-series\\quiz.json": {
+    "md5": "997734b6194d949a452128332de15298",
+    "translated_at": "2026-05-22T13:27:06.945451",
+    "success": true
+  },
+  "phases\\02-ml-fundamentals\\16-anomaly-detection\\quiz.json": {
+    "md5": "32bca21ef623e6095c9550806133ec18",
+    "translated_at": "2026-05-22T13:27:06.948452",
+    "success": true
+  },
+  "phases\\02-ml-fundamentals\\17-imbalanced-data\\quiz.json": {
+    "md5": "621926f49250205b802a39bdbb965aa1",
+    "translated_at": "2026-05-22T13:27:06.950451",
+    "success": true
+  },
+  "phases\\02-ml-fundamentals\\18-feature-selection\\quiz.json": {
+    "md5": "16248f9a0b0dfa4ea43b2e48d012d564",
+    "translated_at": "2026-05-22T13:27:06.953451",
+    "success": true
+  },
+  "phases\\03-deep-learning-core\\01-the-perceptron\\quiz.json": {
+    "md5": "dd5fe7610d9875e75de1bfa0614f1da2",
+    "translated_at": "2026-05-22T13:27:06.956451",
+    "success": true
+  },
+  "phases\\03-deep-learning-core\\02-multi-layer-networks\\quiz.json": {
+    "md5": "7dc542281cd0e2e144104a9118e9be44",
+    "translated_at": "2026-05-22T13:27:06.958452",
+    "success": true
+  },
+  "phases\\03-deep-learning-core\\03-backpropagation\\quiz.json": {
+    "md5": "227394b6f9a3589180a7f691a25a03ba",
+    "translated_at": "2026-05-22T13:27:06.961451",
+    "success": true
+  },
+  "phases\\03-deep-learning-core\\04-activation-functions\\quiz.json": {
+    "md5": "532570ac01db175c96732f88bbb7dd4e",
+    "translated_at": "2026-05-22T13:27:06.963451",
+    "success": true
+  },
+  "phases\\03-deep-learning-core\\05-loss-functions\\quiz.json": {
+    "md5": "764c0e06fc59782c3eba05f19105c34f",
+    "translated_at": "2026-05-22T13:27:06.966565",
+    "success": true
+  },
+  "phases\\03-deep-learning-core\\06-optimizers\\quiz.json": {
+    "md5": "0a854f4545418113272a9100951935e0",
+    "translated_at": "2026-05-22T13:27:06.968452",
+    "success": true
+  },
+  "phases\\03-deep-learning-core\\07-regularization\\quiz.json": {
+    "md5": "8f91fa453f1ea0c24e763c3a8fee0dfc",
+    "translated_at": "2026-05-22T13:27:06.971451",
+    "success": true
+  },
+  "phases\\03-deep-learning-core\\08-weight-initialization\\quiz.json": {
+    "md5": "dc28ebdc84413e4a306aac5a95210b0f",
+    "translated_at": "2026-05-22T13:27:06.974429",
+    "success": true
+  },
+  "phases\\03-deep-learning-core\\09-learning-rate-schedules\\quiz.json": {
+    "md5": "a06c25b5eda6b5abb053539e7fc6f48f",
+    "translated_at": "2026-05-22T13:27:06.976457",
+    "success": true
+  },
+  "phases\\03-deep-learning-core\\10-mini-framework\\quiz.json": {
+    "md5": "0f2d971afa50d78e57b3a0a6fee3199f",
+    "translated_at": "2026-05-22T13:27:06.979457",
+    "success": true
+  },
+  "phases\\03-deep-learning-core\\11-intro-to-pytorch\\quiz.json": {
+    "md5": "3241c35b9051afc1eebaf250e02645d7",
+    "translated_at": "2026-05-22T13:27:06.981457",
+    "success": true
+  },
+  "phases\\03-deep-learning-core\\12-intro-to-jax\\quiz.json": {
+    "md5": "57d93ac8e22fe722fae8c3ae33153a63",
+    "translated_at": "2026-05-22T13:27:06.984124",
+    "success": true
+  },
+  "phases\\03-deep-learning-core\\13-debugging-neural-networks\\quiz.json": {
+    "md5": "38d1d99127c0f484756e87f71f27a583",
+    "translated_at": "2026-05-22T13:27:06.987215",
+    "success": true
+  },
+  "phases\\04-computer-vision\\01-image-fundamentals\\quiz.json": {
+    "md5": "447fab1ddd35fbbec6da334a68a422e0",
+    "translated_at": "2026-05-22T13:27:06.991308",
+    "success": true
+  },
+  "phases\\04-computer-vision\\02-convolutions-from-scratch\\quiz.json": {
+    "md5": "19adc7d2499cb8d51b7e62dd54d87acb",
+    "translated_at": "2026-05-22T13:27:06.994298",
+    "success": true
+  },
+  "phases\\04-computer-vision\\03-cnns-lenet-to-resnet\\quiz.json": {
+    "md5": "a1b8641edcbe90915b62b4708a1f5d7b",
+    "translated_at": "2026-05-22T13:27:06.997301",
+    "success": true
+  },
+  "phases\\04-computer-vision\\04-image-classification\\quiz.json": {
+    "md5": "e4b02c0c598d8e73c44600d33b9142c2",
+    "translated_at": "2026-05-22T13:27:07.001423",
+    "success": true
+  },
+  "phases\\04-computer-vision\\05-transfer-learning\\quiz.json": {
+    "md5": "53e490a51931c869c38fec165b84dfd2",
+    "translated_at": "2026-05-22T13:27:07.004423",
+    "success": true
+  },
+  "phases\\04-computer-vision\\06-object-detection-yolo\\quiz.json": {
+    "md5": "4faa5c2714a6486cdf82319abf47209b",
+    "translated_at": "2026-05-22T13:27:07.007425",
+    "success": true
+  },
+  "phases\\04-computer-vision\\07-semantic-segmentation-unet\\quiz.json": {
+    "md5": "2b9d4acc389ce40738c912ee7a9c49de",
+    "translated_at": "2026-05-22T13:27:07.010430",
+    "success": true
+  },
+  "phases\\04-computer-vision\\08-instance-segmentation-mask-rcnn\\quiz.json": {
+    "md5": "ec55f68658d8a791e34096743348d911",
+    "translated_at": "2026-05-22T13:27:07.013455",
+    "success": true
+  },
+  "phases\\04-computer-vision\\09-image-generation-gans\\quiz.json": {
+    "md5": "76f06f1273a3a1ee8ad61cfefa99adda",
+    "translated_at": "2026-05-22T13:27:07.016479",
+    "success": true
+  },
+  "phases\\04-computer-vision\\10-image-generation-diffusion\\quiz.json": {
+    "md5": "593ff039611def61233b0d64f6f0e6bd",
+    "translated_at": "2026-05-22T13:27:07.019480",
+    "success": true
+  },
+  "phases\\04-computer-vision\\11-stable-diffusion\\quiz.json": {
+    "md5": "b17d32b3ad90584b4eeb24ab71cc7c13",
+    "translated_at": "2026-05-22T13:27:07.022482",
+    "success": true
+  },
+  "phases\\04-computer-vision\\12-video-understanding\\quiz.json": {
+    "md5": "164d359d75a5c4bde2754cf4c4c904bf",
+    "translated_at": "2026-05-22T13:27:07.025456",
+    "success": true
+  },
+  "phases\\04-computer-vision\\13-3d-vision-nerf\\quiz.json": {
+    "md5": "8cdae82d6110c52cad4ec651826fb4ce",
+    "translated_at": "2026-05-22T13:27:07.028597",
+    "success": true
+  },
+  "phases\\04-computer-vision\\14-vision-transformers\\quiz.json": {
+    "md5": "0d3bfc5b113fa5d7c20d3cdeed919865",
+    "translated_at": "2026-05-22T13:27:07.031621",
+    "success": true
+  },
+  "phases\\04-computer-vision\\15-real-time-edge\\quiz.json": {
+    "md5": "5730a6d9e24dd2447d0b53caa0076007",
+    "translated_at": "2026-05-22T13:27:07.034255",
+    "success": true
+  },
+  "phases\\04-computer-vision\\17-self-supervised-vision\\quiz.json": {
+    "md5": "4adc4df03b247f7dff835dac69fb1256",
+    "translated_at": "2026-05-22T13:27:07.040279",
+    "success": true
+  },
+  "phases\\04-computer-vision\\16-vision-pipeline-capstone\\quiz.json": {
+    "md5": "341dc807c9d24268ac02dc129c7bc301",
+    "translated_at": "2026-05-22T13:27:07.037282",
+    "success": true
+  },
+  "phases\\04-computer-vision\\18-open-vocab-clip\\quiz.json": {
+    "md5": "15b686b10294654aac70db387fe57b27",
+    "translated_at": "2026-05-22T13:27:07.044282",
+    "success": true
+  },
+  "phases\\04-computer-vision\\19-ocr-document-understanding\\quiz.json": {
+    "md5": "e789610602e7e871a15c978ececbaaae",
+    "translated_at": "2026-05-22T13:27:07.047427",
+    "success": true
+  },
+  "phases\\04-computer-vision\\20-image-retrieval-metric\\quiz.json": {
+    "md5": "5616b51d9717c17223c13790fe00feee",
+    "translated_at": "2026-05-22T13:27:07.050555",
+    "success": true
+  },
+  "phases\\04-computer-vision\\21-keypoint-pose\\quiz.json": {
+    "md5": "32615cc5274cd500117cbffd00f566b4",
+    "translated_at": "2026-05-22T13:27:07.053552",
+    "success": true
+  },
+  "phases\\04-computer-vision\\23-diffusion-transformers-rectified-flow\\quiz.json": {
+    "md5": "f4ef459a786e744e9213e7bb487ce7db",
+    "translated_at": "2026-05-22T13:27:07.060680",
+    "success": true
+  },
+  "phases\\04-computer-vision\\24-sam3-open-vocab-segmentation\\quiz.json": {
+    "md5": "cb4835b3086c6aa046972416f9f9f359",
+    "translated_at": "2026-05-22T13:27:07.063704",
+    "success": true
+  },
+  "phases\\04-computer-vision\\25-vision-language-models\\quiz.json": {
+    "md5": "7284a0e06baeed44c7d33effb51646bd",
+    "translated_at": "2026-05-22T13:27:07.067681",
+    "success": true
+  },
+  "phases\\04-computer-vision\\26-monocular-depth\\quiz.json": {
+    "md5": "608eb1fd8aba7db53043ca65c46b1030",
+    "translated_at": "2026-05-22T13:27:07.070705",
+    "success": true
+  },
+  "phases\\04-computer-vision\\27-multi-object-tracking\\quiz.json": {
+    "md5": "d4b7ceeaa122269c97dd7e807a6aadcd",
+    "translated_at": "2026-05-22T13:27:07.073686",
+    "success": true
+  },
+  "phases\\04-computer-vision\\28-world-models-video-diffusion\\quiz.json": {
+    "md5": "abeb31f330c7018c35af6f324959f7c8",
+    "translated_at": "2026-05-22T13:27:07.077791",
+    "success": true
+  },
+  "phases\\07-transformers-deep-dive\\02-self-attention-from-scratch\\quiz.json": {
+    "md5": "0d9f0d5657cbadae4a8dad1eec51fbe7",
+    "translated_at": "2026-05-22T13:27:07.079814",
+    "success": true
+  },
+  "phases\\10-llms-from-scratch\\01-tokenizers\\quiz.json": {
+    "md5": "f2aa32d9279b8b1fee1a89219cfb9e4e",
+    "translated_at": "2026-05-22T13:27:07.082792",
+    "success": true
+  },
+  "phases\\10-llms-from-scratch\\02-building-a-tokenizer\\quiz.json": {
+    "md5": "114d809863b6485fb098af25290f803f",
+    "translated_at": "2026-05-22T13:27:07.084815",
+    "success": true
+  },
+  "phases\\10-llms-from-scratch\\03-data-pipelines\\quiz.json": {
+    "md5": "394ef1ac93c92582977772ad824ebd25",
+    "translated_at": "2026-05-22T13:27:07.087791",
+    "success": true
+  },
+  "phases\\04-computer-vision\\22-3d-gaussian-splatting\\quiz.json": {
+    "md5": "128a8ee08c8ddcad3af3ec45f6f0b1e9",
+    "translated_at": "2026-05-22T13:27:07.057528",
+    "success": true
+  },
+  "phases\\10-llms-from-scratch\\04-pre-training-mini-gpt\\quiz.json": {
+    "md5": "ad4b58251af690aeca12b54381ae54bd",
+    "translated_at": "2026-05-22T13:27:07.090821",
+    "success": true
+  },
+  "phases\\10-llms-from-scratch\\05-scaling-distributed\\quiz.json": {
+    "md5": "3d623dac0a670096c24d677f7d210a1c",
+    "translated_at": "2026-05-22T13:27:07.092949",
+    "success": true
+  },
+  "phases\\10-llms-from-scratch\\06-instruction-tuning-sft\\quiz.json": {
+    "md5": "7638841641256d14dfb9ed27ca33ebeb",
+    "translated_at": "2026-05-22T13:27:07.095088",
+    "success": true
+  },
+  "phases\\10-llms-from-scratch\\07-rlhf\\quiz.json": {
+    "md5": "d32502aeac894ede7bae26ad8f508c7d",
+    "translated_at": "2026-05-22T13:27:07.098118",
+    "success": true
+  },
+  "phases\\10-llms-from-scratch\\08-dpo\\quiz.json": {
+    "md5": "c9e604ce867caa5909a4e77d334d7f89",
+    "translated_at": "2026-05-22T13:27:07.100111",
+    "success": true
+  },
+  "phases\\10-llms-from-scratch\\10-evaluation\\quiz.json": {
+    "md5": "0dc1f439f887587555ea090dc00deec4",
+    "translated_at": "2026-05-22T13:27:07.103114",
+    "success": true
+  },
+  "phases\\10-llms-from-scratch\\11-quantization\\quiz.json": {
+    "md5": "87d4579793a1c3d5feb218b85faf1ab9",
+    "translated_at": "2026-05-22T13:27:07.106118",
+    "success": true
+  },
+  "phases\\10-llms-from-scratch\\12-inference-optimization\\quiz.json": {
+    "md5": "9ee8a756d0eaaa5c46cee481561346d4",
+    "translated_at": "2026-05-22T13:27:07.108118",
+    "success": true
+  },
+  "phases\\11-llm-engineering\\01-prompt-engineering\\quiz.json": {
+    "md5": "c0d26a566cfbe3cefe0e9cf15036476d",
+    "translated_at": "2026-05-22T13:27:07.111118",
+    "success": true
+  },
+  "phases\\11-llm-engineering\\02-few-shot-cot\\quiz.json": {
+    "md5": "66171fa1424fcfcebf83a68643ae7542",
+    "translated_at": "2026-05-22T13:27:07.113118",
+    "success": true
+  },
+  "phases\\11-llm-engineering\\03-structured-outputs\\quiz.json": {
+    "md5": "b488541ee57753e336ed880f676f98bc",
+    "translated_at": "2026-05-22T13:27:07.116118",
+    "success": true
+  },
+  "phases\\11-llm-engineering\\04-embeddings\\quiz.json": {
+    "md5": "503297ee677da2880555c14e9d2bd230",
+    "translated_at": "2026-05-22T13:27:07.118118",
+    "success": true
+  },
+  "phases\\11-llm-engineering\\05-context-engineering\\quiz.json": {
+    "md5": "8ecc910eb8ae72939f973a789eb42b1a",
+    "translated_at": "2026-05-22T13:27:07.121118",
+    "success": true
+  },
+  "phases\\11-llm-engineering\\06-rag\\quiz.json": {
+    "md5": "0b806cb7d1314009fc8e1906d03d5442",
+    "translated_at": "2026-05-22T13:27:07.124241",
+    "success": true
+  },
+  "phases\\11-llm-engineering\\07-advanced-rag\\quiz.json": {
+    "md5": "9c07d7b318171f180ae6840f760dc131",
+    "translated_at": "2026-05-22T13:27:07.126268",
+    "success": true
+  },
+  "phases\\11-llm-engineering\\08-fine-tuning-lora\\quiz.json": {
+    "md5": "945ce679fdb2d0d7a07f85360d784820",
+    "translated_at": "2026-05-22T13:27:07.129268",
+    "success": true
+  },
+  "phases\\11-llm-engineering\\09-function-calling\\quiz.json": {
+    "md5": "aea0a230ac8c83a82dd03be0ba8446fe",
+    "translated_at": "2026-05-22T13:27:07.132267",
+    "success": true
+  },
+  "phases\\11-llm-engineering\\10-evaluation\\quiz.json": {
+    "md5": "fe9edeed39002ac4edbb36cb3b5b1484",
+    "translated_at": "2026-05-22T13:27:07.135268",
+    "success": true
+  },
+  "phases\\11-llm-engineering\\11-caching-cost\\quiz.json": {
+    "md5": "dbb934110b54c347fffe62d61e1eaa58",
+    "translated_at": "2026-05-22T13:27:07.138347",
+    "success": true
+  },
+  "phases\\11-llm-engineering\\12-guardrails\\quiz.json": {
+    "md5": "fe2672cd1731ef470164af09a29571af",
+    "translated_at": "2026-05-22T13:27:07.141349",
+    "success": true
+  },
+  "phases\\16-multi-agent-and-swarms\\01-why-multi-agent\\quiz.json": {
+    "md5": "e92899369a895e7765e1c6de864b14cd",
+    "translated_at": "2026-05-22T13:27:07.159106",
+    "success": true
+  },
+  "phases\\16-multi-agent-and-swarms\\03-communication-protocols\\quiz.json": {
+    "md5": "b3bbee7395dc5b8c16c4780a56f46bf2",
+    "translated_at": "2026-05-22T13:27:07.163067",
+    "success": true
+  },
+  "phases\\11-llm-engineering\\13-production-app\\quiz.json": {
+    "md5": "c42ef35416e1f9be7a4f1ce477b684a9",
+    "translated_at": "2026-05-22T13:27:07.144948",
+    "success": true
+  },
+  "phases\\11-llm-engineering\\14-model-context-protocol\\quiz.json": {
+    "md5": "a874c247917968899b917e6367f0194e",
+    "translated_at": "2026-05-22T13:27:07.146950",
+    "success": true
+  },
+  "phases\\11-llm-engineering\\15-prompt-caching\\quiz.json": {
+    "md5": "db0e9d87df55a2e3a84df5e53844e981",
+    "translated_at": "2026-05-22T13:27:07.148948",
+    "success": true
+  },
+  "phases\\11-llm-engineering\\16-langgraph-state-machines\\quiz.json": {
+    "md5": "319e8600cc1dd5a64e0c32c5d80d4f0e",
+    "translated_at": "2026-05-22T13:27:07.152948",
+    "success": true
+  },
+  "phases\\11-llm-engineering\\17-agent-framework-tradeoffs\\quiz.json": {
+    "md5": "78919e40a27be6ee402e2b3627b686ae",
+    "translated_at": "2026-05-22T13:27:07.155068",
+    "success": true
+  }
+}

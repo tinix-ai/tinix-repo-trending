@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: tinix-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgrespassword
+      POSTGRES_DB: tinix_trending
+    ports:
+      # Cổng 5433 ở máy host trỏ vào cổng 5432 của container (để tránh đụng độ Postgres native)
+      - "5433:5432"
+    volumes:
+      - tinix-postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: tinix-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - tinix-redis-data:/data
+    command: redis-server --appendonly yes
+    restart: unless-stopped
+
+volumes:
+  tinix-postgres-data:
+  tinix-redis-data:

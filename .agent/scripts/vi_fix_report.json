@@ -1,0 +1,95 @@
+{
+  "timestamp": "2026-05-21T17:54:01.391100",
+  "total_files": 435,
+  "changed_count": 10,
+  "error_count": 0,
+  "results": [
+    {
+      "file": "c:\\Users\\vutm\\Desktop\\workspace\\tinix-r2ai-roadmap\\phases\\15-autonomous-systems\\20-openai-preparedness-deepmind-fsf\\docs\\vi.md",
+      "changed": true,
+      "changes": [
+        "    'mác' → 'nhãn/mức'"
+      ],
+      "error": null
+    },
+    {
+      "file": "c:\\Users\\vutm\\Desktop\\workspace\\tinix-r2ai-roadmap\\phases\\16-multi-agent-and-swarms\\02-fipa-acl-heritage\\docs\\vi.md",
+      "changed": true,
+      "changes": [
+        "    'di sản' → 'các sản phẩm đầu ra (artifacts)'"
+      ],
+      "error": null
+    },
+    {
+      "file": "c:\\Users\\vutm\\Desktop\\workspace\\tinix-r2ai-roadmap\\phases\\16-multi-agent-and-swarms\\06-hierarchical-architecture\\docs\\vi.md",
+      "changed": true,
+      "changes": [
+        "    'tay sai' → 'hệ thống phụ trợ'",
+        "    'wires' → 'kết nối'"
+      ],
+      "error": null
+    },
+    {
+      "file": "c:\\Users\\vutm\\Desktop\\workspace\\tinix-r2ai-roadmap\\phases\\16-multi-agent-and-swarms\\08-role-specialization\\docs\\vi.md",
+      "changed": true,
+      "changes": [
+        "    'chém gió' → 'phát biểu thiếu căn cứ'",
+        "    'nặn ra' → 'tạo ra'",
+        "    'mác' → 'nhãn/mức'"
+      ],
+      "error": null
+    },
+    {
+      "file": "c:\\Users\\vutm\\Desktop\\workspace\\tinix-r2ai-roadmap\\phases\\16-multi-agent-and-swarms\\09-parallel-swarm-networks\\docs\\vi.md",
+      "changed": true,
+      "changes": [
+        "    'đám tác nhân' → 'các tác nhân'",
+        "    'lột xác' → 'chuyển đổi'"
+      ],
+      "error": null
+    },
+    {
+      "file": "c:\\Users\\vutm\\Desktop\\workspace\\tinix-r2ai-roadmap\\phases\\16-multi-agent-and-swarms\\11-handoffs-and-routines\\docs\\vi.md",
+      "changed": true,
+      "changes": [
+        "    'nặn ra' → 'tạo ra'"
+      ],
+      "error": null
+    },
+    {
+      "file": "c:\\Users\\vutm\\Desktop\\workspace\\tinix-r2ai-roadmap\\phases\\16-multi-agent-and-swarms\\13-shared-memory-blackboard\\docs\\vi.md",
+      "changed": true,
+      "changes": [
+        "    'phọt ra' → 'xuất ra'",
+        "    'nặn ra' → 'tạo ra'",
+        "    'lột xác' → 'chuyển đổi'",
+        "    'mác' → 'nhãn/mức'"
+      ],
+      "error": null
+    },
+    {
+      "file": "c:\\Users\\vutm\\Desktop\\workspace\\tinix-r2ai-roadmap\\phases\\18-ethics-safety-alignment\\15-indirect-prompt-injection\\docs\\vi.md",
+      "changed": true,
+      "changes": [
+        "    'mác' → 'nhãn/mức'"
+      ],
+      "error": null
+    },
+    {
+      "file": "c:\\Users\\vutm\\Desktop\\workspace\\tinix-r2ai-roadmap\\phases\\18-ethics-safety-alignment\\24-regulatory-frameworks-eu-us-uk-korea\\docs\\vi.md",
+      "changed": true,
+      "changes": [
+        "    'di sản' → 'các sản phẩm đầu ra (artifacts)'"
+      ],
+      "error": null
+    },
+    {
+      "file": "c:\\Users\\vutm\\Desktop\\workspace\\tinix-r2ai-roadmap\\phases\\19-capstone-projects\\05-autonomous-research-agent\\docs\\vi.md",
+      "changed": true,
+      "changes": [
+        "    'lùng sục' → 'tìm kiếm'"
+      ],
+      "error": null
+    }
+  ]
+}

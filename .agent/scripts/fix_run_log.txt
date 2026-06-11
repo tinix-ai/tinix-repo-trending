@@ -1,0 +1,469 @@
+﻿======================================================================
+SCRIPT FIX VIETNAMESE TRANSLATIONS (v2 - Safe)
+Start: 2026-05-21 17:53:58
+======================================================================
+
+Found 435 vi.md files
+
+[  1/435]    ok: 01-dev-environment
+[  2/435]    ok: 02-git-and-collaboration
+[  3/435]    ok: 03-gpu-setup-and-cloud
+[  4/435]    ok: 04-apis-and-keys
+[  5/435]    ok: 05-jupyter-notebooks
+[  6/435]    ok: 06-python-environments
+[  7/435]    ok: 07-docker-for-ai
+[  8/435]    ok: 08-editor-setup
+[  9/435]    ok: 09-data-management
+[ 10/435]    ok: 10-terminal-and-shell
+[ 11/435]    ok: 11-linux-for-ai
+[ 12/435]    ok: 12-debugging-and-profiling
+[ 13/435]    ok: 01-linear-algebra-intuition
+[ 14/435]    ok: 02-vectors-matrices-operations
+[ 15/435]    ok: 03-matrix-transformations
+[ 16/435]    ok: 04-calculus-for-ml
+[ 17/435]    ok: 05-chain-rule-and-autodiff
+[ 18/435]    ok: 06-probability-and-distributions
+[ 19/435]    ok: 07-bayes-theorem
+[ 20/435]    ok: 08-optimization
+[ 21/435]    ok: 09-information-theory
+[ 22/435]    ok: 10-dimensionality-reduction
+[ 23/435]    ok: 11-singular-value-decomposition
+[ 24/435]    ok: 12-tensor-operations
+[ 25/435]    ok: 13-numerical-stability
+[ 26/435]    ok: 14-norms-and-distances
+[ 27/435]    ok: 15-statistics-for-ml
+[ 28/435]    ok: 16-sampling-methods
+[ 29/435]    ok: 17-linear-systems
+[ 30/435]    ok: 18-convex-optimization
+[ 31/435]    ok: 19-complex-numbers
+[ 32/435]    ok: 20-fourier-transform
+[ 33/435]    ok: 21-graph-theory
+[ 34/435]    ok: 22-stochastic-processes
+[ 35/435]    ok: 01-what-is-machine-learning
+[ 36/435]    ok: 02-linear-regression
+[ 37/435]    ok: 03-logistic-regression
+[ 38/435]    ok: 04-decision-trees
+[ 39/435]    ok: 05-support-vector-machines
+[ 40/435]    ok: 06-knn-and-distances
+[ 41/435]    ok: 07-unsupervised-learning
+[ 42/435]    ok: 08-feature-engineering
+[ 43/435]    ok: 09-model-evaluation
+[ 44/435]    ok: 10-bias-variance
+[ 45/435]    ok: 11-ensemble-methods
+[ 46/435]    ok: 12-hyperparameter-tuning
+[ 47/435]    ok: 13-ml-pipelines
+[ 48/435]    ok: 14-naive-bayes
+[ 49/435]    ok: 15-time-series
+[ 50/435]    ok: 16-anomaly-detection
+[ 51/435]    ok: 17-imbalanced-data
+[ 52/435]    ok: 18-feature-selection
+[ 53/435]    ok: 01-the-perceptron
+[ 54/435]    ok: 02-multi-layer-networks
+[ 55/435]    ok: 03-backpropagation
+[ 56/435]    ok: 04-activation-functions
+[ 57/435]    ok: 05-loss-functions
+[ 58/435]    ok: 06-optimizers
+[ 59/435]    ok: 07-regularization
+[ 60/435]    ok: 08-weight-initialization
+[ 61/435]    ok: 09-learning-rate-schedules
+[ 62/435]    ok: 10-mini-framework
+[ 63/435]    ok: 11-intro-to-pytorch
+[ 64/435]    ok: 12-intro-to-jax
+[ 65/435]    ok: 13-debugging-neural-networks
+[ 66/435]    ok: 01-image-fundamentals
+[ 67/435]    ok: 02-convolutions-from-scratch
+[ 68/435]    ok: 03-cnns-lenet-to-resnet
+[ 69/435]    ok: 04-image-classification
+[ 70/435]    ok: 05-transfer-learning
+[ 71/435]    ok: 06-object-detection-yolo
+[ 72/435]    ok: 07-semantic-segmentation-unet
+[ 73/435]    ok: 08-instance-segmentation-mask-rcnn
+[ 74/435]    ok: 09-image-generation-gans
+[ 75/435]    ok: 10-image-generation-diffusion
+[ 76/435]    ok: 11-stable-diffusion
+[ 77/435]    ok: 12-video-understanding
+[ 78/435]    ok: 13-3d-vision-nerf
+[ 79/435]    ok: 14-vision-transformers
+[ 80/435]    ok: 15-real-time-edge
+[ 81/435]    ok: 16-vision-pipeline-capstone
+[ 82/435]    ok: 17-self-supervised-vision
+[ 83/435]    ok: 18-open-vocab-clip
+[ 84/435]    ok: 19-ocr-document-understanding
+[ 85/435]    ok: 20-image-retrieval-metric
+[ 86/435]    ok: 21-keypoint-pose
+[ 87/435]    ok: 22-3d-gaussian-splatting
+[ 88/435]    ok: 23-diffusion-transformers-rectified-flow
+[ 89/435]    ok: 24-sam3-open-vocab-segmentation
+[ 90/435]    ok: 25-vision-language-models
+[ 91/435]    ok: 26-monocular-depth
+[ 92/435]    ok: 27-multi-object-tracking
+[ 93/435]    ok: 28-world-models-video-diffusion
+[ 94/435]    ok: 01-text-processing
+[ 95/435]    ok: 02-bag-of-words-tfidf
+[ 96/435]    ok: 03-word-embeddings-word2vec
+[ 97/435]    ok: 04-glove-fasttext-subword
+[ 98/435]    ok: 05-sentiment-analysis
+[ 99/435]    ok: 06-named-entity-recognition
+[100/435]    ok: 07-pos-tagging-parsing
+[101/435]    ok: 08-cnns-rnns-for-text
+[102/435]    ok: 09-sequence-to-sequence
+[103/435]    ok: 10-attention-mechanism
+[104/435]    ok: 11-machine-translation
+[105/435]    ok: 12-text-summarization
+[106/435]    ok: 13-question-answering
+[107/435]    ok: 14-information-retrieval-search
+[108/435]    ok: 15-topic-modeling
+[109/435]    ok: 16-text-generation-pre-transformer
+[110/435]    ok: 17-chatbots-rule-to-neural
+[111/435]    ok: 18-multilingual-nlp
+[112/435]    ok: 19-subword-tokenization
+[113/435]    ok: 20-structured-outputs-constrained-decoding
+[114/435]    ok: 21-nli-textual-entailment
+[115/435]    ok: 22-embedding-models-deep-dive
+[116/435]    ok: 23-chunking-strategies-rag
+[117/435]    ok: 24-coreference-resolution
+[118/435]    ok: 25-entity-linking
+[119/435]    ok: 26-relation-extraction-kg
+[120/435]    ok: 27-llm-evaluation-frameworks
+[121/435]    ok: 28-long-context-evaluation
+[122/435]    ok: 29-dialogue-state-tracking
+[123/435]    ok: 01-audio-fundamentals
+[124/435]    ok: 02-spectrograms-mel-features
+[125/435]    ok: 03-audio-classification
+[126/435]    ok: 04-speech-recognition-asr
+[127/435]    ok: 05-whisper-architecture-finetuning
+[128/435]    ok: 06-speaker-recognition-verification
+[129/435]    ok: 07-text-to-speech
+[130/435]    ok: 08-voice-cloning-conversion
+[131/435]    ok: 09-music-generation
+[132/435]    ok: 10-audio-language-models
+[133/435]    ok: 11-real-time-audio-processing
+[134/435]    ok: 12-voice-assistant-pipeline
+[135/435]    ok: 13-neural-audio-codecs
+[136/435]    ok: 14-voice-activity-detection-turn-taking
+[137/435]    ok: 15-streaming-speech-to-speech-moshi-hibiki
+[138/435]    ok: 16-anti-spoofing-audio-watermarking
+[139/435]    ok: 17-audio-evaluation-metrics
+[140/435]    ok: 01-why-transformers
+[141/435]    ok: 02-self-attention-from-scratch
+[142/435]    ok: 03-multi-head-attention
+[143/435]    ok: 04-positional-encoding
+[144/435]    ok: 05-full-transformer
+[145/435]    ok: 06-bert-masked-language-modeling
+[146/435]    ok: 07-gpt-causal-language-modeling
+[147/435]    ok: 08-t5-bart-encoder-decoder
+[148/435]    ok: 09-vision-transformers
+[149/435]    ok: 10-audio-transformers-whisper
+[150/435]    ok: 11-mixture-of-experts
+[151/435]    ok: 12-kv-cache-flash-attention
+[152/435]    ok: 13-scaling-laws
+[153/435]    ok: 14-build-a-transformer-capstone
+[154/435]    ok: 15-attention-variants
+[155/435]    ok: 16-speculative-decoding
+[156/435]    ok: 01-generative-models-taxonomy-history
+[157/435]    ok: 02-autoencoders-vae
+[158/435]    ok: 03-gans-generator-discriminator
+[159/435]    ok: 04-conditional-gans-pix2pix
+[160/435]    ok: 05-stylegan
+[161/435]    ok: 06-diffusion-ddpm-from-scratch
+[162/435]    ok: 07-latent-diffusion-stable-diffusion
+[163/435]    ok: 08-controlnet-lora-conditioning
+[164/435]    ok: 09-inpainting-outpainting-editing
+[165/435]    ok: 10-video-generation
+[166/435]    ok: 11-audio-generation
+[167/435]    ok: 12-3d-generation
+[168/435]    ok: 13-flow-matching-rectified-flows
+[169/435]    ok: 14-evaluation-fid-clip-score
+[170/435]    ok: 19-visual-autoregressive-var
+[171/435]    ok: 01-mdps-states-actions-rewards
+[172/435]    ok: 02-dynamic-programming
+[173/435]    ok: 03-monte-carlo-methods
+[174/435]    ok: 04-q-learning-sarsa
+[175/435]    ok: 05-dqn
+[176/435]    ok: 06-policy-gradients-reinforce
+[177/435]    ok: 07-actor-critic-a2c-a3c
+[178/435]    ok: 08-ppo
+[179/435]    ok: 09-reward-modeling-rlhf
+[180/435]    ok: 10-multi-agent-rl
+[181/435]    ok: 11-sim-to-real-transfer
+[182/435]    ok: 12-rl-for-games
+[183/435]    ok: 01-tokenizers
+[184/435]    ok: 02-building-a-tokenizer
+[185/435]    ok: 03-data-pipelines
+[186/435]    ok: 04-pre-training-mini-gpt
+[187/435]    ok: 05-scaling-distributed
+[188/435]    ok: 06-instruction-tuning-sft
+[189/435]    ok: 07-rlhf
+[190/435]    ok: 08-dpo
+[191/435]    ok: 09-constitutional-ai-self-improvement
+[192/435]    ok: 10-evaluation
+[193/435]    ok: 11-quantization
+[194/435]    ok: 12-inference-optimization
+[195/435]    ok: 13-building-complete-llm-pipeline
+[196/435]    ok: 14-open-models-architecture-walkthroughs
+[197/435]    ok: 15-speculative-decoding-eagle3
+[198/435]    ok: 16-differential-attention-v2
+[199/435]    ok: 17-native-sparse-attention
+[200/435]    ok: 18-multi-token-prediction
+[201/435]    ok: 19-dualpipe-parallelism
+[202/435]    ok: 20-deepseek-v3-walkthrough
+[203/435]    ok: 21-jamba-hybrid-ssm-transformer
+[204/435]    ok: 22-async-hogwild-inference
+[205/435]    ok: 25-speculative-decoding
+[206/435]    ok: 34-gradient-checkpointing
+[207/435]    ok: 01-prompt-engineering
+[208/435]    ok: 02-few-shot-cot
+[209/435]    ok: 03-structured-outputs
+[210/435]    ok: 04-embeddings
+[211/435]    ok: 05-context-engineering
+[212/435]    ok: 06-rag
+[213/435]    ok: 07-advanced-rag
+[214/435]    ok: 08-fine-tuning-lora
+[215/435]    ok: 09-function-calling
+[216/435]    ok: 10-evaluation
+[217/435]    ok: 11-caching-cost
+[218/435]    ok: 12-guardrails
+[219/435]    ok: 13-production-app
+[220/435]    ok: 14-model-context-protocol
+[221/435]    ok: 15-prompt-caching
+[222/435]    ok: 16-langgraph-state-machines
+[223/435]    ok: 17-agent-framework-tradeoffs
+[224/435]    ok: 01-vision-transformer-patch-tokens
+[225/435]    ok: 02-clip-contrastive-pretraining
+[226/435]    ok: 03-blip2-qformer-bridge
+[227/435]    ok: 04-flamingo-gated-cross-attention
+[228/435]    ok: 05-llava-visual-instruction-tuning
+[229/435]    ok: 06-any-resolution-patch-n-pack
+[230/435]    ok: 07-open-weight-vlm-recipes
+[231/435]    ok: 08-llava-onevision-single-multi-video
+[232/435]    ok: 09-qwen-vl-family-dynamic-fps
+[233/435]    ok: 10-internvl3-native-multimodal
+[234/435]    ok: 11-chameleon-early-fusion-tokens
+[235/435]    ok: 12-emu3-next-token-for-generation
+[236/435]    ok: 13-transfusion-autoregressive-diffusion
+[237/435]    ok: 14-show-o-discrete-diffusion-unified
+[238/435]    ok: 15-janus-pro-decoupled-encoders
+[239/435]    ok: 16-mio-any-to-any-streaming
+[240/435]    ok: 17-video-language-temporal-grounding
+[241/435]    ok: 18-long-video-million-token
+[242/435]    ok: 19-audio-language-whisper-to-af3
+[243/435]    ok: 20-omni-models-thinker-talker
+[244/435]    ok: 21-embodied-vlas-openvla-pi0-groot
+[245/435]    ok: 22-document-diagram-understanding
+[246/435]    ok: 23-colpali-vision-native-rag
+[247/435]    ok: 24-multimodal-rag-cross-modal
+[248/435]    ok: 25-multimodal-agents-computer-use
+[249/435]    ok: 01-the-tool-interface
+[250/435]    ok: 02-function-calling-deep-dive
+[251/435]    ok: 03-parallel-and-streaming-tool-calls
+[252/435]    ok: 04-structured-output
+[253/435]    ok: 05-tool-schema-design
+[254/435]    ok: 06-mcp-fundamentals
+[255/435]    ok: 07-building-an-mcp-server
+[256/435]    ok: 08-building-an-mcp-client
+[257/435]    ok: 09-mcp-transports
+[258/435]    ok: 10-mcp-resources-and-prompts
+[259/435]    ok: 11-mcp-sampling
+[260/435]    ok: 12-mcp-roots-and-elicitation
+[261/435]    ok: 13-mcp-async-tasks
+[262/435]    ok: 14-mcp-apps
+[263/435]    ok: 15-mcp-security-tool-poisoning
+[264/435]    ok: 16-mcp-security-oauth-2-1
+[265/435]    ok: 17-mcp-gateways-and-registries
+[266/435]    ok: 18-mcp-auth-production
+[267/435]    ok: 19-a2a-protocol
+[268/435]    ok: 20-opentelemetry-genai
+[269/435]    ok: 21-llm-routing-layer
+[270/435]    ok: 22-skills-and-agent-sdks
+[271/435]    ok: 23-capstone-tool-ecosystem
+[272/435]    ok: 01-the-agent-loop
+[273/435]    ok: 02-rewoo-plan-and-execute
+[274/435]    ok: 03-reflexion-verbal-rl
+[275/435]    ok: 04-tree-of-thoughts-lats
+[276/435]    ok: 05-self-refine-and-critic
+[277/435]    ok: 06-tool-use-and-function-calling
+[278/435]    ok: 07-memory-virtual-context-memgpt
+[279/435]    ok: 08-memory-blocks-sleep-time-compute
+[280/435]    ok: 09-hybrid-memory-mem0
+[281/435]    ok: 10-skill-libraries-voyager
+[282/435]    ok: 11-planning-htn-and-evolutionary
+[283/435]    ok: 12-anthropic-workflow-patterns
+[284/435]    ok: 13-langgraph-stateful-graphs
+[285/435]    ok: 14-autogen-actor-model
+[286/435]    ok: 15-crewai-role-based-crews
+[287/435]    ok: 16-openai-agents-sdk
+[288/435]    ok: 17-claude-agent-sdk
+[289/435]    ok: 18-agno-and-mastra-runtimes
+[290/435]    ok: 19-benchmarks-swebench-gaia
+[291/435]    ok: 20-benchmarks-webarena-osworld
+[292/435]    ok: 21-computer-use-agents
+[293/435]    ok: 22-voice-agents-pipecat-livekit
+[294/435]    ok: 23-otel-genai-conventions
+[295/435]    ok: 24-agent-observability-platforms
+[296/435]    ok: 25-multi-agent-debate
+[297/435]    ok: 26-failure-modes-agentic
+[298/435]    ok: 27-prompt-injection-defense
+[299/435]    ok: 28-orchestration-patterns
+[300/435]    ok: 29-production-runtimes
+[301/435]    ok: 30-eval-driven-agent-development
+[302/435]    ok: 31-agent-workbench-why-models-fail
+[303/435]    ok: 32-minimal-agent-workbench
+[304/435]    ok: 33-instructions-as-executable-constraints
+[305/435]    ok: 34-repo-memory-and-state
+[306/435]    ok: 35-initialization-scripts
+[307/435]    ok: 36-scope-contracts
+[308/435]    ok: 37-runtime-feedback-loops
+[309/435]    ok: 38-verification-gates
+[310/435]    ok: 39-reviewer-agent
+[311/435]    ok: 40-multi-session-handoff
+[312/435]    ok: 41-workbench-for-real-repos
+[313/435]    ok: 42-agent-workbench-capstone
+[314/435]    ok: 01-long-horizon-agents
+[315/435]    ok: 02-star-family-reasoning
+[316/435]    ok: 03-alphaevolve-evolutionary-coding
+[317/435]    ok: 04-darwin-godel-machine
+[318/435]    ok: 05-ai-scientist-v2
+[319/435]    ok: 06-automated-alignment-research
+[320/435]    ok: 07-recursive-self-improvement
+[321/435]    ok: 08-bounded-self-improvement
+[322/435]    ok: 09-coding-agent-landscape
+[323/435]    ok: 10-claude-code-permission-modes
+[324/435]    ok: 11-browser-agents
+[325/435]    ok: 12-durable-execution
+[326/435]    ok: 13-cost-governors
+[327/435]    ok: 14-kill-switches-canaries
+[328/435]    ok: 15-propose-then-commit
+[329/435]    ok: 16-checkpoints-rollback
+[330/435]    ok: 17-constitutional-ai
+[331/435]    ok: 18-llama-guard
+[332/435]    ok: 19-anthropic-rsp
+[333/435] FIXED: tinix-r2ai-roadmap\phases\15-autonomous-systems\20-openai-preparedness-deepmind-fsf\docs\vi.md
+    'm├íc' ΓåÆ 'nh├ún/mß╗⌐c'
+[334/435]    ok: 21-metr-external-evaluation
+[335/435]    ok: 22-cais-caisi-societal-risk
+[336/435]    ok: 01-why-multi-agent
+[337/435] FIXED: tinix-r2ai-roadmap\phases\16-multi-agent-and-swarms\02-fipa-acl-heritage\docs\vi.md
+    'di sß║ún' ΓåÆ 'c├íc sß║ún phß║⌐m ─æß║ºu ra (artifacts)'
+[338/435]    ok: 03-communication-protocols
+[339/435]    ok: 04-primitive-model
+[340/435]    ok: 05-supervisor-orchestrator-pattern
+[341/435] FIXED: tinix-r2ai-roadmap\phases\16-multi-agent-and-swarms\06-hierarchical-architecture\docs\vi.md
+    'tay sai' ΓåÆ 'hß╗ç thß╗æng phß╗Ñ trß╗ú'
+    'wires' ΓåÆ 'kß║┐t nß╗æi'
+[342/435]    ok: 07-society-of-mind-debate
+[343/435] FIXED: tinix-r2ai-roadmap\phases\16-multi-agent-and-swarms\08-role-specialization\docs\vi.md
+    'ch├⌐m gi├│' ΓåÆ 'ph├ít biß╗âu thiß║┐u c─ân cß╗⌐'
+    'nß║╖n ra' ΓåÆ 'tß║ío ra'
+    'm├íc' ΓåÆ 'nh├ún/mß╗⌐c'
+[344/435] FIXED: tinix-r2ai-roadmap\phases\16-multi-agent-and-swarms\09-parallel-swarm-networks\docs\vi.md
+    '─æ├ím t├íc nh├ón' ΓåÆ 'c├íc t├íc nh├ón'
+    'lß╗Öt x├íc' ΓåÆ 'chuyß╗ân ─æß╗òi'
+[345/435]    ok: 10-group-chat-speaker-selection
+[346/435] FIXED: tinix-r2ai-roadmap\phases\16-multi-agent-and-swarms\11-handoffs-and-routines\docs\vi.md
+    'nß║╖n ra' ΓåÆ 'tß║ío ra'
+[347/435]    ok: 12-a2a-protocol
+[348/435] FIXED: tinix-r2ai-roadmap\phases\16-multi-agent-and-swarms\13-shared-memory-blackboard\docs\vi.md
+    'phß╗ìt ra' ΓåÆ 'xuß║Ñt ra'
+    'nß║╖n ra' ΓåÆ 'tß║ío ra'
+    'lß╗Öt x├íc' ΓåÆ 'chuyß╗ân ─æß╗òi'
+         ... and 1 more
+[349/435]    ok: 14-consensus-and-bft
+[350/435]    ok: 15-voting-debate-topology
+[351/435]    ok: 16-negotiation-bargaining
+[352/435]    ok: 17-generative-agents-simulation
+[353/435]    ok: 18-theory-of-mind-coordination
+[354/435]    ok: 19-swarm-optimization-pso-aco
+[355/435]    ok: 20-marl-maddpg-qmix-mappo
+[356/435]    ok: 21-agent-economies
+[357/435]    ok: 22-production-scaling-queues-checkpoints
+[358/435]    ok: 23-failure-modes-mast-groupthink
+[359/435]    ok: 24-evaluation-coordination-benchmarks
+[360/435]    ok: 25-case-studies-2026-sota
+[361/435]    ok: 01-managed-llm-platforms
+[362/435]    ok: 02-inference-platform-economics
+[363/435]    ok: 03-gpu-autoscaling-kubernetes
+[364/435]    ok: 04-vllm-serving-internals
+[365/435]    ok: 05-eagle3-speculative-decoding
+[366/435]    ok: 06-sglang-radixattention
+[367/435]    ok: 07-tensorrt-llm-blackwell
+[368/435]    ok: 08-inference-metrics-goodput
+[369/435]    ok: 09-production-quantization
+[370/435]    ok: 10-cold-start-mitigation
+[371/435]    ok: 11-multi-region-kv-locality
+[372/435]    ok: 12-edge-inference
+[373/435]    ok: 13-llm-observability
+[374/435]    ok: 14-prompt-semantic-caching
+[375/435]    ok: 15-batch-apis
+[376/435]    ok: 16-model-routing
+[377/435]    ok: 17-disaggregated-prefill-decode
+[378/435]    ok: 18-vllm-production-stack-lmcache
+[379/435]    ok: 19-ai-gateways
+[380/435]    ok: 20-shadow-canary-progressive
+[381/435]    ok: 21-ab-testing-llm-features
+[382/435]    ok: 22-load-testing-llm-apis
+[383/435]    ok: 23-sre-for-ai
+[384/435]    ok: 24-chaos-engineering-llm
+[385/435]    ok: 25-security-secrets-audit
+[386/435]    ok: 26-compliance-frameworks
+[387/435]    ok: 27-finops-llms
+[388/435]    ok: 28-self-hosted-serving-selection
+[389/435]    ok: 01-instruction-following-alignment-signal
+[390/435]    ok: 02-reward-hacking-goodhart
+[391/435]    ok: 03-direct-preference-optimization-family
+[392/435]    ok: 04-sycophancy-rlhf-amplification
+[393/435]    ok: 05-constitutional-ai-rlaif
+[394/435]    ok: 06-mesa-optimization-deceptive-alignment
+[395/435]    ok: 07-sleeper-agents-persistent-deception
+[396/435]    ok: 08-in-context-scheming-frontier-models
+[397/435]    ok: 09-alignment-faking
+[398/435]    ok: 10-ai-control-subversion
+[399/435]    ok: 11-scalable-oversight-weak-to-strong
+[400/435]    ok: 12-red-teaming-pair-automated-attacks
+[401/435]    ok: 13-many-shot-jailbreaking
+[402/435]    ok: 14-ascii-art-visual-jailbreaks
+[403/435] FIXED: tinix-r2ai-roadmap\phases\18-ethics-safety-alignment\15-indirect-prompt-injection\docs\vi.md
+    'm├íc' ΓåÆ 'nh├ún/mß╗⌐c'
+[404/435]    ok: 16-red-team-tooling-garak-llamaguard-pyrit
+[405/435]    ok: 17-wmdp-dual-use-evaluation
+[406/435]    ok: 18-frontier-safety-frameworks-rsp-pf-fsf
+[407/435]    ok: 19-model-welfare-research
+[408/435]    ok: 20-bias-representational-harm
+[409/435]    ok: 21-fairness-criteria-group-individual-counterfactual
+[410/435]    ok: 22-differential-privacy-for-llms
+[411/435]    ok: 23-watermarking-synthid-stable-signature-c2pa
+[412/435] FIXED: tinix-r2ai-roadmap\phases\18-ethics-safety-alignment\24-regulatory-frameworks-eu-us-uk-korea\docs\vi.md
+    'di sß║ún' ΓåÆ 'c├íc sß║ún phß║⌐m ─æß║ºu ra (artifacts)'
+[413/435]    ok: 25-echoleak-cves-for-ai
+[414/435]    ok: 26-model-system-dataset-cards
+[415/435]    ok: 27-data-provenance-training-governance
+[416/435]    ok: 28-alignment-research-ecosystem
+[417/435]    ok: 29-moderation-systems-openai-perspective-llamaguard
+[418/435]    ok: 30-dual-use-risk-cyber-bio-chem-nuclear
+[419/435]    ok: 01-terminal-native-coding-agent
+[420/435]    ok: 02-rag-over-codebase
+[421/435]    ok: 03-realtime-voice-assistant
+[422/435]    ok: 04-multimodal-document-qa
+[423/435] FIXED: tinix-r2ai-roadmap\phases\19-capstone-projects\05-autonomous-research-agent\docs\vi.md
+    'l├╣ng sß╗Ñc' ΓåÆ 't├¼m kiß║┐m'
+[424/435]    ok: 06-devops-troubleshooting-agent
+[425/435]    ok: 07-end-to-end-fine-tuning-pipeline
+[426/435]    ok: 08-production-rag-chatbot
+[427/435]    ok: 09-code-migration-agent
+[428/435]    ok: 10-multi-agent-software-team
+[429/435]    ok: 11-llm-observability-dashboard
+[430/435]    ok: 12-video-understanding-pipeline
+[431/435]    ok: 13-mcp-server-with-registry
+[432/435]    ok: 14-speculative-decoding-server
+[433/435]    ok: 15-constitutional-safety-harness
+[434/435]    ok: 16-github-issue-to-pr-agent
+[435/435]    ok: 17-personal-ai-tutor
+
+======================================================================
+SUMMARY
+======================================================================
+Total files:  435
+Files fixed:  10
+Files ok:     425
+Files errors: 0
+Done: 2026-05-21 17:54:01
+Report saved: c:\Users\vutm\Desktop\workspace\tinix-r2ai-roadmap\.agent\scripts\vi_fix_report.json
