@@ -1,7 +1,8 @@
 import { fetchProjectById, fetchProjectHistory } from "@/app/actions";
 import { notFound } from "next/navigation";
-import { formatNumber } from "@/lib/utils";
+import { formatNumber, cleanReadme } from "@/lib/utils";
 import { SourceBadge } from "@/components/common/source-badge";
+import { ProjectAvatar } from "@/components/common/project-avatar";
 import { 
   Star, 
   GitFork, 
@@ -20,6 +21,7 @@ import remarkGfm from "remark-gfm";
 import remarkToc from "remark-toc";
 import rehypeHighlight from "rehype-highlight";
 import rehypeSlug from "rehype-slug";
+import rehypeRaw from "rehype-raw";
 import "highlight.js/styles/github-dark.css";
 import { ProjectHistoryChart } from "@/components/project/history-chart";
 
@@ -51,6 +53,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
   const historyData = await fetchProjectHistory(project.id, 30);
   const isGithub = project.source === "github";
   const isHuggingFace = project.source === "huggingface";
+  const cleanedReadme = cleanReadme(project.readme);
 
   return (
     <div className="w-full min-h-screen bg-[var(--color-bg-primary)]">
@@ -84,15 +87,15 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                 )}
               </div>
 
-              <h1 className="text-apple-hero text-[var(--color-ink)] mb-4 flex items-center gap-4 flex-wrap">
-                {project.ownerAvatarUrl && (
-                  <img 
-                    src={project.ownerAvatarUrl} 
-                    alt={project.ownerName} 
-                    className="w-12 h-12 rounded-xl shadow-sm border border-[var(--color-divider-soft)]"
-                  />
-                )}
-                <span className="truncate">{project.fullName}</span>
+              <h1 className="mb-4 flex items-center gap-4 flex-wrap">
+                <ProjectAvatar 
+                  src={project.ownerAvatarUrl} 
+                  name={project.ownerName} 
+                  size={48} 
+                />
+                <span className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight text-[var(--color-ink)] break-all whitespace-normal">
+                  {project.fullName}
+                </span>
               </h1>
 
               <p className="text-apple-lead text-[var(--color-ink-muted-80)] max-w-3xl">
@@ -196,14 +199,14 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
             </div>
 
             {/* README */}
-            {project.readme ? (
+            {cleanedReadme ? (
               <div className="apple-utility-card p-8 sm:p-10 shadow-sm overflow-hidden">
-                <div className="prose prose-slate dark:prose-invert max-w-none prose-headings:font-semibold prose-a:text-[var(--color-action-blue)] hover:prose-a:text-[var(--color-action-blue-focus)] prose-img:rounded-xl">
+                <div className="prose max-w-none prose-headings:font-semibold prose-a:text-[var(--color-action-blue)] hover:prose-a:text-[var(--color-action-blue-focus)] prose-img:rounded-xl">
                   <ReactMarkdown 
                     remarkPlugins={[remarkGfm, [remarkToc, { heading: 'table of contents|toc|mục lục', tight: true }]]}
-                    rehypePlugins={[rehypeSlug, rehypeHighlight]}
+                    rehypePlugins={[rehypeRaw, rehypeSlug, rehypeHighlight]}
                   >
-                    {project.readme}
+                    {cleanedReadme}
                   </ReactMarkdown>
                 </div>
               </div>
@@ -214,7 +217,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                 </div>
                 <h3 className="text-apple-body-strong text-[var(--color-ink)] mb-2">No README found</h3>
                 <p className="text-[var(--color-ink-muted-80)] text-sm max-w-sm">
-                  We haven't indexed a README for this repository yet, or it doesn't exist.
+                  We haven&apos;t indexed a README for this repository yet, or it doesn&apos;t exist.
                 </p>
               </div>
             )}
@@ -243,12 +246,11 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                   <LayoutGrid className="h-4 w-4 text-[var(--color-ink-muted-48)]" />
                   Classification
                 </h3>
-                
-                {project.categories?.length > 0 && (
+                         {project.categories?.length > 0 && (
                   <div className="mb-4">
                     <div className="text-[11px] font-semibold text-[var(--color-ink-muted-80)] uppercase tracking-wider mb-2">Categories</div>
                     <div className="flex flex-wrap gap-2">
-                      {project.categories.map((cat: string) => (
+                      {Array.from(new Set(project.categories)).map((cat: string) => (
                         <span key={cat} className="inline-flex items-center rounded-md bg-[var(--color-bg-secondary)] px-2.5 py-1 text-xs font-medium text-[var(--color-ink)] border border-[var(--color-border)]">
                           {cat}
                         </span>
@@ -261,7 +263,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                   <div>
                     <div className="text-[11px] font-semibold text-[var(--color-ink-muted-80)] uppercase tracking-wider mb-2">Topics</div>
                     <div className="flex flex-wrap gap-2">
-                      {project.topics.map((topic: string) => (
+                      {Array.from(new Set(project.topics)).map((topic: string) => (
                         <span key={topic} className="inline-flex items-center gap-1 text-xs text-[var(--color-action-blue)] hover:underline cursor-pointer">
                           <Tag className="h-3 w-3" /> {topic}
                         </span>

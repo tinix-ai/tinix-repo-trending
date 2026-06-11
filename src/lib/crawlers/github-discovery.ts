@@ -1,4 +1,5 @@
 import { setTimeout } from "timers/promises";
+import { redisConnection } from "../../workers/queue";
 
 interface DiscoveredRepo {
   owner: string;
@@ -12,13 +13,36 @@ interface DiscoveredRepo {
  */
 export async function discoverNewRepos(maxPages: number = 3): Promise<DiscoveredRepo[]> {
   const discovered: DiscoveredRepo[] = [];
+  const checkpointKey = "crawler:checkpoint:github-discovery";
   
   // We look for AI/ML topics, with a reasonable star threshold to filter spam
   const query = encodeURIComponent("topic:ai topic:machine-learning topic:llm stars:>100");
   const sort = "updated"; // Get most recently active
   const order = "desc";
   
-  for (let page = 1; page <= maxPages; page++) {
+  let startPage = 1;
+  try {
+    const lastSavedPage = await redisConnection.get(checkpointKey);
+    if (lastSavedPage) {
+      startPage = parseInt(lastSavedPage) + 1;
+      console.log(`[Discovery] Resuming GitHub Discovery from checkpoint. Start page: ${startPage}`);
+    }
+  } catch (err) {
+    console.warn("[Discovery] Failed to read Redis checkpoint, starting from page 1.", err);
+  }
+
+  // If startPage has already exceeded maxPages, reset to page 1 to allow running a new session
+  if (startPage > maxPages) {
+    console.log(`[Discovery] Start page ${startPage} exceeds max pages ${maxPages}. Resetting checkpoint.`);
+    startPage = 1;
+    try {
+      await redisConnection.del(checkpointKey);
+    } catch {}
+  }
+  
+  let completedAll = false;
+
+  for (let page = startPage; page <= maxPages; page++) {
     console.log(`[Discovery] Fetching page ${page} of GitHub Search...`);
     
     try {
@@ -45,7 +69,10 @@ export async function discoverNewRepos(maxPages: number = 3): Promise<Discovered
       const data = await response.json();
       const items = data.items || [];
       
-      if (items.length === 0) break; // No more results
+      if (items.length === 0) {
+        completedAll = true;
+        break; // No more results
+      }
 
       for (const item of items) {
         discovered.push({
@@ -53,6 +80,17 @@ export async function discoverNewRepos(maxPages: number = 3): Promise<Discovered
           repo: item.name,
           stars: item.stargazers_count,
         });
+      }
+
+      // Save checkpoint page to Redis
+      try {
+        await redisConnection.set(checkpointKey, page);
+      } catch (err) {
+        console.warn(`[Discovery] Failed to save page ${page} checkpoint in Redis`, err);
+      }
+
+      if (page === maxPages) {
+        completedAll = true;
       }
 
       // Safe delay (2.5 seconds) to avoid hitting 30 req/min rate limit (which is 1 req every 2s)
@@ -64,6 +102,21 @@ export async function discoverNewRepos(maxPages: number = 3): Promise<Discovered
       console.error("[Discovery] Error during GitHub Search:", error);
       break; // Safe exit on error
     }
+  }
+
+  // Clear checkpoint only on complete success or when all results have been processed
+  if (completedAll) {
+    try {
+      await redisConnection.del(checkpointKey);
+      console.log("[Discovery] GitHub discovery completed successfully. Cleared Redis checkpoint.");
+    } catch (err) {
+      console.warn("[Discovery] Failed to clear Redis checkpoint", err);
+    }
+  } else {
+    try {
+      const currentVal = await redisConnection.get(checkpointKey);
+      console.log(`[Discovery] GitHub discovery interrupted. Checkpoint preserved at page ${currentVal || "unknown"}.`);
+    } catch {}
   }
 
   return discovered;

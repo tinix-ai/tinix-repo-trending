@@ -1,4 +1,4 @@
-import { Queue, Worker, QueueEvents } from 'bullmq';
+import { Queue, QueueEvents, ConnectionOptions } from 'bullmq';
 import Redis from 'ioredis';
 
 // Redis connection configuration
@@ -9,11 +9,23 @@ const redisConfig = {
   maxRetriesPerRequest: null,
 };
 
-const redisConnection = new Redis(redisConfig);
+// Prevent multiple connections in development (Next.js hot reloads)
+const globalForRedis = globalThis as unknown as {
+  redisConnection: Redis | undefined;
+  crawlerQueue: Queue | undefined;
+  hfQueue: Queue | undefined;
+  crawlerQueueEvents: QueueEvents | undefined;
+};
+
+export const redisConnection = globalForRedis.redisConnection ?? new Redis(redisConfig);
+
+if (process.env.NODE_ENV !== 'production') {
+  globalForRedis.redisConnection = redisConnection;
+}
 
 // Create the crawler queue
-export const crawlerQueue = new Queue('github-crawler', {
-  connection: redisConnection,
+export const crawlerQueue = globalForRedis.crawlerQueue ?? new Queue('github-crawler', {
+  connection: redisConnection as unknown as ConnectionOptions,
   defaultJobOptions: {
     attempts: 3,
     backoff: {
@@ -25,8 +37,8 @@ export const crawlerQueue = new Queue('github-crawler', {
   },
 });
 
-export const hfQueue = new Queue('hf-crawler', {
-  connection: redisConnection,
+export const hfQueue = globalForRedis.hfQueue ?? new Queue('hf-crawler', {
+  connection: redisConnection as unknown as ConnectionOptions,
   defaultJobOptions: {
     attempts: 3,
     backoff: {
@@ -37,6 +49,13 @@ export const hfQueue = new Queue('hf-crawler', {
   },
 });
 
-export const crawlerQueueEvents = new QueueEvents('github-crawler', {
-  connection: redisConnection,
+export const crawlerQueueEvents = globalForRedis.crawlerQueueEvents ?? new QueueEvents('github-crawler', {
+  connection: redisConnection as unknown as ConnectionOptions,
 });
+
+if (process.env.NODE_ENV !== 'production') {
+  globalForRedis.crawlerQueue = crawlerQueue;
+  globalForRedis.hfQueue = hfQueue;
+  globalForRedis.crawlerQueueEvents = crawlerQueueEvents;
+}
+

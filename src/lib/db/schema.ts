@@ -1,5 +1,4 @@
 import { pgTable, text, timestamp, integer, uuid, jsonb, date, index } from "drizzle-orm/pg-core";
-import { sql } from "drizzle-orm";
 
 export const projects = pgTable("projects", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -26,6 +25,8 @@ export const projects = pgTable("projects", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
   sourceCreatedAt: timestamp("source_created_at"),
   lastCrawledAt: timestamp("last_crawled_at"),
+  crawlInterval: integer("crawl_interval").default(1),
+  nextCrawlAt: timestamp("next_crawl_at").defaultNow(),
 });
 
 export const projectSnapshots = pgTable("project_snapshots", {

@@ -3,8 +3,8 @@ import { Worker, Job } from 'bullmq';
 import Redis from 'ioredis';
 import { db } from '../lib/db';
 import { projects, projectSnapshots } from '../lib/db/schema';
-import { eq } from 'drizzle-orm';
 import { categorizeProject } from '../lib/categorizer';
+import { updateProjectCrawlSchedule } from '../lib/crawlers/scheduler';
 
 const redisConfig = {
   host: process.env.REDIS_HOST || 'localhost',
@@ -24,7 +24,7 @@ interface CrawlJobData {
 export const crawlerWorker = new Worker<CrawlJobData>(
   'github-crawler',
   async (job: Job<CrawlJobData>) => {
-    const { owner, repo, projectId } = job.data;
+    const { owner, repo } = job.data;
     console.log(`[Crawler] Starting crawl for ${owner}/${repo}`);
 
     try {
@@ -38,10 +38,24 @@ export const crawlerWorker = new Worker<CrawlJobData>(
         },
       });
 
+      const remaining = response.headers.get('x-ratelimit-remaining');
+      const reset = response.headers.get('x-ratelimit-reset');
+      if (remaining && parseInt(remaining) < 20) {
+        const resetDate = reset ? new Date(parseInt(reset) * 1000).toISOString() : 'unknown';
+        console.warn(`[Crawler] GitHub API rate limit is low: ${remaining} remaining. Resets at ${resetDate}`);
+      }
+
       if (!response.ok) {
         if (response.status === 403 || response.status === 429) {
-          // Rate limited -> throw error to trigger BullMQ retry with backoff
-          throw new Error(`Rate limited by GitHub API for ${owner}/${repo}`);
+          let delayMsg = '';
+          if (reset) {
+            const resetMs = parseInt(reset) * 1000;
+            const diffMs = resetMs - Date.now();
+            if (diffMs > 0) {
+              delayMsg = ` Resets in ${Math.ceil(diffMs / 1000)}s.`;
+            }
+          }
+          throw new Error(`Rate limited by GitHub API for ${owner}/${repo}.${delayMsg}`);
         }
         if (response.status === 404) {
           console.warn(`[Crawler] Repository not found: ${owner}/${repo}`);
@@ -66,14 +80,29 @@ export const crawlerWorker = new Worker<CrawlJobData>(
             }),
           },
         });
+        if (readmeRes.status === 403 || readmeRes.status === 429) {
+          throw new Error('Rate limit');
+        }
         if (readmeRes.ok) {
           readme = await readmeRes.text();
           if (!finalDescription && readme) {
-            // strip markdown heuristically or just substring
-            finalDescription = readme.replace(/[#*`_>\[\]]/g, '').substring(0, 300).trim() + '...';
+            let clean = readme.trim();
+            if (clean.startsWith('---')) {
+              const secondIndex = clean.indexOf('---', 3);
+              if (secondIndex !== -1) {
+                clean = clean.substring(secondIndex + 3).trim();
+              }
+            }
+            clean = clean.replace(/<[^>]*>/g, '').replace(/[#*`_>\[\]]/g, '').replace(/\s+/g, ' ');
+            finalDescription = clean.substring(0, 250).trim() + '...';
           }
         }
+
       } catch (e) {
+        const err = e as Error;
+        if (err.message === 'Rate limit') {
+          throw new Error(`Rate limited by GitHub API during README fetch for ${owner}/${repo}`);
+        }
         console.warn(`[Crawler] Failed to fetch README for ${owner}/${repo}`);
       }
 
@@ -129,6 +158,9 @@ export const crawlerWorker = new Worker<CrawlJobData>(
         snapshotDate,
       });
 
+      // Recalculate and update the next crawl schedule
+      await updateProjectCrawlSchedule(project.id, 'github');
+
       console.log(`[Crawler] Successfully fetched & saved ${owner}/${repo}: ${data.stargazers_count} stars`);
 
       return { 
@@ -144,12 +176,16 @@ export const crawlerWorker = new Worker<CrawlJobData>(
     }
   },
   {
-    connection: redisConnection,
+    connection: redisConnection as unknown as Worker['opts']['connection'],
     concurrency: 2, 
     limiter: {
-      max: 40000,
+      // If GITHUB_TOKEN is present, allow up to 2000 requests per hour (since each project has ~2 requests, so 1000 projects/hr)
+      // Otherwise, restrict to 30 requests per hour (15 projects/hr) to avoid getting blocked.
+      max: process.env.GITHUB_TOKEN ? 2000 : 30,
       duration: 3600000,
     },
+    stalledInterval: 15000,
+    maxStalledCount: 2,
   }
 );
 

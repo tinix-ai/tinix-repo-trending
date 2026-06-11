@@ -6,12 +6,12 @@ import { CATEGORY_METADATA } from '../categorizer';
 export async function getDynamicTrendingProjects(days: number, minStars: number, minDownloads: number): Promise<RankedProject[]> {
   const result = await db.execute(sql`
     WITH current_snapshots AS (
-      SELECT DISTINCT ON (project_id) project_id, stars, forks, contributors_count, likes, downloads, snapshot_date
+      SELECT DISTINCT ON (project_id) project_id, stars, forks, contributors_count, open_issues, likes, downloads, snapshot_date
       FROM project_snapshots
       ORDER BY project_id, snapshot_date DESC
     ),
     previous_snapshots AS (
-      SELECT DISTINCT ON (project_id) project_id, stars, forks, contributors_count, likes, downloads, snapshot_date
+      SELECT DISTINCT ON (project_id) project_id, stars, forks, contributors_count, open_issues, likes, downloads, snapshot_date
       FROM project_snapshots
       WHERE snapshot_date <= CURRENT_DATE - ${days} * INTERVAL '1 day'
       ORDER BY project_id, snapshot_date DESC
@@ -35,10 +35,18 @@ export async function getDynamicTrendingProjects(days: number, minStars: number,
         p.name,
         p.full_name,
         p.description,
+        p.ai_summary,
         p.homepage_url,
         p.source_url,
         p.primary_language,
+        p.license,
         p.owner_name,
+        p.owner_avatar_url,
+        p.owner_type,
+        p.topics,
+        p.created_at,
+        p.updated_at,
+        p.last_crawled_at,
         p.source_created_at,
         p.categories,
         GREATEST(c.stars - COALESCE(prev.stars, 0), 0) as stars_gained,
@@ -47,7 +55,7 @@ export async function getDynamicTrendingProjects(days: number, minStars: number,
         GREATEST(c.likes - COALESCE(prev.likes, 0), 0) as likes_gained,
         GREATEST(c.downloads - COALESCE(prev.downloads, 0), 0) as downloads_gained,
         sh.sparkline_data,
-        c.stars, c.forks, c.downloads, c.likes
+        c.stars, c.forks, c.downloads, c.likes, c.open_issues, c.contributors_count as current_contributors_count
       FROM projects p
       JOIN current_snapshots c ON p.id = c.project_id
       LEFT JOIN previous_snapshots prev ON p.id = prev.project_id
@@ -80,42 +88,58 @@ export async function getDynamicTrendingProjects(days: number, minStars: number,
     LIMIT 100;
   `);
 
-  return result.map((row: any) => ({
-    id: row.project_id,
-    source: row.source,
-    sourceId: row.source_id,
-    slug: row.slug,
-    name: row.name,
-    fullName: row.full_name,
-    description: row.description || '',
-    homepageUrl: row.homepage_url || undefined,
-    sourceUrl: row.source_url,
-    primaryLanguage: row.primary_language || undefined,
-    ownerName: row.owner_name,
-    sourceCreatedAt: typeof row.source_created_at === 'string' ? row.source_created_at : (row.source_created_at?.toISOString() || new Date().toISOString()),
-    
-    rank: Number(row.rank),
-    score: Number(row.momentum_score),
-    starsGained: Number(row.source === 'github' ? row.stars_gained : row.likes_gained),
-    velocityScore: Number(row.momentum_score),
-    
-    stars: Number(row.source === 'github' ? row.stars : row.likes),
-    forks: Number(row.forks || 0),
-    downloads: Number(row.downloads || 0),
-    
-    categories: (row.categories || []).map((catName: string, i: number) => {
-      const meta = CATEGORY_METADATA[catName] || { icon: "🏷️", color: "#6b7280" };
-      return {
-        id: `cat-${row.project_id}-${i}`,
-        name: catName,
-        slug: catName.toLowerCase().replace(/\s+/g, '-'),
-        icon: meta.icon,
-        color: meta.color,
-        sortOrder: i,
-      };
-    }),
-    sparklineData: Array.isArray(row.sparkline_data) ? row.sparkline_data : Array.from({ length: 14 }, () => Math.floor(Math.random() * 50) + 10),
-  }));
+  return result.map(row => {
+    const r = row as Record<string, unknown>;
+    return {
+      id: r.project_id as string,
+      source: r.source as "github" | "huggingface" | "paperwithcode",
+      sourceId: r.source_id as string,
+      slug: r.slug as string,
+      name: r.name as string,
+      fullName: r.full_name as string,
+      description: (r.description as string) || '',
+      aiSummary: (r.ai_summary as string) || undefined,
+      homepageUrl: (r.homepage_url as string) || undefined,
+      sourceUrl: r.source_url as string,
+      primaryLanguage: (r.primary_language as string) || undefined,
+      license: (r.license as string) || undefined,
+      ownerName: r.owner_name as string,
+      ownerAvatarUrl: (r.owner_avatar_url as string) || '',
+      ownerType: ((r.owner_type as string) || 'user') as "user" | "org",
+      topics: Array.isArray(r.topics) ? (r.topics as string[]) : [],
+      createdAt: typeof r.created_at === 'string' ? r.created_at : ((r.created_at as Date)?.toISOString() || new Date().toISOString()),
+      updatedAt: typeof r.updated_at === 'string' ? r.updated_at : ((r.updated_at as Date)?.toISOString() || new Date().toISOString()),
+      sourceCreatedAt: typeof r.source_created_at === 'string' ? r.source_created_at : ((r.source_created_at as Date)?.toISOString() || new Date().toISOString()),
+      lastCrawledAt: typeof r.last_crawled_at === 'string' ? r.last_crawled_at : ((r.last_crawled_at as Date)?.toISOString() || new Date().toISOString()),
+      
+      rank: Number(r.rank),
+      score: Number(r.momentum_score),
+      starsGained: Number(r.source === 'github' ? r.stars_gained : r.likes_gained),
+      forksGained: Number(r.source === 'github' ? r.forks_gained : 0),
+      velocityScore: Number(r.momentum_score),
+      momentumScore: Number(r.momentum_score),
+      
+      stars: Number(r.source === 'github' ? r.stars : r.likes),
+      forks: Number(r.forks || 0),
+      openIssues: Number(r.open_issues || 0),
+      downloads: Number(r.downloads || 0),
+      watchers: 0,
+      contributorsCount: Number(r.current_contributors_count || 0),
+      tags: [],
+      categories: (Array.isArray(r.categories) ? (r.categories as string[]) : []).map((catName: string, i: number) => {
+        const meta = CATEGORY_METADATA[catName] || { icon: "🏷️", color: "#6b7280" };
+        return {
+          id: `cat-${r.project_id}-${i}`,
+          name: catName,
+          slug: catName.toLowerCase().replace(/\s+/g, '-'),
+          icon: meta.icon,
+          color: meta.color,
+          sortOrder: i,
+        };
+      }),
+      sparklineData: Array.isArray(r.sparkline_data) ? (r.sparkline_data as number[]) : Array.from({ length: 14 }, () => Math.floor(Math.random() * 50) + 10),
+    };
+  });
 }
 
 export async function getGlobalStats() {
@@ -147,15 +171,17 @@ export async function getCategoryStats() {
       ORDER BY count DESC
     `);
     
-    return result.map((row: any) => {
-      const meta = CATEGORY_METADATA[row.name] || { icon: "🏷️", color: "#6b7280" };
+    return result.map(row => {
+      const r = row as Record<string, unknown>;
+      const rName = r.name as string;
+      const meta = CATEGORY_METADATA[rName] || { icon: "🏷️", color: "#6b7280" };
       return {
-        id: row.name.toLowerCase().replace(/\s+/g, '-'),
-        name: row.name,
-        slug: row.name.toLowerCase().replace(/\s+/g, '-'),
+        id: rName.toLowerCase().replace(/\s+/g, '-'),
+        name: rName,
+        slug: rName.toLowerCase().replace(/\s+/g, '-'),
         icon: meta.icon,
         color: meta.color,
-        projectCount: Number(row.count),
+        projectCount: Number(r.count),
       };
     });
   } catch (error) {
@@ -173,7 +199,8 @@ export async function getProjectById(id: string) {
         COALESCE(ps.stars, 0) as current_stars,
         COALESCE(ps.forks, 0) as current_forks,
         COALESCE(ps.open_issues, 0) as current_issues,
-        COALESCE(ps.downloads, 0) as current_downloads
+        COALESCE(ps.downloads, 0) as current_downloads,
+        COALESCE(ps.likes, 0) as current_likes
       FROM projects p
       LEFT JOIN project_snapshots ps ON p.id = ps.project_id
         AND ps.snapshot_date = (
@@ -189,34 +216,34 @@ export async function getProjectById(id: string) {
       return null;
     }
 
-    const row = result[0];
+    const r = result[0] as Record<string, unknown>;
     return {
-      id: row.id,
-      source: row.source,
-      sourceId: row.source_id,
-      slug: row.slug,
-      name: row.name,
-      fullName: row.full_name,
-      description: row.description,
-      readme: row.readme,
-      aiSummary: row.ai_summary,
-      homepageUrl: row.homepage_url,
-      sourceUrl: row.source_url,
-      primaryLanguage: row.primary_language,
-      license: row.license,
-      ownerName: row.owner_name,
-      ownerAvatarUrl: row.owner_avatar_url,
-      topics: row.topics || [],
-      categories: row.categories || [],
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
-      sourceCreatedAt: row.source_created_at,
-      lastCrawledAt: row.last_crawled_at,
+      id: r.id as string,
+      source: r.source as "github" | "huggingface" | "paperwithcode",
+      sourceId: r.source_id as string,
+      slug: r.slug as string,
+      name: r.name as string,
+      fullName: r.full_name as string,
+      description: r.description as string,
+      readme: r.readme as string,
+      aiSummary: r.ai_summary as string,
+      homepageUrl: r.homepage_url as string,
+      sourceUrl: r.source_url as string,
+      primaryLanguage: r.primary_language as string,
+      license: r.license as string,
+      ownerName: r.owner_name as string,
+      ownerAvatarUrl: r.owner_avatar_url as string,
+      topics: (r.topics as string[]) || [],
+      categories: (r.categories as string[]) || [],
+      createdAt: typeof r.created_at === 'string' ? r.created_at : ((r.created_at as Date)?.toISOString() || new Date().toISOString()),
+      updatedAt: typeof r.updated_at === 'string' ? r.updated_at : ((r.updated_at as Date)?.toISOString() || new Date().toISOString()),
+      sourceCreatedAt: typeof r.source_created_at === 'string' ? r.source_created_at : ((r.source_created_at as Date)?.toISOString() || new Date().toISOString()),
+      lastCrawledAt: typeof r.last_crawled_at === 'string' ? r.last_crawled_at : ((r.last_crawled_at as Date)?.toISOString() || new Date().toISOString()),
       // Metrics
-      stars: Number(row.current_stars),
-      forks: Number(row.current_forks),
-      openIssues: Number(row.current_issues),
-      downloads: Number(row.current_downloads),
+      stars: r.source === 'huggingface' ? Number(r.current_likes) : Number(r.current_stars),
+      forks: Number(r.current_forks),
+      openIssues: Number(r.current_issues),
+      downloads: Number(r.current_downloads),
     };
   } catch (error) {
     console.error("Error fetching project by ID:", error);
@@ -232,7 +259,8 @@ export async function getProjectBySlug(slug: string) {
         COALESCE(ps.stars, 0) as current_stars,
         COALESCE(ps.forks, 0) as current_forks,
         COALESCE(ps.open_issues, 0) as current_issues,
-        COALESCE(ps.downloads, 0) as current_downloads
+        COALESCE(ps.downloads, 0) as current_downloads,
+        COALESCE(ps.likes, 0) as current_likes
       FROM projects p
       LEFT JOIN project_snapshots ps ON p.id = ps.project_id
         AND ps.snapshot_date = (
@@ -248,34 +276,34 @@ export async function getProjectBySlug(slug: string) {
       return null;
     }
 
-    const row = result[0];
+    const r = result[0] as Record<string, unknown>;
     return {
-      id: row.id,
-      source: row.source,
-      sourceId: row.source_id,
-      slug: row.slug,
-      name: row.name,
-      fullName: row.full_name,
-      description: row.description,
-      readme: row.readme,
-      aiSummary: row.ai_summary,
-      homepageUrl: row.homepage_url,
-      sourceUrl: row.source_url,
-      primaryLanguage: row.primary_language,
-      license: row.license,
-      ownerName: row.owner_name,
-      ownerAvatarUrl: row.owner_avatar_url,
-      topics: row.topics || [],
-      categories: row.categories || [],
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
-      sourceCreatedAt: row.source_created_at,
-      lastCrawledAt: row.last_crawled_at,
+      id: r.id as string,
+      source: r.source as "github" | "huggingface" | "paperwithcode",
+      sourceId: r.source_id as string,
+      slug: r.slug as string,
+      name: r.name as string,
+      fullName: r.full_name as string,
+      description: r.description as string,
+      readme: r.readme as string,
+      aiSummary: r.ai_summary as string,
+      homepageUrl: r.homepage_url as string,
+      sourceUrl: r.source_url as string,
+      primaryLanguage: r.primary_language as string,
+      license: r.license as string,
+      ownerName: r.owner_name as string,
+      ownerAvatarUrl: r.owner_avatar_url as string,
+      topics: (r.topics as string[]) || [],
+      categories: (r.categories as string[]) || [],
+      createdAt: typeof r.created_at === 'string' ? r.created_at : ((r.created_at as Date)?.toISOString() || new Date().toISOString()),
+      updatedAt: typeof r.updated_at === 'string' ? r.updated_at : ((r.updated_at as Date)?.toISOString() || new Date().toISOString()),
+      sourceCreatedAt: typeof r.source_created_at === 'string' ? r.source_created_at : ((r.source_created_at as Date)?.toISOString() || new Date().toISOString()),
+      lastCrawledAt: typeof r.last_crawled_at === 'string' ? r.last_crawled_at : ((r.last_crawled_at as Date)?.toISOString() || new Date().toISOString()),
       // Metrics
-      stars: Number(row.current_stars),
-      forks: Number(row.current_forks),
-      openIssues: Number(row.current_issues),
-      downloads: Number(row.current_downloads),
+      stars: r.source === 'huggingface' ? Number(r.current_likes) : Number(r.current_stars),
+      forks: Number(r.current_forks),
+      openIssues: Number(r.current_issues),
+      downloads: Number(r.current_downloads),
     };
   } catch (error) {
     console.error("Error fetching project by slug:", error);
@@ -298,13 +326,16 @@ export async function getProjectHistory(projectId: string, days: number = 30) {
       ORDER BY snapshot_date ASC
     `);
     
-    return result.map(row => ({
-      date: new Date(row.snapshot_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      stars: Number(row.stars),
-      forks: Number(row.forks),
-      downloads: Number(row.downloads),
-      likes: Number(row.likes)
-    }));
+    return result.map(row => {
+      const r = row as Record<string, unknown>;
+      return {
+        date: new Date(r.snapshot_date as string).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        stars: Number(r.stars),
+        forks: Number(r.forks),
+        downloads: Number(r.downloads),
+        likes: Number(r.likes)
+      };
+    });
   } catch (error) {
     console.error("Error fetching project history:", error);
     return [];

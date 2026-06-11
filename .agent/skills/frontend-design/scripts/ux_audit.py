@@ -113,7 +113,7 @@ class UXAuditor:
 
         # Pre-calculate common flags
         has_long_text = bool(re.search(r'<p|<div.*class=.*text|article|<span.*text', content, re.IGNORECASE))
-        has_form = bool(re.search(r'<form|<input|password|credit|card|payment', content, re.IGNORECASE))
+        has_form = bool(re.search(r'<form\b|<input\b|<select\b|<textarea\b', content, re.IGNORECASE))
         complex_elements = len(re.findall(r'<input|<select|<textarea|<option', content, re.IGNORECASE))
 
         # --- 1. PSYCHOLOGY LAWS ---
@@ -262,7 +262,10 @@ class UXAuditor:
                 font_families.add(first_font.lower())
 
         if len(font_families) > 3:
-            self.issues.append(f"[Typography] {filename}: {len(font_families)} font families detected. Limit to 2-3 for cohesion.")
+            if filename.endswith('.css'):
+                self.warnings.append(f"[Typography] {filename}: {len(font_families)} font families detected in stylesheet.")
+            else:
+                self.issues.append(f"[Typography] {filename}: {len(font_families)} font families detected. Limit to 2-3 for cohesion.")
 
         # 2.2 Line Length - Character-based width
         if has_long_text and not re.search(r'max-w-(?:prose|[\[\\]?\d+ch[\]\\]?)|max-width:\s*\d+ch', content):

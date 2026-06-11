@@ -7,6 +7,8 @@ import { Star, GitFork, Download, ArrowUpRight, ExternalLink } from "lucide-reac
 import { Sparkline } from "@/components/common/sparkline";
 import { SourceBadge } from "@/components/common/source-badge";
 
+import { useState, useEffect } from "react";
+
 interface ProjectCardProps {
   project: RankedProject;
   index: number;
@@ -26,9 +28,17 @@ function RankBadge({ rank }: { rank: number }) {
 }
 
 export function ProjectCard({ project, index }: ProjectCardProps) {
-  const isNew =
-    new Date(project.sourceCreatedAt).getTime() >
-    Date.now() - 30 * 24 * 60 * 60 * 1000;
+  const [isNew, setIsNew] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsNew(
+        new Date(project.sourceCreatedAt).getTime() >
+        Date.now() - 30 * 24 * 60 * 60 * 1000
+      );
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [project.sourceCreatedAt]);
 
   return (
     <div
@@ -68,18 +78,22 @@ export function ProjectCard({ project, index }: ProjectCardProps) {
             </p>
 
             {/* Tags */}
-            <div className="flex flex-wrap gap-1.5 mt-3">
+            <div className="flex flex-wrap gap-1.5 mt-3 relative z-10">
               {project.categories.slice(0, 2).map((cat) => (
-                <span
+                <Link
                   key={cat.id}
-                  className="category-chip"
+                  href={`/?category=${cat.slug}`}
+                  className="category-chip transition-all hover:scale-105 active:scale-95 cursor-pointer"
                   style={{
                     color: cat.color,
                     backgroundColor: `${cat.color}15`,
                   }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                  }}
                 >
                   {cat.icon} {cat.name}
-                </span>
+                </Link>
               ))}
               {project.primaryLanguage && (
                 <span className="category-chip text-[var(--color-text-tertiary)] bg-[var(--color-bg-secondary)] border border-[var(--color-border)]">

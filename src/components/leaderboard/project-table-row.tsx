@@ -1,10 +1,12 @@
 "use client";
 
-import Link from "next/link";
+import { Link } from "@/i18n/routing";
 import type { RankedProject } from "@/types";
 import { formatNumber, getDeltaPrefix } from "@/lib/utils";
 import { Sparkline } from "@/components/common/sparkline";
 import { SourceBadge } from "@/components/common/source-badge";
+
+import { useState, useEffect } from "react";
 
 interface ProjectTableRowProps {
   project: RankedProject;
@@ -12,9 +14,17 @@ interface ProjectTableRowProps {
 }
 
 export function ProjectTableRow({ project, index }: ProjectTableRowProps) {
-  const isNew =
-    new Date(project.sourceCreatedAt).getTime() >
-    Date.now() - 30 * 24 * 60 * 60 * 1000;
+  const [isNew, setIsNew] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsNew(
+        new Date(project.sourceCreatedAt).getTime() >
+        Date.now() - 30 * 24 * 60 * 60 * 1000
+      );
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [project.sourceCreatedAt]);
 
   return (
     <tr
@@ -59,17 +69,18 @@ export function ProjectTableRow({ project, index }: ProjectTableRowProps) {
       </td>
 
       {/* Category */}
-      <td className="px-4 py-3 hidden md:table-cell">
+      <td className="px-4 py-3 hidden md:table-cell relative z-10">
         {project.categories[0] && (
-          <span
-            className="inline-flex items-center gap-1 text-[11px] font-medium rounded px-1.5 py-0.5"
+          <Link
+            href={`/?category=${project.categories[0].slug}`}
+            className="inline-flex items-center gap-1 text-[11px] font-medium rounded px-1.5 py-0.5 transition-all hover:scale-105 active:scale-95 cursor-pointer hover:opacity-80"
             style={{
               color: project.categories[0].color,
               backgroundColor: `${project.categories[0].color}15`,
             }}
           >
             {project.categories[0].icon} {project.categories[0].name}
-          </span>
+          </Link>
         )}
       </td>
 

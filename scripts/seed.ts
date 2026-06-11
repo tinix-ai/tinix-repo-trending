@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { db } from '../src/lib/db';
-import { projects, projectSnapshots, rankings } from '../src/lib/db/schema';
+import { projects, projectSnapshots } from '../src/lib/db/schema';
 import { MOCK_PROJECTS } from '../src/lib/mock-data';
 import crypto from 'crypto';
 
@@ -26,17 +26,6 @@ async function seed() {
         createdAt: new Date(),
         updatedAt: new Date(),
         sourceCreatedAt: new Date(mock.sourceCreatedAt),
-      });
-
-      // Insert Ranking
-      await db.insert(rankings).values({
-        projectId,
-        period: 'daily',
-        rankingDate: new Date().toISOString().split('T')[0],
-        rank: mock.rank,
-        score: mock.starsGained * 1.5,
-        starsGained: mock.starsGained,
-        velocityScore: mock.velocityScore,
       });
 
       // Insert Snapshot

@@ -47,7 +47,7 @@ export interface Category {
   icon: string;
   color: string;
   parentId?: string;
-  sortOrder: number;
+  sortOrder?: number;
   projectCount?: number;
 }
 

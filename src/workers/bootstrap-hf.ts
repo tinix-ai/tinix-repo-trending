@@ -19,7 +19,7 @@ async function runBootstrapHF() {
   
   while (url && totalModelsQueued < 50000) {
     try {
-      const response = await fetch(url, { headers: { 'Accept': 'application/json' } });
+      const response = await fetch(url, { headers: { 'Accept': 'application/json' } }) as Response;
       if (!response.ok) {
         if (response.status === 429) {
           console.log('[Bootstrap HF] Rate limited! Sleeping for 60 seconds...');
@@ -67,7 +67,7 @@ async function runBootstrapHF() {
 
   while (url && totalDatasetsQueued < 50000) {
     try {
-      const response = await fetch(url, { headers: { 'Accept': 'application/json' } });
+      const response = await fetch(url, { headers: { 'Accept': 'application/json' } }) as Response;
       if (!response.ok) {
         if (response.status === 429) {
           console.log('[Bootstrap HF] Rate limited! Sleeping for 60 seconds...');

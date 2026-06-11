@@ -4,7 +4,7 @@ import { db } from '../lib/db';
 import { projects } from '../lib/db/schema';
 import { discoverNewRepos } from '../lib/crawlers/github-discovery';
 import { discoverHFTrending } from '../lib/crawlers/hf-discovery';
-import { eq } from 'drizzle-orm';
+import { eq, lte, or, isNull } from 'drizzle-orm';
 
 /**
  * Job 1: Daily Discovery
@@ -49,8 +49,13 @@ async function runDailyUpdate() {
   const trackedProjects = await db.select({ 
     id: projects.id,
     sourceId: projects.sourceId,
-    source: projects.source
-  }).from(projects);
+    source: projects.source,
+    sourceUrl: projects.sourceUrl
+  }).from(projects)
+    .where(or(
+      isNull(projects.nextCrawlAt),
+      lte(projects.nextCrawlAt, new Date())
+    ));
 
   let ghCount = 0;
   let hfCount = 0;

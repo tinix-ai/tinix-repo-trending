@@ -1,14 +1,14 @@
 "use client";
 
 import { useState, useEffect, useTransition } from "react";
-import type { RankedProject, ViewMode } from "@/types";
+import type { RankedProject, ViewMode, Category } from "@/types";
 import { ViewToggle } from "@/components/leaderboard/view-toggle";
 import { ProjectCard } from "@/components/leaderboard/project-card";
 import { ProjectTableRow } from "@/components/leaderboard/project-table-row";
 import { formatNumber } from "@/lib/utils";
 import { fetchDynamicRankings, fetchGlobalStats, fetchCategoryStats } from "../actions";
 import { useTranslations } from "next-intl";
-import { Link } from "@/i18n/routing";
+import { Link, useRouter, usePathname } from "@/i18n/routing";
 import { useSearchParams } from "next/navigation";
 import {
   TrendingUp,
@@ -20,10 +20,11 @@ import {
 import { SearchableSelect } from "@/components/common/searchable-select";
 
 export default function HomePage() {
+  const router = useRouter();
+  const pathname = usePathname();
   const [view, setView] = useState<ViewMode>("card");
   const [selectedLanguage, setSelectedLanguage] = useState<string>("");
   const [selectedSource, setSelectedSource] = useState<string>("");
-  const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [selectedHashtag, setSelectedHashtag] = useState<string>("");
   const [showAdvanced, setShowAdvanced] = useState<boolean>(false);
   
@@ -39,10 +40,31 @@ export default function HomePage() {
   const t = useTranslations("HomePage");
   const [projects, setProjects] = useState<RankedProject[]>([]);
   const [stats, setStats] = useState({ totalProjects: 12847, trendingProjects: 2340 });
-  const [categories, setCategories] = useState<any[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [isPending, startTransition] = useTransition();
   const searchParams = useSearchParams();
   const searchQuery = searchParams.get("q")?.toLowerCase() || "";
+
+  const categoryParam = searchParams.get("category") || "";
+  const selectedCategoryObj = categories.find(
+    (c) => c.slug === categoryParam || c.name.toLowerCase().replace(/\s+/g, "-") === categoryParam
+  );
+  const selectedCategory = selectedCategoryObj ? selectedCategoryObj.name : "";
+
+  const handleCategoryChange = (newCategory: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (newCategory) {
+      const catObj = categories.find(c => c.name === newCategory);
+      if (catObj) {
+        params.set("category", catObj.slug);
+      } else {
+        params.set("category", newCategory.toLowerCase().replace(/\s+/g, "-"));
+      }
+    } else {
+      params.delete("category");
+    }
+    router.push(`${pathname}?${params.toString()}`);
+  };
 
   useEffect(() => {
     fetchGlobalStats().then(setStats);
@@ -87,7 +109,8 @@ export default function HomePage() {
 
   // Reset page to 1 when filters change
   useEffect(() => {
-    setCurrentPage(1);
+    const timer = setTimeout(() => setCurrentPage(1), 0);
+    return () => clearTimeout(timer);
   }, [selectedLanguage, selectedSource, selectedCategory, selectedHashtag, days, minStars, minDownloads]);
 
   const totalPages = Math.ceil(filteredProjects.length / itemsPerPage);
@@ -96,8 +119,8 @@ export default function HomePage() {
     currentPage * itemsPerPage
   );
 
-  const languages = [...new Set(projects.filter(p => p.source === 'github').map((p) => p.primaryLanguage).filter(Boolean))].sort();
-  const hashtags = [...new Set(projects.filter(p => p.source === 'huggingface').map((p) => p.primaryLanguage).filter(Boolean))].sort();
+  const languages = [...new Set(projects.filter(p => p.source === 'github').map((p) => p.primaryLanguage).filter((l): l is string => !!l))].sort();
+  const hashtags = [...new Set(projects.filter(p => p.source === 'huggingface').map((p) => p.primaryLanguage).filter((h): h is string => !!h))].sort();
   const categoryOptions = categories.map(c => c.name);
 
   return (
@@ -204,7 +227,7 @@ export default function HomePage() {
                 <SearchableSelect
                   options={categoryOptions}
                   value={selectedCategory}
-                  onChange={setSelectedCategory}
+                  onChange={handleCategoryChange}
                   placeholder="All Categories"
                 />
 
@@ -384,7 +407,7 @@ export default function HomePage() {
                 {categories.slice(0, 8).map((cat) => (
                   <Link
                     key={cat.id}
-                    href={`/categories/${cat.slug}`}
+                    href={`/?category=${cat.slug}`}
                     className="flex items-center justify-between rounded-lg px-3 py-2.5 transition-colors hover:bg-[var(--color-divider-soft)] group"
                   >
                     <span className="flex items-center gap-3">

@@ -1,6 +1,7 @@
 import { fetchGlobalStats, fetchCategoryStats } from "@/app/actions";
-import { BarChart3, Database, TrendingUp, Layers } from "lucide-react";
+import { Database, TrendingUp, Layers } from "lucide-react";
 import type { Metadata } from "next";
+import type { Category } from "@/types";
 
 export const metadata: Metadata = {
   title: "Stats | Tinix Repo Trending",
@@ -9,7 +10,7 @@ export const metadata: Metadata = {
 
 export default async function StatsPage() {
   const globalStats = await fetchGlobalStats();
-  const categoryStats = await fetchCategoryStats();
+  const categoryStats = await fetchCategoryStats() as Category[];
 
   return (
     <div className="page-container py-12">
@@ -65,14 +66,14 @@ export default async function StatsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--color-hairline)]">
-              {categoryStats.map((cat: any) => (
+              {categoryStats.map((cat: Category) => (
                 <tr key={cat.id} className="hover:bg-[var(--color-divider-soft)] transition-colors">
                   <td className="py-4 px-6 flex items-center gap-3">
                     <span className="text-xl" style={{ color: cat.color }}>{cat.icon}</span>
                     <span className="font-medium text-[var(--color-ink)]">{cat.name}</span>
                   </td>
                   <td className="py-4 px-6 text-right font-medium tabular-nums text-[var(--color-ink-muted-80)]">
-                    {cat.projectCount.toLocaleString()}
+                    {(cat.projectCount ?? 0).toLocaleString()}
                   </td>
                 </tr>
               ))}

@@ -44,3 +44,34 @@ export function getDeltaPrefix(delta: number): string {
   if (delta > 0) return "+";
   return "";
 }
+
+export function cleanReadme(readme: string | null | undefined): string {
+  if (!readme) return "";
+
+  let clean = readme.trim();
+
+  // 1. Strip YAML frontmatter at the beginning of the file
+  if (clean.startsWith("---")) {
+    const closingIndex = clean.indexOf("---", 3);
+    if (closingIndex !== -1) {
+      clean = clean.substring(closingIndex + 3).trim();
+    }
+  }
+
+  // 2. Remove security-sensitive HTML tags (XSS protection & styling leaks)
+  clean = clean.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "");
+  clean = clean.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "");
+  clean = clean.replace(/<iframe[^>]*>[\s\S]*?<\/iframe>/gi, "");
+
+  // 3. Remove global document structural tags that break React DOM hydration/layout
+  clean = clean.replace(/<!DOCTYPE\s+html[^>]*>/gi, "");
+  clean = clean.replace(/<\/?html[^>]*>/gi, "");
+  clean = clean.replace(/<\/?head[^>]*>/gi, "");
+  clean = clean.replace(/<\/?body[^>]*>/gi, "");
+  clean = clean.replace(/<meta[^>]*>/gi, "");
+  clean = clean.replace(/<title[^>]*>[\s\S]*?<\/title>/gi, "");
+  clean = clean.replace(/<link[^>]*>/gi, "");
+
+  return clean.trim();
+}
+

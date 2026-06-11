@@ -25,7 +25,7 @@ export default async function CategoriesPage() {
         {categories.map((cat, i) => (
           <Link
             key={cat.id}
-            href={`/categories/${cat.slug}`}
+            href={`/?category=${cat.slug}`}
             className={`card group p-6 animate-fade-in-up animate-stagger-${Math.min(i + 1, 12)}`}
           >
             <div className="flex items-start justify-between mb-4">

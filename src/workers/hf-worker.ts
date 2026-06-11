@@ -3,8 +3,8 @@ import { Worker, Job } from 'bullmq';
 import Redis from 'ioredis';
 import { db } from '../lib/db';
 import { projects, projectSnapshots } from '../lib/db/schema';
-import { eq } from 'drizzle-orm';
 import { categorizeProject } from '../lib/categorizer';
+import { updateProjectCrawlSchedule } from '../lib/crawlers/scheduler';
 
 const redisConfig = {
   host: process.env.REDIS_HOST || 'localhost',
@@ -37,13 +37,23 @@ export const hfWorker = new Worker<HFCrawlJobData>(
         },
       });
 
+      const remaining = response.headers.get('x-rate-limit-remaining') || response.headers.get('ratelimit-remaining');
+      const reset = response.headers.get('x-rate-limit-reset') || response.headers.get('ratelimit-reset');
+      if (remaining && parseInt(remaining) < 20) {
+        console.warn(`[HF Crawler] HF API rate limit is low: ${remaining} remaining. Resets in ${reset || 'unknown'}s`);
+      }
+
       if (!response.ok) {
         if (response.status === 404) {
           console.warn(`[HF Crawler] Not found: ${id}`);
           return { status: 'not_found' };
         }
         if (response.status === 429) {
-          throw new Error(`Rate limited by HuggingFace API for ${id}`);
+          let delayMsg = '';
+          if (reset) {
+            delayMsg = ` Resets in ${reset}s.`;
+          }
+          throw new Error(`Rate limited by HuggingFace API for ${id}.${delayMsg}`);
         }
         throw new Error(`HuggingFace API error: ${response.statusText}`);
       }
@@ -77,13 +87,28 @@ export const hfWorker = new Worker<HFCrawlJobData>(
       try {
         const prefix = type === 'datasets' ? 'datasets/' : '';
         const readmeRes = await fetch(`https://huggingface.co/${prefix}${id}/resolve/main/README.md`);
+        if (readmeRes.status === 429) {
+          throw new Error('Rate limit');
+        }
         if (readmeRes.ok) {
           readme = await readmeRes.text();
           if (!finalDescription && readme) {
-            finalDescription = readme.replace(/[#*`_>\[\]]/g, '').substring(0, 300).trim() + '...';
+            let clean = readme.trim();
+            if (clean.startsWith('---')) {
+              const secondIndex = clean.indexOf('---', 3);
+              if (secondIndex !== -1) {
+                clean = clean.substring(secondIndex + 3).trim();
+              }
+            }
+            clean = clean.replace(/<[^>]*>/g, '').replace(/[#*`_>\[\]]/g, '').replace(/\s+/g, ' ');
+            finalDescription = clean.substring(0, 250).trim() + '...';
           }
         }
       } catch (e) {
+        const err = e as Error;
+        if (err.message === 'Rate limit') {
+          throw new Error(`Rate limited by HuggingFace API during README fetch for ${id}`);
+        }
         console.warn(`[HF Crawler] Failed to fetch README for ${id}`);
       }
 
@@ -136,6 +161,9 @@ export const hfWorker = new Worker<HFCrawlJobData>(
         snapshotDate,
       });
 
+      // Recalculate and update the next crawl schedule
+      await updateProjectCrawlSchedule(project.id, 'huggingface');
+
       console.log(`[HF Crawler] Successfully fetched & saved ${id}: ${likes} likes, ${downloads} downloads`);
 
       return { 
@@ -151,12 +179,16 @@ export const hfWorker = new Worker<HFCrawlJobData>(
     }
   },
   {
-    connection: redisConnection,
+    connection: redisConnection as unknown as Worker['opts']['connection'],
     concurrency: 5, 
     limiter: {
-      max: 100000, 
+      // If HF_TOKEN is present, allow up to 5000 requests per hour (since each project has ~2 requests, so 2500 projects/hr)
+      // Otherwise, restrict to 60 requests per hour to avoid getting blocked.
+      max: process.env.HF_TOKEN ? 5000 : 60,
       duration: 3600000,
     },
+    stalledInterval: 15000,
+    maxStalledCount: 2,
   }
 );
 

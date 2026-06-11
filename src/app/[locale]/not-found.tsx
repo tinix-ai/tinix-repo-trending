@@ -11,7 +11,7 @@ export default function NotFound() {
         Page Not Found
       </h1>
       <p className="text-[var(--color-ink-muted-80)] max-w-md mb-8 text-lg">
-        Sorry, we couldn't find the page you're looking for. It might have been moved or doesn't exist.
+        {"Sorry, we couldn't find the page you're looking for. It might have been moved or doesn't exist."}
       </p>
       <Link 
         href="/"
