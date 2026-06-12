@@ -4,8 +4,10 @@ import { useState, useEffect, useCallback } from "react";
 import { Clock, Play, Loader2, Trash2, RefreshCw } from "lucide-react";
 import { getScheduledJobs, triggerJobNow, removeScheduledJob, type ScheduledJob } from "@/app/actions";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 
 export function ScheduledJobsTable() {
+  const t = useTranslations("Admin");
   const [jobs, setJobs] = useState<ScheduledJob[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
@@ -34,30 +36,30 @@ export function ScheduledJobsTable() {
     setActionLoading(`trigger-${name}`);
     const actionPromise = async () => {
       await triggerJobNow(name);
-      return `Job ${name} triggered successfully`;
+      return t("jobTriggered", { name });
     };
 
     toast.promise(actionPromise(), {
-      loading: `Triggering ${name}...`,
+      loading: t("triggeringJob", { name }),
       success: (msg) => msg,
-      error: `Failed to trigger job ${name}`,
+      error: t("triggerJobFailed", { name }),
       finally: () => setActionLoading(null)
     });
   };
 
   const handleRemove = async (key: string) => {
-    if (!confirm("Are you sure you want to remove this scheduled job?")) return;
+    if (!confirm(t("confirmRemoveJob"))) return;
     setActionLoading(`remove-${key}`);
     const actionPromise = async () => {
       await removeScheduledJob(key);
       await loadJobs();
-      return "Job removed successfully";
+      return t("jobRemoved");
     };
 
     toast.promise(actionPromise(), {
-      loading: `Removing job...`,
+      loading: t("removingJob"),
       success: (msg) => msg,
-      error: "Failed to remove job",
+      error: t("removeJobFailed"),
       finally: () => setActionLoading(null)
     });
   };
@@ -66,7 +68,7 @@ export function ScheduledJobsTable() {
     return (
       <div className="apple-utility-card flex items-center justify-center py-12">
         <Loader2 className="w-5 h-5 animate-spin text-[var(--color-ink-muted-48)]" />
-        <span className="ml-2 text-[var(--color-ink-muted-48)]">Loading scheduled jobs...</span>
+        <span className="ml-2 text-[var(--color-ink-muted-48)]">{t("loadingJobs")}</span>
       </div>
     );
   }
@@ -79,8 +81,8 @@ export function ScheduledJobsTable() {
             <Clock className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-apple-body-strong text-[var(--color-ink)]">Cron Schedules</h3>
-            <p className="text-xs text-[var(--color-ink-muted-80)]">Repeatable jobs managed by BullMQ</p>
+            <h3 className="text-apple-body-strong text-[var(--color-ink)]">{t("cronSchedules")}</h3>
+            <p className="text-xs text-[var(--color-ink-muted-80)]">{t("repeatableJobsDesc")}</p>
           </div>
         </div>
         <button
@@ -88,7 +90,7 @@ export function ScheduledJobsTable() {
           disabled={loading}
           className="apple-btn-secondary py-1.5 px-3 text-xs flex items-center gap-1.5 disabled:opacity-50"
         >
-          <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} /> Refresh
+          <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} /> {t("refresh")}
         </button>
       </div>
 
@@ -96,17 +98,17 @@ export function ScheduledJobsTable() {
         <table className="w-full text-left">
           <thead>
             <tr className="border-b border-[var(--color-divider-soft)]">
-              <th className="py-2.5 px-3 text-[10px] uppercase tracking-wider text-[var(--color-ink-muted-48)] font-medium">Job Name</th>
-              <th className="py-2.5 px-3 text-[10px] uppercase tracking-wider text-[var(--color-ink-muted-48)] font-medium">Schedule (Cron)</th>
-              <th className="py-2.5 px-3 text-[10px] uppercase tracking-wider text-[var(--color-ink-muted-48)] font-medium">Next Run</th>
-              <th className="py-2.5 px-3 text-[10px] uppercase tracking-wider text-[var(--color-ink-muted-48)] font-medium text-right">Actions</th>
+              <th className="py-2.5 px-3 text-[10px] uppercase tracking-wider text-[var(--color-ink-muted-48)] font-medium">{t("jobName")}</th>
+              <th className="py-2.5 px-3 text-[10px] uppercase tracking-wider text-[var(--color-ink-muted-48)] font-medium">{t("scheduleCron")}</th>
+              <th className="py-2.5 px-3 text-[10px] uppercase tracking-wider text-[var(--color-ink-muted-48)] font-medium">{t("nextRun")}</th>
+              <th className="py-2.5 px-3 text-[10px] uppercase tracking-wider text-[var(--color-ink-muted-48)] font-medium text-right">{t("actions")}</th>
             </tr>
           </thead>
           <tbody>
             {jobs.length === 0 ? (
               <tr>
                 <td colSpan={4} className="py-8 text-center text-sm text-[var(--color-ink-muted-48)]">
-                  No scheduled jobs found.
+                  {t("noJobsFound")}
                 </td>
               </tr>
             ) : (
@@ -134,13 +136,13 @@ export function ScheduledJobsTable() {
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--color-action-blue)]/30 text-[var(--color-action-blue)] hover:bg-[var(--color-action-blue)]/5 text-xs font-medium transition-colors disabled:opacity-50"
                       >
                         {actionLoading === `trigger-${job.name}` ? <Loader2 className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3" />}
-                        Run Now
+                        {t("runNow")}
                       </button>
                       <button
                         onClick={() => handleRemove(job.key)}
                         disabled={actionLoading === `remove-${job.key}`}
                         className="p-1.5 rounded-lg border border-red-500/30 text-red-500 hover:bg-red-500/5 transition-colors disabled:opacity-50"
-                        title="Remove Schedule"
+                        title={t("removeSchedule")}
                       >
                         {actionLoading === `remove-${job.key}` ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
                       </button>

@@ -72,7 +72,7 @@ export function Header() {
             <input
               type="search"
               name="q"
-              placeholder="Search projects, models, datasets..."
+              placeholder={t("searchPlaceholder")}
               className={`w-full h-9 rounded-lg border bg-[var(--color-canvas)] pl-10 pr-4 text-sm text-[var(--color-ink)] placeholder:text-[var(--color-ink-muted-48)] outline-none transition-all duration-200 ${
                 searchFocused
                   ? "border-[var(--color-action-blue)] ring-1 ring-[var(--color-action-blue)]"
@@ -133,7 +133,7 @@ export function Header() {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--color-ink-muted-48)]" />
               <input
                 type="search"
-                placeholder="Search projects..."
+                placeholder={t("searchPlaceholder")}
                 className="w-full h-10 rounded-lg border border-[var(--color-hairline)] bg-[var(--color-canvas)] pl-10 pr-4 text-sm text-[var(--color-ink)] placeholder:text-[var(--color-ink-muted-48)] outline-none"
               />
             </div>

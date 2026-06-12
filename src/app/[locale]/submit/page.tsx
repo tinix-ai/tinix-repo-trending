@@ -94,7 +94,7 @@ export default function SubmitPage() {
           </div>
           
           <div className="mt-8 text-center text-sm text-[var(--color-ink-muted-48)]">
-            <p>We actively monitor spam. Duplicate or invalid links will be ignored.</p>
+            <p>{t("spamNote")}</p>
           </div>
         </div>
       </section>

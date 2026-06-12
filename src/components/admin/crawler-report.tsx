@@ -1,4 +1,5 @@
 import { GitBranch, Box, Database as DbIcon, Clock, CalendarDays, TrendingUp } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 interface CrawlerReportProps {
   report: {
@@ -16,9 +17,11 @@ interface CrawlerReportProps {
 }
 
 export function CrawlerReport({ report }: CrawlerReportProps) {
+  const t = useTranslations("Admin");
+  
   const sources = [
     {
-      label: 'GitHub Repos',
+      label: t("githubRepos"),
       icon: GitBranch,
       color: 'text-[var(--color-ink)]',
       bgColor: 'bg-[var(--color-ink)]/5',
@@ -27,7 +30,7 @@ export function CrawlerReport({ report }: CrawlerReportProps) {
       last7d: report.github7d,
     },
     {
-      label: 'HF Models',
+      label: t("hfModels"),
       icon: Box,
       color: 'text-cyan-500',
       bgColor: 'bg-cyan-500/10',
@@ -36,7 +39,7 @@ export function CrawlerReport({ report }: CrawlerReportProps) {
       last7d: report.hf7d,
     },
     {
-      label: 'HF Datasets',
+      label: t("hfDatasets"),
       icon: DbIcon,
       color: 'text-amber-500',
       bgColor: 'bg-amber-500/10',
@@ -59,7 +62,7 @@ export function CrawlerReport({ report }: CrawlerReportProps) {
           </div>
           <div>
             <div className="text-2xl font-semibold text-[var(--color-ink)] tabular-nums">{report.totalProjects.toLocaleString()}</div>
-            <div className="text-xs text-[var(--color-ink-muted-48)]">Total Projects</div>
+            <div className="text-xs text-[var(--color-ink-muted-48)]">{t("totalProjects")}</div>
           </div>
         </div>
         <div className="apple-utility-card flex items-center gap-4">
@@ -68,7 +71,7 @@ export function CrawlerReport({ report }: CrawlerReportProps) {
           </div>
           <div>
             <div className="text-2xl font-semibold text-[var(--color-ink)] tabular-nums">{report.crawled24h.toLocaleString()}</div>
-            <div className="text-xs text-[var(--color-ink-muted-48)]">Crawled (24h)</div>
+            <div className="text-xs text-[var(--color-ink-muted-48)]">{t("crawled24h")}</div>
           </div>
         </div>
         <div className="apple-utility-card flex items-center gap-4">
@@ -77,14 +80,14 @@ export function CrawlerReport({ report }: CrawlerReportProps) {
           </div>
           <div>
             <div className="text-2xl font-semibold text-[var(--color-ink)] tabular-nums">{report.crawled7d.toLocaleString()}</div>
-            <div className="text-xs text-[var(--color-ink-muted-48)]">Crawled (7 days)</div>
+            <div className="text-xs text-[var(--color-ink-muted-48)]">{t("crawled7d")}</div>
           </div>
         </div>
       </div>
 
       {/* Source breakdown */}
       <div className="apple-utility-card">
-        <h3 className="text-apple-body-strong mb-4">Source Distribution</h3>
+        <h3 className="text-apple-body-strong mb-4">{t("sourceDistribution")}</h3>
         
         {/* Distribution bar */}
         <div className="w-full h-3 rounded-full bg-[var(--color-canvas-parchment)] overflow-hidden flex mb-4">

@@ -9,6 +9,7 @@ import { SourceBadge } from "@/components/common/source-badge";
 
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 interface ProjectCardProps {
   project: RankedProject;
@@ -36,6 +37,7 @@ function buildCategoryHref(slug: string, filter: string | null) {
 }
 
 export function ProjectCard({ project, index }: ProjectCardProps) {
+  const t = useTranslations("HomePage");
   const searchParams = useSearchParams();
   const currentFilter = searchParams.get("filter");
   const [isNew, setIsNew] = useState(false);
@@ -75,7 +77,7 @@ export function ProjectCard({ project, index }: ProjectCardProps) {
               <SourceBadge source={project.source} projectType={project.projectType} />
               {isNew && (
                 <span className="text-[10px] font-semibold tracking-wider uppercase bg-[var(--color-accent-dim)] text-[var(--color-accent)] px-1.5 py-0.5 rounded shrink-0">
-                  NEW
+                  {t("newBadge")}
                 </span>
               )}
             </div>
@@ -167,7 +169,7 @@ export function ProjectCard({ project, index }: ProjectCardProps) {
 
             {/* Updated time info */}
             <span className="text-[11px] text-[var(--color-text-tertiary)] select-none opacity-80" title="Last Crawled">
-              Updated {timeAgo(project.lastCrawledAt || project.updatedAt)}
+              {t("updated", { time: timeAgo(project.lastCrawledAt || project.updatedAt) })}
             </span>
           </div>
         </div>
@@ -205,7 +207,7 @@ export function ProjectCard({ project, index }: ProjectCardProps) {
               </span>
             )}
             <span className="text-[11px] text-[var(--color-text-tertiary)]" title="Last Crawled">
-              Updated {timeAgo(project.lastCrawledAt || project.updatedAt)}
+              {t("updated", { time: timeAgo(project.lastCrawledAt || project.updatedAt) })}
             </span>
           </div>
         </div>

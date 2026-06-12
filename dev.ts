@@ -1,7 +1,7 @@
 import { spawn, execSync, ChildProcess } from 'child_process';
 import readline from 'readline';
 
-console.log('\x1b[35m[Runner] Starting Tinix Dev Environment...\x1b[0m');
+console.log('\x1b[35m[Runner] Starting TiniX Dev Environment...\x1b[0m');
 
 interface ProcessInfo {
   name: string;

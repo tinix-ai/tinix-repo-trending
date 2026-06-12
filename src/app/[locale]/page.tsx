@@ -280,7 +280,7 @@ export default function HomePage() {
                       }`}
                     >
                       <Flame className={`w-4 h-4 ${filterType === "trending" ? "text-orange-500" : ""}`} />
-                      Trending
+                      {t("trendingFilter")}
                     </button>
                     <button
                       onClick={() => handleFilterChange("all")}
@@ -291,7 +291,7 @@ export default function HomePage() {
                       }`}
                     >
                       <Database className={`w-4 h-4 ${filterType === "all" ? "text-blue-500" : ""}`} />
-                      All Projects
+                      {t("allProjectsFilter")}
                     </button>
                     <button
                       onClick={() => handleFilterChange("new")}
@@ -302,7 +302,7 @@ export default function HomePage() {
                       }`}
                     >
                       <Sparkles className={`w-4 h-4 ${filterType === "new" ? "text-yellow-500" : ""}`} />
-                      New
+                      {t("new")}
                     </button>
                   </div>
 
@@ -316,7 +316,7 @@ export default function HomePage() {
                           : "text-[var(--color-ink-muted-80)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-pearl)]"
                       }`}
                     >
-                      Day
+                      {t("dayTime")}
                     </button>
                     <button
                       onClick={() => handleDaysChange(7)}
@@ -326,7 +326,7 @@ export default function HomePage() {
                           : "text-[var(--color-ink-muted-80)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-pearl)]"
                       }`}
                     >
-                      Week
+                      {t("weekTime")}
                     </button>
                     <button
                       onClick={() => handleDaysChange(30)}
@@ -336,7 +336,7 @@ export default function HomePage() {
                           : "text-[var(--color-ink-muted-80)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-pearl)]"
                       }`}
                     >
-                      Month
+                      {t("monthTime")}
                     </button>
                     <button
                       onClick={() => handleDaysChange(9999)}
@@ -346,7 +346,7 @@ export default function HomePage() {
                           : "text-[var(--color-ink-muted-80)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-pearl)]"
                       }`}
                     >
-                      All
+                      {t("allTime")}
                     </button>
                   </div>
                 </div>
@@ -358,7 +358,7 @@ export default function HomePage() {
                     className={`flex items-center gap-2 text-sm font-medium transition-colors px-3 py-1.5 rounded-lg border ${showAdvanced ? "bg-[var(--color-action-blue)]/10 text-[var(--color-action-blue)] border-[var(--color-action-blue)]/20" : "text-[var(--color-ink-muted-80)] border-[var(--color-hairline)] hover:bg-[var(--color-surface-elevated)]"}`}
                   >
                     <Settings2 className="h-4 w-4" />
-                    Advanced
+                    {t("advanced")}
                   </button>
                   <ViewToggle activeView={view} onViewChange={setView} />
                 </div>
@@ -384,14 +384,14 @@ export default function HomePage() {
                       setSelectedLanguage("");
                     }
                   }}
-                  placeholder="All Sources"
+                  placeholder={t("allSources")}
                 />
 
                 <SearchableSelect
                   options={categoryOptions}
                   value={selectedCategory}
                   onChange={handleCategoryChange}
-                  placeholder="All Categories"
+                  placeholder={t("allCategories")}
                 />
 
                 {(!selectedSource || selectedSource === "github") && languages.length > 0 && (
@@ -399,7 +399,7 @@ export default function HomePage() {
                     options={languages}
                     value={selectedLanguage}
                     onChange={setSelectedLanguage}
-                    placeholder="All Languages"
+                    placeholder={t("allLanguages")}
                   />
                 )}
 
@@ -417,7 +417,7 @@ export default function HomePage() {
                       params.delete("page");
                       router.push(`${pathname}?${params.toString()}`);
                     }}
-                    placeholder="All Hashtags"
+                    placeholder={t("allHashtags")}
                     prefix="#"
                   />
                 )}
@@ -427,7 +427,7 @@ export default function HomePage() {
                 <div className="pt-4 border-t border-[var(--color-divider-soft)] grid grid-cols-1 sm:grid-cols-3 gap-6 animate-in slide-in-from-top-2 fade-in duration-200">
                   <div className="flex flex-col gap-2">
                     <label className="text-[11px] font-semibold text-[var(--color-ink-muted-80)] uppercase tracking-wider">
-                      Time Period (Days)
+                      {t("timePeriod")}
                     </label>
                     <div className="flex items-center gap-3">
                       <input 
@@ -441,7 +441,7 @@ export default function HomePage() {
 
                   <div className="flex flex-col gap-2">
                     <label className="text-[11px] font-semibold text-[var(--color-ink-muted-80)] uppercase tracking-wider">
-                      Min GitHub Stars
+                      {t("minStars")}
                     </label>
                     <input 
                       type="number" min="0" step="100" value={minStars}
@@ -452,7 +452,7 @@ export default function HomePage() {
 
                   <div className="flex flex-col gap-2">
                     <label className="text-[11px] font-semibold text-[var(--color-ink-muted-80)] uppercase tracking-wider">
-                      Min HF Downloads
+                      {t("minDownloads")}
                     </label>
                     <input 
                       type="number" min="0" step="1000" value={minDownloads}
@@ -504,21 +504,21 @@ export default function HomePage() {
                             onClick={() => handleSort("project")}
                           >
                             <div className="flex items-center gap-1">
-                              Project
+                              {t("projectCol")}
                               {sortBy === "project" && <span className="text-xs">{sortOrder === "desc" ? "↓" : "↑"}</span>}
                             </div>
                           </th>
                           
-                          <th className="px-4 py-4 text-left text-apple-caption font-semibold text-[var(--color-ink-muted-80)] uppercase tracking-wider hidden md:table-cell">Category</th>
+                          <th className="px-4 py-4 text-left text-apple-caption font-semibold text-[var(--color-ink-muted-80)] uppercase tracking-wider hidden md:table-cell">{t("categoryCol")}</th>
                           
-                          <th className="px-4 py-4 text-left text-apple-caption font-semibold text-[var(--color-ink-muted-80)] uppercase tracking-wider hidden lg:table-cell">Language</th>
+                          <th className="px-4 py-4 text-left text-apple-caption font-semibold text-[var(--color-ink-muted-80)] uppercase tracking-wider hidden lg:table-cell">{t("languageCol")}</th>
                           
                           <th 
                             className="px-4 py-4 text-right text-apple-caption font-semibold text-[var(--color-ink-muted-80)] uppercase tracking-wider cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
                             onClick={() => handleSort("stars")}
                           >
                             <div className="flex items-center justify-end gap-1">
-                              Stars
+                              {t("starsCol")}
                               {sortBy === "stars" && <span className="text-xs">{sortOrder === "desc" ? "↓" : "↑"}</span>}
                             </div>
                           </th>
@@ -528,7 +528,7 @@ export default function HomePage() {
                             onClick={() => handleSort("trend")}
                           >
                             <div className="flex items-center justify-end gap-1">
-                              Daily
+                              {t("dailyCol")}
                               {sortBy === "trend" && <span className="text-xs">{sortOrder === "desc" ? "↓" : "↑"}</span>}
                             </div>
                           </th>
@@ -538,12 +538,12 @@ export default function HomePage() {
                             onClick={() => handleSort("updated")}
                           >
                             <div className="flex items-center justify-end gap-1">
-                              Updated
+                              {t("updatedCol")}
                               {sortBy === "updated" && <span className="text-xs">{sortOrder === "desc" ? "↓" : "↑"}</span>}
                             </div>
                           </th>
                           
-                          <th className="px-4 py-4 text-right text-apple-caption font-semibold text-[var(--color-ink-muted-80)] uppercase tracking-wider hidden sm:table-cell">Trend</th>
+                          <th className="px-4 py-4 text-right text-apple-caption font-semibold text-[var(--color-ink-muted-80)] uppercase tracking-wider hidden sm:table-cell">{t("trendCol")}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -558,10 +558,10 @@ export default function HomePage() {
                 <div className="apple-utility-card divide-y divide-[var(--color-divider-soft)] p-0">
                   <div className="flex items-center gap-3 px-6 py-3 bg-[var(--color-surface-pearl)] text-apple-caption font-semibold text-[var(--color-ink-muted-80)] uppercase tracking-wider border-b border-[var(--color-divider-soft)]">
                     <span className="w-8 text-right shrink-0">#</span>
-                    <span className="flex-1">Project</span>
+                    <span className="flex-1">{t("projectCol")}</span>
                     <div className="flex items-center gap-4 shrink-0">
-                      <span className="w-20 text-right">Trend</span>
-                      <span className="w-24 text-right">Stars</span>
+                      <span className="w-20 text-right">{t("trendCol")}</span>
+                      <span className="w-24 text-right">{t("starsCol")}</span>
                     </div>
                   </div>
                   {paginatedProjects.map((project) => (
@@ -604,7 +604,7 @@ export default function HomePage() {
                   disabled={currentPage === 1}
                   className="px-4 py-2 rounded-lg border border-[var(--color-hairline)] bg-[var(--color-canvas)] text-sm font-medium text-[var(--color-ink)] disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[var(--color-surface-elevated)] transition-colors"
                 >
-                  Previous
+                  {t("previous")}
                 </button>
                 <div className="flex items-center gap-1">
                   {getPageNumbers(currentPage, totalPages).map((page, idx) => (
@@ -632,7 +632,7 @@ export default function HomePage() {
                   disabled={currentPage === totalPages}
                   className="px-4 py-2 rounded-lg border border-[var(--color-hairline)] bg-[var(--color-canvas)] text-sm font-medium text-[var(--color-ink)] disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[var(--color-surface-elevated)] transition-colors"
                 >
-                  Next
+                  {t("next")}
                 </button>
               </div>
             )}
@@ -644,7 +644,7 @@ export default function HomePage() {
             <div className="apple-utility-card p-6">
               <h2 className="text-apple-body-strong mb-6 flex items-center gap-2">
                 <Filter className="h-4 w-4 text-cyan-500" />
-                Categories
+                {t("categoriesWidget")}
               </h2>
               <div className="space-y-2">
                 {categories.slice(0, 8).map((cat) => (
@@ -672,10 +672,10 @@ export default function HomePage() {
             <div className="apple-utility-card p-6">
               <h2 className="text-apple-body-strong mb-6 flex items-center gap-2">
                 <Zap className="h-4 w-4 text-amber-500" />
-                Hot Topics
+                {t("hotTopicsWidget")}
               </h2>
               <div className="flex flex-wrap gap-2">
-                {["AI Agent", "MCP", "RAG", "LLM", "Coding Assistant", "Open Source", "Rust", "Agentic", "Multi-modal", "Edge AI"].map((topic) => (
+                {(hashtags.length > 0 ? hashtags : ["AI Agent", "MCP", "RAG", "LLM", "Coding Assistant", "Open Source", "Rust", "Agentic", "Multi-modal", "Edge AI"]).map((topic) => (
                   <Link
                     key={topic}
                     href={`/?tag=${encodeURIComponent(topic)}`}
@@ -690,16 +690,16 @@ export default function HomePage() {
             {/* About Widget */}
             <div className="apple-utility-card p-6 bg-[var(--color-surface-tile-1)] text-[var(--color-body-on-dark)] border-none">
               <h2 className="text-apple-body-strong mb-3 text-white">
-                About Tinix Trending
+                {t("aboutWidgetTitle")}
               </h2>
               <p className="text-apple-caption text-[var(--color-ink-muted-80)] leading-relaxed mb-6">
-                We track momentum across GitHub & HuggingFace to surface rising projects before they hit mainstream. Updated hourly.
+                {t("aboutWidgetDesc")}
               </p>
               <Link
                 href="/submit"
                 className="apple-btn-secondary border-white/20 text-white hover:bg-white/10 w-full flex justify-center items-center gap-2"
               >
-                Submit a project
+                {t("submitBtn")}
                 <ChevronRight className="h-4 w-4" />
               </Link>
             </div>

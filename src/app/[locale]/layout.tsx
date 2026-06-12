@@ -1,42 +1,45 @@
-import type { Metadata } from "next";
 import "../globals.css";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { NextIntlClientProvider } from 'next-intl';
-import { getMessages } from 'next-intl/server';
+import { getMessages, getTranslations } from 'next-intl/server';
 import { Toaster } from 'sonner';
 
-export const metadata: Metadata = {
-  title: {
-    default: "Tinix Repo Trending — Track Rising Open Source Projects",
-    template: "%s | Tinix Repo Trending",
-  },
-  description:
-    "Track trending projects, models, and datasets across GitHub and HuggingFace. Momentum-based rankings updated daily with community reviews and AI-powered summaries.",
-  keywords: [
-    "github trending",
-    "huggingface trending",
-    "open source",
-    "ai projects",
-    "trending repositories",
-    "developer tools",
-  ],
-  openGraph: {
-    title: "Tinix Repo Trending",
-    description: "Track rising open source projects before they peak",
-    url: "https://trending.tinix.ai",
-    siteName: "Tinix Repo Trending",
-    locale: "en_US",
-    type: "website",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Tinix Repo Trending",
-    description: "Track rising open source projects before they peak",
-  },
-  robots: { index: true, follow: true },
-};
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "HomePage" });
+  
+  return {
+    title: {
+      default: t("metaTitle"),
+      template: "%s | TiniX Repo Trending",
+    },
+    description: t("metaDesc"),
+    keywords: [
+      "github trending",
+      "huggingface trending",
+      "open source",
+      "ai projects",
+      "trending repositories",
+      "developer tools",
+    ],
+    openGraph: {
+      title: "TiniX Repo Trending",
+      description: "Track rising open source projects before they peak",
+      url: "https://trending.tinix.ai",
+      siteName: "TiniX Repo Trending",
+      locale: locale === "vi" ? "vi_VN" : "en_US",
+      type: "website",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: "TiniX Repo Trending",
+      description: "Track rising open source projects before they peak",
+    },
+    robots: { index: true, follow: true },
+  };
+}
 
 export default async function RootLayout({
   children,

@@ -25,6 +25,7 @@ import rehypeSlug from "rehype-slug";
 import rehypeRaw from "rehype-raw";
 import "highlight.js/styles/github-dark.css";
 import { ProjectHistoryChart } from "@/components/project/history-chart";
+import { getTranslations } from "next-intl/server";
 
 // Metadata generation
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
@@ -66,9 +67,9 @@ function resolveRelativeUrl(url: string, sourceUrl: string | undefined, source: 
   return url;
 }
 
-export default async function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function ProjectDetailPage({ params }: { params: Promise<{ id: string; locale: string }> }) {
   const resolvedParams = await params;
-  const paramId = resolvedParams.id;
+  const { id: paramId, locale } = resolvedParams;
   const uuid = paramId.slice(-36);
   const project = await fetchProjectById(uuid);
 
@@ -76,6 +77,8 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
     notFound();
   }
 
+  const t = await getTranslations("ProjectDetail");
+  const tNav = await getTranslations("Navigation");
   const historyData = await fetchProjectHistory(project.id, 30);
   const isGithub = project.source === "github";
   const isHuggingFace = project.source === "huggingface";
@@ -95,14 +98,14 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                 className="group inline-flex items-center gap-1.5 rounded-full border border-[var(--color-border)] bg-[var(--color-bg-secondary)] px-3 py-1.5 text-[11px] font-semibold tracking-wide uppercase text-[var(--color-ink-muted-80)] hover:text-[var(--color-action-blue)] hover:border-[var(--color-action-blue)]/30 hover:bg-[var(--color-canvas)] transition-all duration-200"
               >
                 <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" />
-                Back to Trending
+                {t("backBtn")}
               </Link>
               
               <div className="h-4 w-px bg-[var(--color-border)] mx-1 hidden sm:block" />
               
               <nav className="flex flex-wrap items-center gap-1.5 text-[11px] font-semibold tracking-wider uppercase text-[var(--color-ink-muted-48)]">
                 <Link href="/" className="hover:text-[var(--color-ink)] transition-colors">
-                  Trending
+                  {tNav("trending")}
                 </Link>
                 <span className="text-[var(--color-border)] select-none">/</span>
                 {project.categories && project.categories.length > 0 && (
@@ -157,17 +160,17 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                   <div className="flex items-center gap-1.5">
                     <Star className="h-4 w-4 text-[var(--color-warning)]" />
                     <span className="text-sm font-semibold text-[var(--color-ink)] tabular-nums">{formatNumber(project.stars)}</span>
-                    <span className="text-xs text-[var(--color-ink-muted-80)] uppercase tracking-wider font-medium">stars</span>
+                    <span className="text-xs text-[var(--color-ink-muted-80)] uppercase tracking-wider font-medium">{t("stars")}</span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <GitFork className="h-4 w-4 text-[var(--color-ink-muted-80)]" />
                     <span className="text-sm font-semibold text-[var(--color-ink)] tabular-nums">{formatNumber(project.forks)}</span>
-                    <span className="text-xs text-[var(--color-ink-muted-80)] uppercase tracking-wider font-medium">forks</span>
+                    <span className="text-xs text-[var(--color-ink-muted-80)] uppercase tracking-wider font-medium">{t("forks")}</span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <CircleDot className="h-4 w-4 text-[var(--color-positive)]" />
                     <span className="text-sm font-semibold text-[var(--color-ink)] tabular-nums">{formatNumber(project.openIssues)}</span>
-                    <span className="text-xs text-[var(--color-ink-muted-80)] uppercase tracking-wider font-medium">issues</span>
+                    <span className="text-xs text-[var(--color-ink-muted-80)] uppercase tracking-wider font-medium">{t("issues")}</span>
                   </div>
                 </>
               )}
@@ -177,12 +180,12 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                   <div className="flex items-center gap-1.5">
                     <Star className="h-4 w-4 text-[var(--color-warning)]" />
                     <span className="text-sm font-semibold text-[var(--color-ink)] tabular-nums">{formatNumber(project.stars)}</span>
-                    <span className="text-xs text-[var(--color-ink-muted-80)] uppercase tracking-wider font-medium">likes</span>
+                    <span className="text-xs text-[var(--color-ink-muted-80)] uppercase tracking-wider font-medium">{t("likes")}</span>
                   </div>
                   <div className="flex items-center gap-1.5">
                     <Download className="h-4 w-4 text-[var(--color-info)]" />
                     <span className="text-sm font-semibold text-[var(--color-ink)] tabular-nums">{formatNumber(project.downloads)}</span>
-                    <span className="text-xs text-[var(--color-ink-muted-80)] uppercase tracking-wider font-medium">downloads</span>
+                    <span className="text-xs text-[var(--color-ink-muted-80)] uppercase tracking-wider font-medium">{t("downloads")}</span>
                   </div>
                 </>
               )}
@@ -196,7 +199,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                 rel="noopener noreferrer"
                 className="apple-btn-primary py-2 px-4 text-xs flex items-center gap-1.5"
               >
-                Visit Repository <ExternalLink className="h-3.5 w-3.5" />
+                {t("visitRepo")} <ExternalLink className="h-3.5 w-3.5" />
               </a>
               {project.homepageUrl && (
                 <a 
@@ -205,7 +208,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                   rel="noopener noreferrer"
                   className="apple-btn-secondary py-2 px-4 text-xs flex items-center gap-1.5 bg-[var(--color-canvas)]"
                 >
-                  Homepage <ExternalLink className="h-3.5 w-3.5" />
+                  {t("homepage")} <ExternalLink className="h-3.5 w-3.5" />
                 </a>
               )}
             </div>
@@ -224,7 +227,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
             <div className="apple-utility-card p-6 sm:p-8">
               <h3 className="text-apple-body-strong mb-6 text-[var(--color-ink)] flex items-center gap-2">
                 <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[var(--color-bg-secondary)] border border-[var(--color-border)]">📈</span>
-                30-Day Growth History
+                {t("growthHistory")}
               </h3>
               <div className="h-[300px]">
                 <ProjectHistoryChart data={historyData} source={project.source} />
@@ -268,9 +271,9 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                 <div className="w-16 h-16 rounded-full bg-[var(--color-bg-secondary)] flex items-center justify-center mb-4">
                   <Code2 className="h-8 w-8 text-[var(--color-ink-muted-48)]" />
                 </div>
-                <h3 className="text-apple-body-strong text-[var(--color-ink)] mb-2">No README found</h3>
+                <h3 className="text-apple-body-strong text-[var(--color-ink)] mb-2">{t("noReadme")}</h3>
                 <p className="text-[var(--color-ink-muted-80)] text-sm max-w-sm">
-                  We haven&apos;t indexed a README for this repository yet, or it doesn&apos;t exist.
+                  {t("noReadmeDesc")}
                 </p>
               </div>
             )}
@@ -284,7 +287,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
               <div className="apple-utility-card p-6 bg-[var(--color-canvas)] border border-[var(--color-action-blue)]/20">
                 <h3 className="text-apple-body-strong mb-3 flex items-center gap-2">
                   <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[var(--color-action-blue)] text-white">✨</span>
-                  AI Summary
+                  {t("aiSummary")}
                 </h3>
                 <p className="text-sm text-[var(--color-ink-muted-80)] leading-relaxed">
                   {project.aiSummary}
@@ -297,11 +300,11 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
               <div className="apple-utility-card p-6">
                 <h3 className="text-apple-body-strong mb-4 flex items-center gap-2">
                   <LayoutGrid className="h-4 w-4 text-[var(--color-ink-muted-48)]" />
-                  Classification
+                  {t("classification")}
                 </h3>
-                         {project.categories?.length > 0 && (
+                {project.categories?.length > 0 && (
                   <div className="mb-4">
-                    <div className="text-[11px] font-semibold text-[var(--color-ink-muted-80)] uppercase tracking-wider mb-2">Categories</div>
+                    <div className="text-[11px] font-semibold text-[var(--color-ink-muted-80)] uppercase tracking-wider mb-2">{t("categories")}</div>
                     <div className="flex flex-wrap gap-2">
                       {Array.from(new Set(project.categories)).map((cat: string) => (
                         <span key={cat} className="inline-flex items-center rounded-md bg-[var(--color-bg-secondary)] px-2.5 py-1 text-xs font-medium text-[var(--color-ink)] border border-[var(--color-border)]">
@@ -314,7 +317,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 
                 {project.topics?.length > 0 && (
                   <div>
-                    <div className="text-[11px] font-semibold text-[var(--color-ink-muted-80)] uppercase tracking-wider mb-2">Topics</div>
+                    <div className="text-[11px] font-semibold text-[var(--color-ink-muted-80)] uppercase tracking-wider mb-2">{t("topics")}</div>
                     <div className="flex flex-wrap gap-2">
                       {Array.from(new Set(project.topics)).map((topic: string) => (
                         <Link 
@@ -335,25 +338,25 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
             <div className="apple-utility-card p-6">
               <h3 className="text-apple-body-strong mb-4 flex items-center gap-2">
                 <Calendar className="h-4 w-4 text-[var(--color-ink-muted-48)]" />
-                Timeline
+                {t("timeline")}
               </h3>
               <div className="space-y-4">
                 <div className="flex justify-between items-center text-sm">
-                  <span className="text-[var(--color-ink-muted-80)]">Created</span>
+                  <span className="text-[var(--color-ink-muted-80)]">{t("created")}</span>
                   <span className="text-[var(--color-ink)] font-medium">
-                    {new Date(project.sourceCreatedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+                    {new Date(project.sourceCreatedAt).toLocaleDateString(locale, { year: 'numeric', month: 'short', day: 'numeric' })}
                   </span>
                 </div>
                 <div className="flex justify-between items-center text-sm">
-                  <span className="text-[var(--color-ink-muted-80)]">Last Updated</span>
+                  <span className="text-[var(--color-ink-muted-80)]">{t("lastUpdated")}</span>
                   <span className="text-[var(--color-ink)] font-medium">
-                    {new Date(project.updatedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+                    {new Date(project.updatedAt).toLocaleDateString(locale, { year: 'numeric', month: 'short', day: 'numeric' })}
                   </span>
                 </div>
                 <div className="flex justify-between items-center text-sm border-t border-[var(--color-divider-soft)] pt-3">
-                  <span className="text-[var(--color-ink-muted-80)]">Last Crawled</span>
+                  <span className="text-[var(--color-ink-muted-80)]">{t("lastCrawled")}</span>
                   <span className="text-[var(--color-ink)] font-medium">
-                    {new Date(project.lastCrawledAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                    {new Date(project.lastCrawledAt).toLocaleDateString(locale, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                   </span>
                 </div>
               </div>
@@ -363,25 +366,25 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
             <div className="apple-utility-card p-6">
               <h3 className="text-apple-body-strong mb-4 flex items-center gap-2">
                 <Clock className="h-4 w-4 text-[var(--color-ink-muted-48)]" />
-                Meta Information
+                {t("metaInfo")}
               </h3>
               <ul className="space-y-4 text-sm">
                 <li className="flex flex-col gap-1">
-                  <span className="text-[var(--color-ink-muted-80)] text-xs uppercase tracking-wider font-medium">Created On</span>
+                  <span className="text-[var(--color-ink-muted-80)] text-xs uppercase tracking-wider font-medium">{t("createdOn")}</span>
                   <span className="text-[var(--color-ink)] font-medium">
-                    {project.sourceCreatedAt ? new Date(project.sourceCreatedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) : 'Unknown'}
+                    {project.sourceCreatedAt ? new Date(project.sourceCreatedAt).toLocaleDateString(locale, { year: 'numeric', month: 'long', day: 'numeric' }) : 'Unknown'}
                   </span>
                 </li>
                 {project.license && (
                   <li className="flex flex-col gap-1">
-                    <span className="text-[var(--color-ink-muted-80)] text-xs uppercase tracking-wider font-medium">License</span>
+                    <span className="text-[var(--color-ink-muted-80)] text-xs uppercase tracking-wider font-medium">{t("license")}</span>
                     <span className="text-[var(--color-ink)] font-medium">{project.license}</span>
                   </li>
                 )}
                 <li className="flex flex-col gap-1">
-                  <span className="text-[var(--color-ink-muted-80)] text-xs uppercase tracking-wider font-medium">Last Crawled</span>
+                  <span className="text-[var(--color-ink-muted-80)] text-xs uppercase tracking-wider font-medium">{t("lastCrawled")}</span>
                   <span className="text-[var(--color-ink)] font-medium">
-                    {project.lastCrawledAt ? new Date(project.lastCrawledAt).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Recently'}
+                    {project.lastCrawledAt ? new Date(project.lastCrawledAt).toLocaleDateString(locale, { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Recently'}
                   </span>
                 </li>
               </ul>

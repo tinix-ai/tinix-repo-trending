@@ -1,23 +1,29 @@
 import { getCategoryStats } from "@/lib/db/queries";
 import { Link } from "@/i18n/routing";
 import { ChevronRight } from "lucide-react";
-import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
 
-export const metadata: Metadata = {
-  title: "Categories",
-  description: "Browse trending open source projects by category",
-};
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "Categories" });
+  return {
+    title: t("title"),
+    description: t("description"),
+  };
+}
 
 export default async function CategoriesPage() {
   const categories = await getCategoryStats();
+  const t = await getTranslations("Categories");
+
   return (
     <div className="page-container py-8 lg:py-12">
       <div className="max-w-3xl mb-10">
         <h1 className="text-3xl font-extrabold tracking-tight text-zinc-50 mb-3">
-          Categories
+          {t("header")}
         </h1>
         <p className="text-sm text-zinc-500 leading-relaxed">
-          Browse trending projects organized by domain. Each category tracks momentum from both GitHub and HuggingFace sources.
+          {t("subtitle")}
         </p>
       </div>
 
@@ -46,7 +52,7 @@ export default async function CategoriesPage() {
             </h2>
 
             <p className="text-xs text-zinc-600 mb-3">
-              {cat.projectCount} projects tracked
+              {t("projectsTracked", { count: cat.projectCount })}
             </p>
 
             <div
