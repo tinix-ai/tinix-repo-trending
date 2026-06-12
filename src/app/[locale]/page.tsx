@@ -265,94 +265,155 @@ export default function HomePage() {
           <div className="min-w-0">
             <div className="relative z-30 bg-[var(--color-surface-elevated)] border border-[var(--color-divider-soft)] rounded-2xl p-4 mb-8 shadow-sm flex flex-col gap-4">
               
-              {/* Row 1: Primary Navigation & Time & Views */}
-              <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 border-b border-[var(--color-divider-soft)] pb-4 flex-wrap">
-                
-                <div className="flex items-center gap-4 flex-wrap">
-                  {/* Type Filter */}
-                  <div className="flex items-center gap-1 p-1 bg-[var(--color-canvas)] rounded-xl border border-[var(--color-hairline)] w-max">
-                    <button
-                      onClick={() => handleFilterChange("trending")}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
-                        filterType === "trending"
-                          ? "bg-[var(--color-surface-elevated)] text-[var(--color-ink)] shadow-sm border border-[var(--color-border)]"
-                          : "text-[var(--color-ink-muted-80)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-pearl)]"
-                      }`}
-                    >
-                      <Flame className={`w-4 h-4 ${filterType === "trending" ? "text-orange-500" : ""}`} />
-                      {t("trendingFilter")}
-                    </button>
-                    <button
-                      onClick={() => handleFilterChange("all")}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
-                        filterType === "all"
-                          ? "bg-[var(--color-surface-elevated)] text-[var(--color-ink)] shadow-sm border border-[var(--color-border)]"
-                          : "text-[var(--color-ink-muted-80)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-pearl)]"
-                      }`}
-                    >
-                      <Database className={`w-4 h-4 ${filterType === "all" ? "text-blue-500" : ""}`} />
-                      {t("allProjectsFilter")}
-                    </button>
-                    <button
-                      onClick={() => handleFilterChange("new")}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
-                        filterType === "new"
-                          ? "bg-[var(--color-surface-elevated)] text-[var(--color-ink)] shadow-sm border border-[var(--color-border)]"
-                          : "text-[var(--color-ink-muted-80)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-pearl)]"
-                      }`}
-                    >
-                      <Sparkles className={`w-4 h-4 ${filterType === "new" ? "text-yellow-500" : ""}`} />
-                      {t("new")}
-                    </button>
-                  </div>
+              {/* Row 1: Primary Navigation & Time */}
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[var(--color-divider-soft)] pb-4">
+                {/* Type Filter */}
+                <div className="flex items-center gap-1 p-1 bg-[var(--color-canvas)] rounded-xl border border-[var(--color-hairline)] w-max">
+                  <button
+                    onClick={() => handleFilterChange("trending")}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+                      filterType === "trending"
+                        ? "bg-[var(--color-surface-elevated)] text-[var(--color-ink)] shadow-sm border border-[var(--color-border)]"
+                        : "text-[var(--color-ink-muted-80)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-pearl)]"
+                    }`}
+                  >
+                    <Flame className={`w-4 h-4 ${filterType === "trending" ? "text-orange-500" : ""}`} />
+                    {t("trendingFilter")}
+                  </button>
+                  <button
+                    onClick={() => handleFilterChange("all")}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+                      filterType === "all"
+                        ? "bg-[var(--color-surface-elevated)] text-[var(--color-ink)] shadow-sm border border-[var(--color-border)]"
+                        : "text-[var(--color-ink-muted-80)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-pearl)]"
+                    }`}
+                  >
+                    <Database className={`w-4 h-4 ${filterType === "all" ? "text-blue-500" : ""}`} />
+                    {t("allProjectsFilter")}
+                  </button>
+                  <button
+                    onClick={() => handleFilterChange("new")}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+                      filterType === "new"
+                        ? "bg-[var(--color-surface-elevated)] text-[var(--color-ink)] shadow-sm border border-[var(--color-border)]"
+                        : "text-[var(--color-ink-muted-80)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-pearl)]"
+                    }`}
+                  >
+                    <Sparkles className={`w-4 h-4 ${filterType === "new" ? "text-yellow-500" : ""}`} />
+                    {t("new")}
+                  </button>
+                </div>
 
-                  {/* Time Filter */}
-                  <div className="flex bg-[var(--color-surface-elevated)] p-1 rounded-xl border border-[var(--color-hairline)] w-full sm:w-auto overflow-x-auto hide-scrollbar">
-                    <button
-                      onClick={() => handleDaysChange(1)}
-                      className={`flex-1 sm:flex-none flex items-center justify-center px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                        days === 1
-                          ? "bg-[var(--color-bg-primary)] text-[var(--color-ink)] shadow-sm border border-[var(--color-border)]"
-                          : "text-[var(--color-ink-muted-80)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-pearl)]"
-                      }`}
-                    >
-                      {t("dayTime")}
-                    </button>
-                    <button
-                      onClick={() => handleDaysChange(7)}
-                      className={`flex-1 sm:flex-none flex items-center justify-center px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                        days === 7
-                          ? "bg-[var(--color-bg-primary)] text-[var(--color-ink)] shadow-sm border border-[var(--color-border)]"
-                          : "text-[var(--color-ink-muted-80)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-pearl)]"
-                      }`}
-                    >
-                      {t("weekTime")}
-                    </button>
-                    <button
-                      onClick={() => handleDaysChange(30)}
-                      className={`flex-1 sm:flex-none flex items-center justify-center px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                        days === 30
-                          ? "bg-[var(--color-bg-primary)] text-[var(--color-ink)] shadow-sm border border-[var(--color-border)]"
-                          : "text-[var(--color-ink-muted-80)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-pearl)]"
-                      }`}
-                    >
-                      {t("monthTime")}
-                    </button>
-                    <button
-                      onClick={() => handleDaysChange(9999)}
-                      className={`flex-1 sm:flex-none flex items-center justify-center px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                        days === 9999
-                          ? "bg-[var(--color-bg-primary)] text-[var(--color-ink)] shadow-sm border border-[var(--color-border)]"
-                          : "text-[var(--color-ink-muted-80)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-pearl)]"
-                      }`}
-                    >
-                      {t("allTime")}
-                    </button>
-                  </div>
+                {/* Time Filter */}
+                <div className="flex bg-[var(--color-surface-elevated)] p-1 rounded-xl border border-[var(--color-hairline)] w-full sm:w-auto overflow-x-auto hide-scrollbar">
+                  <button
+                    onClick={() => handleDaysChange(1)}
+                    className={`flex-1 sm:flex-none flex items-center justify-center px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                      days === 1
+                        ? "bg-[var(--color-bg-primary)] text-[var(--color-ink)] shadow-sm border border-[var(--color-border)]"
+                        : "text-[var(--color-ink-muted-80)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-pearl)]"
+                    }`}
+                  >
+                    {t("dayTime")}
+                  </button>
+                  <button
+                    onClick={() => handleDaysChange(7)}
+                    className={`flex-1 sm:flex-none flex items-center justify-center px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                      days === 7
+                        ? "bg-[var(--color-bg-primary)] text-[var(--color-ink)] shadow-sm border border-[var(--color-border)]"
+                        : "text-[var(--color-ink-muted-80)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-pearl)]"
+                    }`}
+                  >
+                    {t("weekTime")}
+                  </button>
+                  <button
+                    onClick={() => handleDaysChange(30)}
+                    className={`flex-1 sm:flex-none flex items-center justify-center px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                      days === 30
+                        ? "bg-[var(--color-bg-primary)] text-[var(--color-ink)] shadow-sm border border-[var(--color-border)]"
+                        : "text-[var(--color-ink-muted-80)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-pearl)]"
+                    }`}
+                  >
+                    {t("monthTime")}
+                  </button>
+                  <button
+                    onClick={() => handleDaysChange(9999)}
+                    className={`flex-1 sm:flex-none flex items-center justify-center px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                      days === 9999
+                        ? "bg-[var(--color-bg-primary)] text-[var(--color-ink)] shadow-sm border border-[var(--color-border)]"
+                        : "text-[var(--color-ink-muted-80)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-pearl)]"
+                    }`}
+                  >
+                    {t("allTime")}
+                  </button>
+                </div>
+              </div>
+
+              {/* Row 2: Dropdowns & View Controls */}
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex flex-wrap items-center gap-2 md:gap-3">
+                  <SearchableSelect
+                    options={["GitHub", "HuggingFace"]}
+                    value={
+                      selectedSource === "github" ? "GitHub" :
+                      selectedSource === "huggingface" ? "HuggingFace" : ""
+                    }
+                    onChange={(val) => {
+                      if (!val) {
+                        setSelectedSource("");
+                        setSelectedLanguage("");
+                      } else if (val === "GitHub") {
+                        setSelectedSource("github");
+                      } else if (val === "HuggingFace") {
+                        setSelectedSource("huggingface");
+                        setSelectedLanguage("");
+                      }
+                    }}
+                    placeholder={t("allSources")}
+                    className="w-full sm:w-36 md:w-[130px] lg:w-36 xl:w-[150px]"
+                  />
+
+                  <SearchableSelect
+                    options={categoryOptions}
+                    value={selectedCategory}
+                    onChange={handleCategoryChange}
+                    placeholder={t("allCategories")}
+                    className="w-full sm:w-36 md:w-[130px] lg:w-36 xl:w-[150px]"
+                  />
+
+                  {(!selectedSource || selectedSource === "github") && languages.length > 0 && (
+                    <SearchableSelect
+                      options={languages}
+                      value={selectedLanguage}
+                      onChange={setSelectedLanguage}
+                      placeholder={t("allLanguages")}
+                      className="w-full sm:w-36 md:w-[130px] lg:w-36 xl:w-[150px]"
+                    />
+                  )}
+
+                  {hashtags.length > 0 && (
+                    <SearchableSelect
+                      options={hashtags.includes(selectedTag) ? hashtags : [selectedTag, ...hashtags].filter(Boolean)}
+                      value={selectedTag}
+                      onChange={(val) => {
+                        const params = new URLSearchParams(searchParams.toString());
+                        if (val) {
+                          params.set("tag", val);
+                        } else {
+                          params.delete("tag");
+                        }
+                        params.delete("page");
+                        router.push(`${pathname}?${params.toString()}`);
+                      }}
+                      placeholder={t("allHashtags")}
+                      prefix="#"
+                      className="w-full sm:w-36 md:w-[130px] lg:w-36 xl:w-[150px]"
+                    />
+                  )}
                 </div>
 
                 {/* View Controls */}
-                <div className="flex items-center gap-2 mt-4 xl:mt-0">
+                <div className="flex items-center gap-2 mt-2 md:mt-0 shrink-0">
                   <button 
                     onClick={() => setShowAdvanced(!showAdvanced)}
                     className={`flex items-center gap-2 text-sm font-medium transition-colors px-3 py-1.5 rounded-lg border ${showAdvanced ? "bg-[var(--color-action-blue)]/10 text-[var(--color-action-blue)] border-[var(--color-action-blue)]/20" : "text-[var(--color-ink-muted-80)] border-[var(--color-hairline)] hover:bg-[var(--color-surface-elevated)]"}`}
@@ -362,65 +423,6 @@ export default function HomePage() {
                   </button>
                   <ViewToggle activeView={view} onViewChange={setView} />
                 </div>
-              </div>
-
-              {/* Row 2: Dropdowns */}
-
-              <div className="flex flex-wrap items-center gap-3">
-                <SearchableSelect
-                  options={["GitHub", "HuggingFace"]}
-                  value={
-                    selectedSource === "github" ? "GitHub" :
-                    selectedSource === "huggingface" ? "HuggingFace" : ""
-                  }
-                  onChange={(val) => {
-                    if (!val) {
-                      setSelectedSource("");
-                      setSelectedLanguage("");
-                    } else if (val === "GitHub") {
-                      setSelectedSource("github");
-                    } else if (val === "HuggingFace") {
-                      setSelectedSource("huggingface");
-                      setSelectedLanguage("");
-                    }
-                  }}
-                  placeholder={t("allSources")}
-                />
-
-                <SearchableSelect
-                  options={categoryOptions}
-                  value={selectedCategory}
-                  onChange={handleCategoryChange}
-                  placeholder={t("allCategories")}
-                />
-
-                {(!selectedSource || selectedSource === "github") && languages.length > 0 && (
-                  <SearchableSelect
-                    options={languages}
-                    value={selectedLanguage}
-                    onChange={setSelectedLanguage}
-                    placeholder={t("allLanguages")}
-                  />
-                )}
-
-                {hashtags.length > 0 && (
-                  <SearchableSelect
-                    options={hashtags.includes(selectedTag) ? hashtags : [selectedTag, ...hashtags].filter(Boolean)}
-                    value={selectedTag}
-                    onChange={(val) => {
-                      const params = new URLSearchParams(searchParams.toString());
-                      if (val) {
-                        params.set("tag", val);
-                      } else {
-                        params.delete("tag");
-                      }
-                      params.delete("page");
-                      router.push(`${pathname}?${params.toString()}`);
-                    }}
-                    placeholder={t("allHashtags")}
-                    prefix="#"
-                  />
-                )}
               </div>
 
               {showAdvanced && (

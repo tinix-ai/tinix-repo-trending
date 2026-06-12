@@ -9,6 +9,7 @@ interface SearchableSelectProps {
   onChange: (value: string) => void;
   placeholder?: string;
   prefix?: string;
+  className?: string;
 }
 
 export function SearchableSelect({
@@ -17,6 +18,7 @@ export function SearchableSelect({
   onChange,
   placeholder = "Select...",
   prefix = "",
+  className = "w-[160px]",
 }: SearchableSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -38,14 +40,14 @@ export function SearchableSelect({
   }, []);
 
   return (
-    <div className={`relative ${isOpen ? "z-50" : "z-10"}`} ref={dropdownRef}>
+    <div className={`relative ${isOpen ? "z-50" : "z-10"} ${className}`} ref={dropdownRef}>
       <button
         type="button"
         onClick={() => {
           setIsOpen(!isOpen);
           setSearchQuery("");
         }}
-        className="flex h-9 items-center justify-between gap-2 rounded-lg border border-[var(--color-hairline)] bg-[var(--color-canvas)] px-3 text-sm outline-none transition-colors hover:border-[var(--color-action-blue)] min-w-[160px] max-w-full"
+        className="flex h-9 w-full items-center justify-between gap-2 rounded-lg border border-[var(--color-hairline)] bg-[var(--color-canvas)] px-3 text-sm outline-none transition-colors hover:border-[var(--color-action-blue)]"
       >
         <span className={`truncate max-w-[140px] sm:max-w-[200px] ${value ? "text-[var(--color-ink)]" : "text-[var(--color-ink-muted-80)]"}`}>
           {value ? `${prefix}${value}` : placeholder}
