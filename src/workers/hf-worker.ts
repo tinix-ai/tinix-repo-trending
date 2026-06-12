@@ -3,6 +3,7 @@ import { Worker, Job } from 'bullmq';
 import Redis from 'ioredis';
 import { db } from '../lib/db';
 import { projects, projectSnapshots } from '../lib/db/schema';
+import { sql } from 'drizzle-orm';
 import { categorizeProject } from '../lib/categorizer';
 import { updateProjectCrawlSchedule } from '../lib/crawlers/scheduler';
 
@@ -148,18 +149,25 @@ export const hfWorker = new Worker<HFCrawlJobData>(
         })
         .returning({ id: projects.id });
 
-      // Insert snapshot
+      // Insert snapshot (deduplicate: skip if same project+date already exists today)
       const snapshotDate = new Date().toISOString().split('T')[0];
-      await db.insert(projectSnapshots).values({
-        projectId: project.id,
-        stars: 0,
-        watchers: 0,
-        forks: 0,
-        openIssues: 0,
-        likes: likes,
-        downloads: downloads,
-        snapshotDate,
-      });
+      const existing = await db.select({ id: projectSnapshots.id })
+        .from(projectSnapshots)
+        .where(sql`${projectSnapshots.projectId} = ${project.id} AND ${projectSnapshots.snapshotDate} = ${snapshotDate}`)
+        .limit(1);
+      
+      if (existing.length === 0) {
+        await db.insert(projectSnapshots).values({
+          projectId: project.id,
+          stars: 0,
+          watchers: 0,
+          forks: 0,
+          openIssues: 0,
+          likes: likes,
+          downloads: downloads,
+          snapshotDate,
+        });
+      }
 
       // Recalculate and update the next crawl schedule
       await updateProjectCrawlSchedule(project.id, 'huggingface');

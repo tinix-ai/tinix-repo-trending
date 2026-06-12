@@ -7,9 +7,12 @@
     "updatedHourly": "Updated hourly",
     "projects": "Projects",
     "trending": "Trending",
+    "new": "New",
     "lastSync": "Last Sync",
     "showing": "Showing",
-    "ranking": "ranking"
+    "ranking": "ranking",
+    "trendingProjects": "Trending projects",
+    "indexedProjects": "Indexed projects"
   },
   "Navigation": {
     "trending": "Trending",

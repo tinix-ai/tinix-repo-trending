@@ -14,6 +14,7 @@ const globalForRedis = globalThis as unknown as {
   redisConnection: Redis | undefined;
   crawlerQueue: Queue | undefined;
   hfQueue: Queue | undefined;
+  schedulerQueue: Queue | undefined;
   crawlerQueueEvents: QueueEvents | undefined;
 };
 
@@ -32,7 +33,7 @@ export const crawlerQueue = globalForRedis.crawlerQueue ?? new Queue('github-cra
       type: 'exponential',
       delay: 5000,
     },
-    removeOnComplete: true,
+    removeOnComplete: { count: 200 }, // Keep 200 recent completed jobs for admin UI
     removeOnFail: 5000,
   },
 });
@@ -45,6 +46,14 @@ export const hfQueue = globalForRedis.hfQueue ?? new Queue('hf-crawler', {
       type: 'exponential',
       delay: 5000,
     },
+    removeOnComplete: { count: 200 }, // Keep 200 recent completed jobs for admin UI
+  },
+});
+
+export const schedulerQueue = globalForRedis.schedulerQueue ?? new Queue('scheduler-queue', {
+  connection: redisConnection as unknown as ConnectionOptions,
+  defaultJobOptions: {
+    attempts: 1, // Repeatable jobs shouldn't retry infinitely if they fail
     removeOnComplete: true,
   },
 });
@@ -56,6 +65,7 @@ export const crawlerQueueEvents = globalForRedis.crawlerQueueEvents ?? new Queue
 if (process.env.NODE_ENV !== 'production') {
   globalForRedis.crawlerQueue = crawlerQueue;
   globalForRedis.hfQueue = hfQueue;
+  globalForRedis.schedulerQueue = schedulerQueue;
   globalForRedis.crawlerQueueEvents = crawlerQueueEvents;
 }
 

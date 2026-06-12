@@ -12,6 +12,7 @@ import {
   GitBranch,
 } from "lucide-react";
 import { fetchProjectsCrawlStatus, forceRecrawlProject, type ProjectCrawlStatus } from "@/app/actions";
+import { toast } from "sonner";
 
 export function CrawlerStatusTable() {
   const [query, setQuery] = useState("");
@@ -20,7 +21,6 @@ export function CrawlerStatusTable() {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
   const [actionLoading, setActionLoading] = useState<Set<string>>(new Set());
-  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
   const limit = 10;
 
@@ -43,13 +43,6 @@ export function CrawlerStatusTable() {
     return () => clearTimeout(timer);
   }, [query]);
 
-  const showToast = (message: string, type: "success" | "error") => {
-    setToast({ message, type });
-    setTimeout(() => {
-      setToast(null);
-    }, 3000);
-  };
-
   const handleForceUpdate = async (projectId: string, fullName: string) => {
     setActionLoading(prev => {
       const next = new Set(prev);
@@ -57,23 +50,25 @@ export function CrawlerStatusTable() {
       return next;
     });
 
-    try {
+    const actionPromise = async () => {
       const result = await forceRecrawlProject(projectId);
-      if (result.success) {
-        showToast(result.message, "success");
-        await loadProjects();
-      } else {
-        showToast(result.message || "Failed to trigger force update", "error");
+      if (!result.success) throw new Error(result.message || "Failed to trigger force update");
+      await loadProjects();
+      return result.message;
+    };
+
+    toast.promise(actionPromise(), {
+      loading: `Queueing ${fullName}...`,
+      success: (msg) => msg || `Successfully queued ${fullName}`,
+      error: (err) => err.message || `Error executing force update`,
+      finally: () => {
+        setActionLoading(prev => {
+          const next = new Set(prev);
+          next.delete(projectId);
+          return next;
+        });
       }
-    } catch {
-      showToast("Error executing force update", "error");
-    } finally {
-      setActionLoading(prev => {
-        const next = new Set(prev);
-        next.delete(projectId);
-        return next;
-      });
-    }
+    });
   };
 
   const totalPages = Math.ceil(total / limit);
@@ -228,19 +223,6 @@ export function CrawlerStatusTable() {
             >
               <ChevronRight className="w-4 h-4 text-[var(--color-ink)]" />
             </button>
-          </div>
-        </div>
-      )}
-
-      {/* Toast Notification */}
-      {toast && (
-        <div className="fixed bottom-6 right-6 z-50">
-          <div
-            className={`px-4 py-3 rounded-xl text-sm font-medium shadow-lg animate-slide-in-right ${
-              toast.type === "success" ? "bg-emerald-500 text-white" : "bg-red-500 text-white"
-            }`}
-          >
-            {toast.message}
           </div>
         </div>
       )}

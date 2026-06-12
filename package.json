@@ -13,12 +13,15 @@
     "worker": "tsx src/workers/crawler-worker.ts",
     "worker:hf": "tsx src/workers/hf-worker.ts",
     "check-db": "tsx check-db.ts",
-    "scheduler": "tsx src/workers/scheduler.ts",
+    "scheduler": "tsx src/workers/scheduler-worker.ts",
     "bootstrap": "tsx src/workers/bootstrap.ts",
     "bootstrap:hf": "tsx src/workers/bootstrap-hf.ts",
-    "cron:discovery": "tsx src/workers/cron.ts --discovery",
-    "cron:update": "tsx src/workers/cron.ts --update",
-    "cron:all": "tsx src/workers/cron.ts"
+    "queue:crawler": "tsx src/workers/crawler-worker.ts",
+    "queue:hf": "tsx src/workers/hf-worker.ts",
+    "start:workers": "npm-run-all --parallel queue:crawler queue:hf scheduler",
+    "dev:all": "npm-run-all --parallel dev start:workers",
+    "pm2:start": "npx pm2 start ecosystem.config.js",
+    "pm2:stop": "npx pm2 stop ecosystem.config.js"
   },
   "dependencies": {
     "bullmq": "^5.78.0",
@@ -31,7 +34,6 @@
     "next": "16.2.9",
     "next-intl": "^4.13.0",
     "next-themes": "^0.4.6",
-    "node-cron": "^4.2.1",
     "postgres": "^3.4.9",
     "react": "19.2.4",
     "react-dom": "19.2.4",
@@ -42,17 +44,19 @@
     "rehype-slug": "^6.0.0",
     "remark-gfm": "^4.0.1",
     "remark-toc": "^9.0.0",
-    "tailwind-merge": "^3.3.0"
+    "sonner": "^2.0.7",
+    "tailwind-merge": "^3.3.0",
+    "undici": "^8.4.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
-    "@types/node-cron": "^3.0.11",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "drizzle-kit": "^0.31.10",
     "eslint": "^9",
     "eslint-config-next": "16.2.9",
+    "npm-run-all": "^4.1.5",
     "tailwindcss": "^4",
     "tsx": "^4.22.4",
     "typescript": "^5"

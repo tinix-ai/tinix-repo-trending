@@ -7,9 +7,12 @@
     "updatedHourly": "Cập nhật hàng giờ",
     "projects": "Dự án",
     "trending": "Thịnh hành",
+    "new": "Dự án mới",
     "lastSync": "Đồng bộ",
     "showing": "Hiển thị",
-    "ranking": "Bảng xếp hạng"
+    "ranking": "Bảng xếp hạng",
+    "trendingProjects": "Dự án thịnh hành",
+    "indexedProjects": "Dự án đã thu thập"
   },
   "Navigation": {
     "trending": "Thịnh hành",

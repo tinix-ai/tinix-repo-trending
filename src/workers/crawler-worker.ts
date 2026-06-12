@@ -3,8 +3,11 @@ import { Worker, Job } from 'bullmq';
 import Redis from 'ioredis';
 import { db } from '../lib/db';
 import { projects, projectSnapshots } from '../lib/db/schema';
+import { sql } from 'drizzle-orm';
 import { categorizeProject } from '../lib/categorizer';
 import { updateProjectCrawlSchedule } from '../lib/crawlers/scheduler';
+import { githubPool } from '../lib/crawlers/github-pool';
+import { proxyManager } from '../lib/crawlers/proxy';
 
 const redisConfig = {
   host: process.env.REDIS_HOST || 'localhost',
@@ -28,43 +31,62 @@ export const crawlerWorker = new Worker<CrawlJobData>(
     console.log(`[Crawler] Starting crawl for ${owner}/${repo}`);
 
     try {
-      // 1. Fetch data from GitHub API
-      const response = await fetch(`https://api.github.com/repos/${owner}/${repo}`, {
-        headers: {
-          'Accept': 'application/vnd.github.v3+json',
-          ...(process.env.GITHUB_TOKEN && {
-            'Authorization': `Bearer ${process.env.GITHUB_TOKEN}`,
-          }),
-        },
-      });
-
-      const remaining = response.headers.get('x-ratelimit-remaining');
-      const reset = response.headers.get('x-ratelimit-reset');
-      if (remaining && parseInt(remaining) < 20) {
-        const resetDate = reset ? new Date(parseInt(reset) * 1000).toISOString() : 'unknown';
-        console.warn(`[Crawler] GitHub API rate limit is low: ${remaining} remaining. Resets at ${resetDate}`);
-      }
-
-      if (!response.ok) {
-        if (response.status === 403 || response.status === 429) {
-          let delayMsg = '';
-          if (reset) {
-            const resetMs = parseInt(reset) * 1000;
-            const diffMs = resetMs - Date.now();
-            if (diffMs > 0) {
-              delayMsg = ` Resets in ${Math.ceil(diffMs / 1000)}s.`;
-            }
+      // Helper function to fetch from Github with Token Rotation and Retries
+      const fetchWithTokenRotation = async (url: string, isReadme = false) => {
+        let maxRetries = 3;
+        while (maxRetries > 0) {
+          const currentToken = githubPool.getAvailableToken();
+          
+          const headers: Record<string, string> = {
+            'Accept': isReadme ? 'application/vnd.github.v3.raw' : 'application/vnd.github.v3+json',
+          };
+          if (currentToken) {
+            headers['Authorization'] = `Bearer ${currentToken}`;
           }
-          throw new Error(`Rate limited by GitHub API for ${owner}/${repo}.${delayMsg}`);
+
+          const dispatcher = proxyManager.getRandomDispatcher();
+          const fetchOptions: RequestInit & { dispatcher?: unknown } = { headers };
+          if (dispatcher) {
+            fetchOptions.dispatcher = dispatcher;
+          }
+
+          const response = await fetch(url, fetchOptions);
+          
+          // Check limits
+          const reset = response.headers.get('x-ratelimit-reset');
+          
+          if (!response.ok) {
+            if (response.status === 403 || response.status === 429) {
+              if (currentToken) {
+                githubPool.markTokenExhausted(currentToken, reset);
+                console.warn(`[Crawler] 403/429 caught. Rotated token. Retries left: ${maxRetries - 1}`);
+                maxRetries--;
+                continue; // Retry with next token
+              } else {
+                throw new Error(`Rate limit exceeded and no tokens configured.`);
+              }
+            }
+            if (response.status === 404) {
+              return { status: 404, data: null };
+            }
+            throw new Error(`GitHub API Error: ${response.status} ${response.statusText}`);
+          }
+
+          return { status: 200, data: isReadme ? await response.text() : await response.json() };
         }
-        if (response.status === 404) {
-          console.warn(`[Crawler] Repository not found: ${owner}/${repo}`);
-          return { status: 'not_found' };
-        }
-        throw new Error(`GitHub API error: ${response.statusText}`);
+        throw new Error('Failed to fetch after max retries due to rate limiting.');
+      };
+
+      // 1. Fetch data from GitHub API
+      const result = await fetchWithTokenRotation(`https://api.github.com/repos/${owner}/${repo}`);
+      
+      if (result.status === 404) {
+        console.warn(`[Crawler] Project ${owner}/${repo} not found on GitHub. Marking as deleted/invalid.`);
+        await updateProjectCrawlSchedule(job.data.projectId || owner+'/'+repo, 'github');
+        return;
       }
 
-      const data = await response.json();
+      const data = result.data;
 
       // 2. Process data and update database
       const slug = `${owner.toLowerCase()}-${repo.toLowerCase()}`;
@@ -72,19 +94,9 @@ export const crawlerWorker = new Worker<CrawlJobData>(
       let readme = null;
       let finalDescription = data.description || '';
       try {
-        const readmeRes = await fetch(`https://api.github.com/repos/${owner}/${repo}/readme`, {
-          headers: {
-            'Accept': 'application/vnd.github.v3.raw',
-            ...(process.env.GITHUB_TOKEN && {
-              'Authorization': `Bearer ${process.env.GITHUB_TOKEN}`,
-            }),
-          },
-        });
-        if (readmeRes.status === 403 || readmeRes.status === 429) {
-          throw new Error('Rate limit');
-        }
-        if (readmeRes.ok) {
-          readme = await readmeRes.text();
+        const readmeRes = await fetchWithTokenRotation(`https://api.github.com/repos/${owner}/${repo}/readme`, true);
+        if (readmeRes.status === 200 && readmeRes.data) {
+          readme = readmeRes.data;
           if (!finalDescription && readme) {
             let clean = readme.trim();
             if (clean.startsWith('---')) {
@@ -97,12 +109,7 @@ export const crawlerWorker = new Worker<CrawlJobData>(
             finalDescription = clean.substring(0, 250).trim() + '...';
           }
         }
-
       } catch (e) {
-        const err = e as Error;
-        if (err.message === 'Rate limit') {
-          throw new Error(`Rate limited by GitHub API during README fetch for ${owner}/${repo}`);
-        }
         console.warn(`[Crawler] Failed to fetch README for ${owner}/${repo}`);
       }
 
@@ -147,16 +154,23 @@ export const crawlerWorker = new Worker<CrawlJobData>(
         })
         .returning({ id: projects.id });
 
-      // Insert snapshot
+      // Insert snapshot (deduplicate: skip if same project+date already exists today)
       const snapshotDate = new Date().toISOString().split('T')[0];
-      await db.insert(projectSnapshots).values({
-        projectId: project.id,
-        stars: data.stargazers_count,
-        forks: data.forks_count,
-        openIssues: data.open_issues_count,
-        watchers: data.subscribers_count, // GitHub API returns watchers as subscribers_count
-        snapshotDate,
-      });
+      const existing = await db.select({ id: projectSnapshots.id })
+        .from(projectSnapshots)
+        .where(sql`${projectSnapshots.projectId} = ${project.id} AND ${projectSnapshots.snapshotDate} = ${snapshotDate}`)
+        .limit(1);
+      
+      if (existing.length === 0) {
+        await db.insert(projectSnapshots).values({
+          projectId: project.id,
+          stars: data.stargazers_count,
+          forks: data.forks_count,
+          openIssues: data.open_issues_count,
+          watchers: data.subscribers_count,
+          snapshotDate,
+        });
+      }
 
       // Recalculate and update the next crawl schedule
       await updateProjectCrawlSchedule(project.id, 'github');
@@ -179,9 +193,9 @@ export const crawlerWorker = new Worker<CrawlJobData>(
     connection: redisConnection as unknown as Worker['opts']['connection'],
     concurrency: 2, 
     limiter: {
-      // If GITHUB_TOKEN is present, allow up to 2000 requests per hour (since each project has ~2 requests, so 1000 projects/hr)
-      // Otherwise, restrict to 30 requests per hour (15 projects/hr) to avoid getting blocked.
-      max: process.env.GITHUB_TOKEN ? 2000 : 30,
+      // Scale limit based on available tokens. Each token gives ~5000 req/hr.
+      // With Token Pool, multiply by number of tokens for fair throughput.
+      max: (process.env.GITHUB_TOKENS || process.env.GITHUB_TOKEN) ? 2000 : 30,
       duration: 3600000,
     },
     stalledInterval: 15000,

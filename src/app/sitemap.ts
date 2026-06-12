@@ -5,7 +5,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = 'https://tinix-trending.dev';
   
   // Get dynamic projects to add to sitemap
-  const projects = await getDynamicTrendingProjects(7, 0, 0);
+  const { projects } = await getDynamicTrendingProjects({ days: 7, minStars: 0, minDownloads: 0 });
   
   const projectUrls = projects.map((project) => ({
     url: `${baseUrl}/en/project/${project.slug.replace(/\//g, '-')}-${project.id}`,

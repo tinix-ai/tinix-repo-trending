@@ -30,6 +30,12 @@ const processes: ProcessInfo[] = [
     args: ['tsx', 'src/workers/hf-worker.ts'],
     color: '\x1b[33m', // Yellow
   },
+  {
+    name: 'Scheduler',
+    command: 'npx',
+    args: ['tsx', 'src/workers/scheduler-worker.ts'],
+    color: '\x1b[34m', // Blue
+  },
 ];
 
 let isExiting = false;

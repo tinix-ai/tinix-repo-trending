@@ -13,6 +13,7 @@ import {
   CheckCircle2,
   Loader2,
 } from "lucide-react";
+import { toast } from "sonner";
 import {
   fetchDetailedQueueStats,
   pauseQueue,
@@ -51,20 +52,16 @@ export function QueueControlPanel() {
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [countdown, setCountdown] = useState(5);
   const [loadingActions, setLoadingActions] = useState<Set<string>>(new Set());
-  const [toasts, setToasts] = useState<Toast[]>([]);
-  const toastIdRef = useRef(0);
-
-  const addToast = useCallback((message: string, type: 'success' | 'error') => {
-    const id = ++toastIdRef.current;
-    setToasts(prev => [...prev, { id, message, type }]);
-    setTimeout(() => {
-      setToasts(prev => prev.filter(t => t.id !== id));
-    }, 3000);
-  }, []);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const loadStats = useCallback(async () => {
-    const data = await fetchDetailedQueueStats();
-    setStats(data);
+    setIsRefreshing(true);
+    try {
+      const data = await fetchDetailedQueueStats();
+      setStats(data);
+    } finally {
+      setIsRefreshing(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -93,7 +90,7 @@ export function QueueControlPanel() {
     const key = `${action}-${source}`;
     setLoadingActions(prev => new Set(prev).add(key));
 
-    try {
+    const actionPromise = async () => {
       let result;
       switch (action) {
         case 'pause': result = await pauseQueue(source); break;
@@ -102,17 +99,23 @@ export function QueueControlPanel() {
         case 'retry': result = await retryFailedJobs(source); break;
         case 'sync': result = await triggerCrawlerSync(source); break;
       }
-      addToast(result.message, result.success ? 'success' : 'error');
+      if (!result.success) throw new Error(result.message);
       await loadStats();
-    } catch {
-      addToast(`Failed to execute ${action}`, 'error');
-    } finally {
-      setLoadingActions(prev => {
-        const next = new Set(prev);
-        next.delete(key);
-        return next;
-      });
-    }
+      return result.message;
+    };
+
+    toast.promise(actionPromise(), {
+      loading: `Executing ${action}...`,
+      success: (msg) => msg || `Successfully executed ${action}`,
+      error: (err) => err.message || `Failed to execute ${action}`,
+      finally: () => {
+        setLoadingActions(prev => {
+          const next = new Set(prev);
+          next.delete(key);
+          return next;
+        });
+      }
+    });
   };
 
   const isLoading = (action: ActionType, source: SourceType) =>
@@ -235,10 +238,11 @@ export function QueueControlPanel() {
         </div>
         <button
           onClick={loadStats}
-          className="apple-btn-secondary py-1.5 px-3 text-xs flex items-center gap-1.5"
+          disabled={isRefreshing}
+          className="apple-btn-secondary py-1.5 px-3 text-xs flex items-center gap-1.5 disabled:opacity-50"
           aria-label="Refresh queue stats"
         >
-          <RefreshCw className="w-3 h-3" /> Refresh
+          <RefreshCw className={`w-3 h-3 ${isRefreshing ? 'animate-spin' : ''}`} /> Refresh
         </button>
       </div>
 
@@ -255,21 +259,7 @@ export function QueueControlPanel() {
         </div>
       )}
 
-      {/* Toasts */}
-      <div className="fixed bottom-6 right-6 z-50 space-y-2">
-        {toasts.map(toast => (
-          <div
-            key={toast.id}
-            className={`px-4 py-3 rounded-xl text-sm font-medium shadow-lg animate-slide-in-right ${
-              toast.type === 'success'
-                ? 'bg-emerald-500 text-white'
-                : 'bg-red-500 text-white'
-            }`}
-          >
-            {toast.message}
-          </div>
-        ))}
-      </div>
+      {/* Toasts have been replaced by sonner Toaster in the main layout */}
     </div>
   );
 }

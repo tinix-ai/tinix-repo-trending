@@ -3,15 +3,32 @@
 import { useState } from "react";
 import { RefreshCw, CheckCircle2 } from "lucide-react";
 import { triggerCrawlerSync } from "@/app/actions";
+import { toast } from "sonner";
 
 export function RunCrawlerButton({ source }: { source: 'github' | 'huggingface' }) {
   const [status, setStatus] = useState<'idle' | 'running' | 'success'>('idle');
 
   const handleRun = async () => {
     setStatus('running');
-    await triggerCrawlerSync(source);
-    setStatus('success');
-    setTimeout(() => setStatus('idle'), 3000);
+
+    const actionPromise = async () => {
+      const result = await triggerCrawlerSync(source);
+      if (!result.success) throw new Error(result.message || "Sync failed");
+      return result.message;
+    };
+
+    toast.promise(actionPromise(), {
+      loading: `Running ${source} crawler...`,
+      success: (msg) => {
+        setStatus('success');
+        setTimeout(() => setStatus('idle'), 3000);
+        return msg;
+      },
+      error: (err) => {
+        setStatus('idle');
+        return err.message || "Error running sync";
+      }
+    });
   };
 
   return (

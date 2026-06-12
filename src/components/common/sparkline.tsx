@@ -20,7 +20,7 @@ export function Sparkline({
   const range = max - min || 1;
 
   const points = data.map((val, i) => {
-    const x = (i / (data.length - 1)) * width;
+    const x = data.length > 1 ? (i / (data.length - 1)) * width : width / 2;
     const y = height - ((val - min) / range) * (height - 4) - 2;
     return `${x},${y}`;
   });
@@ -60,7 +60,7 @@ export function Sparkline({
       />
       {/* End dot */}
       <circle
-        cx={width}
+        cx={data.length > 1 ? width : width / 2}
         cy={height - ((data[data.length - 1] - min) / range) * (height - 4) - 2}
         r="2"
         fill={color}

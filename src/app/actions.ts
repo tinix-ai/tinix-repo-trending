@@ -1,20 +1,20 @@
 "use server";
 
-import { getDynamicTrendingProjects, getGlobalStats, getProjectBySlug, getProjectHistory, getProjectById, getCategoryStats } from "@/lib/db/queries";
+import { getDynamicTrendingProjects, ProjectQueryParams, getGlobalStats, getProjectBySlug, getProjectHistory, getProjectById, getCategoryStats, getPopularLanguagesAndHashtags } from "@/lib/db/queries";
 import type { RankedProject } from "@/types";
-import { crawlerQueue, hfQueue } from "@/workers/queue";
+import { crawlerQueue, hfQueue, schedulerQueue } from "@/workers/queue";
 import { discoverNewRepos } from "@/lib/crawlers/github-discovery";
 import { discoverHFTrending } from "@/lib/crawlers/hf-discovery";
 import { db } from "@/lib/db";
 import { projects } from "@/lib/db/schema";
 import { eq, sql, ilike, or } from "drizzle-orm";
 
-export async function fetchDynamicRankings(days: number, minStars: number, minDownloads: number): Promise<RankedProject[]> {
+export async function fetchDynamicRankings(params: ProjectQueryParams): Promise<{ projects: RankedProject[], total: number }> {
   try {
-    return await getDynamicTrendingProjects(days, minStars, minDownloads);
+    return await getDynamicTrendingProjects(params);
   } catch (error) {
     console.error("Error fetching projects:", error);
-    return [];
+    return { projects: [], total: 0 };
   }
 }
 
@@ -24,6 +24,10 @@ export async function fetchGlobalStats() {
 
 export async function fetchCategoryStats() {
   return await getCategoryStats();
+}
+
+export async function fetchPopularFilters() {
+  return await getPopularLanguagesAndHashtags();
 }
 
 export async function fetchProjectDetails(slug: string) {
@@ -464,5 +468,61 @@ export async function forceRecrawlProject(projectId: string) {
     const errorMsg = error instanceof Error ? error.message : String(error);
     console.error("Failed to force recrawl:", error);
     return { success: false, message: `Error: ${errorMsg}` };
+  }
+}
+
+// ----------------------------------------------------------------------------
+// 3. SCHEDULED JOBS MANAGEMENT
+// ----------------------------------------------------------------------------
+
+export interface ScheduledJob {
+  key: string;
+  name: string;
+  id: string;
+  endDate: number | null;
+  tz: string | null;
+  pattern: string;
+  next: number;
+}
+
+export async function getScheduledJobs(): Promise<ScheduledJob[]> {
+  if (!schedulerQueue) return [];
+  try {
+    const jobs = await schedulerQueue.getRepeatableJobs();
+    return jobs.map(job => ({
+      key: job.key,
+      name: job.name,
+      id: job.id || '',
+      endDate: job.endDate || null,
+      tz: job.tz || null,
+      pattern: job.pattern || '',
+      next: job.next || 0,
+    }));
+  } catch (error) {
+    console.error('Failed to fetch scheduled jobs:', error);
+    return [];
+  }
+}
+
+export async function triggerJobNow(name: string) {
+  try {
+    if (!schedulerQueue) throw new Error('Scheduler queue not initialized');
+    // Add the job directly to the queue for immediate execution
+    await schedulerQueue.add(name, {}, { jobId: `manual-${name}-${Date.now()}` });
+    return { success: true, message: `Triggered ${name} manually` };
+  } catch (error) {
+    console.error('Failed to trigger job:', error);
+    return { success: false, message: 'Failed to trigger job' };
+  }
+}
+
+export async function removeScheduledJob(key: string) {
+  try {
+    if (!schedulerQueue) throw new Error('Scheduler queue not initialized');
+    await schedulerQueue.removeRepeatableByKey(key);
+    return { success: true, message: 'Removed scheduled job' };
+  } catch (error) {
+    console.error('Failed to remove scheduled job:', error);
+    return { success: false, message: 'Failed to remove job' };
   }
 }

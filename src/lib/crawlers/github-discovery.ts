@@ -1,5 +1,7 @@
 import { setTimeout } from "timers/promises";
 import { redisConnection } from "../../workers/queue";
+import { githubPool } from "./github-pool";
+import { proxyManager } from "./proxy";
 
 interface DiscoveredRepo {
   owner: string;
@@ -42,31 +44,50 @@ export async function discoverNewRepos(maxPages: number = 3): Promise<Discovered
   
   let completedAll = false;
 
+  // Helper for Token Rotation (shared across all pages)
+  const fetchWithTokenRotation = async (url: string) => {
+    let maxRetries = 3;
+    while (maxRetries > 0) {
+      const currentToken = githubPool.getAvailableToken();
+      const headers: Record<string, string> = {
+        "Accept": "application/vnd.github.v3+json",
+      };
+      if (currentToken) headers["Authorization"] = `Bearer ${currentToken}`;
+
+      const dispatcher = proxyManager.getRandomDispatcher();
+      const fetchOptions: RequestInit & { dispatcher?: unknown } = { headers };
+      if (dispatcher) {
+        fetchOptions.dispatcher = dispatcher;
+      }
+
+      const response = await fetch(url, fetchOptions);
+      const reset = response.headers.get('x-ratelimit-reset');
+
+      if (!response.ok) {
+        if (response.status === 403 || response.status === 429) {
+          if (currentToken) {
+            githubPool.markTokenExhausted(currentToken, reset);
+            console.warn(`[Discovery] Rate limit hit. Rotated token. Retries left: ${maxRetries - 1}`);
+            maxRetries--;
+            continue;
+          } else {
+            throw new Error(`Rate limit exceeded and no tokens configured.`);
+          }
+        }
+        throw new Error(`GitHub API Error: ${response.status} ${response.statusText}`);
+      }
+      return await response.json();
+    }
+    throw new Error('Failed to fetch after max retries due to rate limiting.');
+  };
+
   for (let page = startPage; page <= maxPages; page++) {
     console.log(`[Discovery] Fetching page ${page} of GitHub Search...`);
     
     try {
-      const response = await fetch(
-        `https://api.github.com/search/repositories?q=${query}&sort=${sort}&order=${order}&per_page=100&page=${page}`,
-        {
-          headers: {
-            "Accept": "application/vnd.github.v3+json",
-            ...(process.env.GITHUB_TOKEN && {
-              "Authorization": `Bearer ${process.env.GITHUB_TOKEN}`,
-            }),
-          },
-        }
+      const data = await fetchWithTokenRotation(
+        `https://api.github.com/search/repositories?q=${query}&sort=${sort}&order=${order}&per_page=100&page=${page}`
       );
-
-      if (!response.ok) {
-        if (response.status === 403 || response.status === 429) {
-          console.warn("[Discovery] Hit Search API rate limit. Stopping discovery for this run.");
-          break; // Stop paginating, we return what we have so far
-        }
-        throw new Error(`GitHub Search API error: ${response.statusText}`);
-      }
-
-      const data = await response.json();
       const items = data.items || [];
       
       if (items.length === 0) {

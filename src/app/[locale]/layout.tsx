@@ -5,6 +5,7 @@ import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
+import { Toaster } from 'sonner';
 
 export const metadata: Metadata = {
   title: {
@@ -48,7 +49,7 @@ export default async function RootLayout({
   const messages = await getMessages();
 
   return (
-    <html lang={locale} suppressHydrationWarning>
+    <html lang={locale} suppressHydrationWarning data-scroll-behavior="smooth">
       <body className="noise-overlay">
         <NextIntlClientProvider messages={messages}>
           <ThemeProvider>
@@ -57,6 +58,7 @@ export default async function RootLayout({
               <main className="flex-1">{children}</main>
               <Footer />
             </div>
+            <Toaster position="top-right" richColors />
           </ThemeProvider>
         </NextIntlClientProvider>
       </body>

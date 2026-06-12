@@ -3,7 +3,86 @@ import { sql } from 'drizzle-orm';
 import type { RankedProject } from '@/types';
 import { CATEGORY_METADATA } from '../categorizer';
 
-export async function getDynamicTrendingProjects(days: number, minStars: number, minDownloads: number): Promise<RankedProject[]> {
+export interface ProjectQueryParams {
+  days?: number;
+  minStars?: number;
+  minDownloads?: number;
+  category?: string;
+  source?: string;
+  language?: string;
+  searchQuery?: string;
+  tag?: string;
+  limit?: number;
+  offset?: number;
+  filterType?: "trending" | "all" | "new";
+  sortBy?: "project" | "stars" | "trend" | "updated";
+  sortOrder?: "asc" | "desc";
+}
+
+export async function getDynamicTrendingProjects(params: ProjectQueryParams): Promise<{ projects: RankedProject[], total: number }> {
+  const days = params.days ?? 7;
+  const minStars = params.minStars ?? 100;
+  const minDownloads = params.minDownloads ?? 1000;
+  const limit = params.limit ?? 20;
+  const offset = params.offset ?? 0;
+  const filterType = params.filterType ?? "trending";
+
+  const filters = [];
+
+  if (filterType === "trending") {
+    filters.push(sql`momentum_score >= 0`);
+    filters.push(sql`((source = 'github' AND stars >= ${minStars}) OR (source = 'huggingface' AND downloads >= ${minDownloads}) OR (source NOT IN ('github', 'huggingface')))`);
+  }
+
+  if (params.category) {
+    filters.push(sql`categories @> ${JSON.stringify([params.category])}::jsonb`);
+  }
+
+  if (params.source) {
+    filters.push(sql`source = ${params.source}`);
+  }
+
+  if (params.language) {
+    filters.push(sql`primary_language = ${params.language}`);
+  }
+
+  if (params.searchQuery) {
+    const search = `%${params.searchQuery}%`;
+    filters.push(sql`(name ILIKE ${search} OR description ILIKE ${search} OR owner_name ILIKE ${search})`);
+  }
+
+  if (params.tag) {
+    filters.push(sql`topics @> ${JSON.stringify([params.tag])}::jsonb`);
+  }
+
+  const whereFragment = filters.length > 0 ? sql.join(filters, sql` AND `) : sql`1=1`;
+
+  let orderFragment = sql`ORDER BY momentum_score DESC`;
+  
+  if (params.sortBy) {
+    const isAsc = params.sortOrder === "asc";
+    switch (params.sortBy) {
+      case "project":
+        orderFragment = isAsc ? sql`ORDER BY full_name ASC` : sql`ORDER BY full_name DESC`;
+        break;
+      case "stars":
+        orderFragment = isAsc ? sql`ORDER BY COALESCE(stars, likes, 0) ASC NULLS FIRST` : sql`ORDER BY COALESCE(stars, likes, 0) DESC NULLS LAST`;
+        break;
+      case "trend":
+        orderFragment = isAsc ? sql`ORDER BY momentum_score ASC` : sql`ORDER BY momentum_score DESC`;
+        break;
+      case "updated":
+        orderFragment = isAsc ? sql`ORDER BY last_crawled_at ASC NULLS FIRST` : sql`ORDER BY last_crawled_at DESC NULLS LAST`;
+        break;
+    }
+  } else {
+    orderFragment = filterType === "new"
+      ? sql`ORDER BY source_created_at DESC NULLS LAST`
+      : filterType === "all"
+      ? sql`ORDER BY (CASE WHEN source = 'github' THEN COALESCE(stars, 0) ELSE COALESCE(likes, 0) * 5.0 + (COALESCE(downloads, 0) / 1000.0) END) DESC NULLS LAST`
+      : sql`ORDER BY momentum_score DESC`;
+  }
+
   const result = await db.execute(sql`
     WITH current_snapshots AS (
       SELECT DISTINCT ON (project_id) project_id, stars, forks, contributors_count, open_issues, likes, downloads, snapshot_date
@@ -15,6 +94,11 @@ export async function getDynamicTrendingProjects(days: number, minStars: number,
       FROM project_snapshots
       WHERE snapshot_date <= CURRENT_DATE - ${days} * INTERVAL '1 day'
       ORDER BY project_id, snapshot_date DESC
+    ),
+    earliest_snapshots AS (
+      SELECT DISTINCT ON (project_id) project_id, stars, forks, contributors_count, open_issues, likes, downloads, snapshot_date
+      FROM project_snapshots
+      ORDER BY project_id, snapshot_date ASC
     ),
     sparkline_history AS (
       SELECT 
@@ -30,6 +114,7 @@ export async function getDynamicTrendingProjects(days: number, minStars: number,
       SELECT 
         p.id as project_id,
         p.source,
+        p.project_type,
         p.source_id,
         p.slug,
         p.name,
@@ -49,16 +134,17 @@ export async function getDynamicTrendingProjects(days: number, minStars: number,
         p.last_crawled_at,
         p.source_created_at,
         p.categories,
-        GREATEST(c.stars - COALESCE(prev.stars, 0), 0) as stars_gained,
-        GREATEST(c.forks - COALESCE(prev.forks, 0), 0) as forks_gained,
-        GREATEST(c.contributors_count - COALESCE(prev.contributors_count, 0), 0) as contributors_gained,
-        GREATEST(c.likes - COALESCE(prev.likes, 0), 0) as likes_gained,
-        GREATEST(c.downloads - COALESCE(prev.downloads, 0), 0) as downloads_gained,
+        GREATEST(c.stars - COALESCE(prev.stars, earliest.stars, c.stars), 0) as stars_gained,
+        GREATEST(c.forks - COALESCE(prev.forks, earliest.forks, c.forks), 0) as forks_gained,
+        GREATEST(c.contributors_count - COALESCE(prev.contributors_count, earliest.contributors_count, c.contributors_count), 0) as contributors_gained,
+        GREATEST(c.likes - COALESCE(prev.likes, earliest.likes, c.likes), 0) as likes_gained,
+        GREATEST(c.downloads - COALESCE(prev.downloads, earliest.downloads, c.downloads), 0) as downloads_gained,
         sh.sparkline_data,
         c.stars, c.forks, c.downloads, c.likes, c.open_issues, c.contributors_count as current_contributors_count
       FROM projects p
       JOIN current_snapshots c ON p.id = c.project_id
       LEFT JOIN previous_snapshots prev ON p.id = prev.project_id
+      LEFT JOIN earliest_snapshots earliest ON p.id = earliest.project_id
       LEFT JOIN sparkline_history sh ON p.id = sh.project_id
     ),
     scored AS (
@@ -73,26 +159,25 @@ export async function getDynamicTrendingProjects(days: number, minStars: number,
     ),
     filtered AS (
       SELECT * FROM scored
-      WHERE momentum_score >= 0
-        AND (
-          (source = 'github' AND stars >= ${minStars}) 
-          OR (source = 'huggingface' AND downloads >= ${minDownloads})
-          OR (source NOT IN ('github', 'huggingface'))
-        )
+      WHERE ${whereFragment}
     )
     SELECT 
       *,
-      ROW_NUMBER() OVER(ORDER BY momentum_score DESC) as rank
+      COUNT(*) OVER() as total_count,
+      ROW_NUMBER() OVER(${orderFragment}) as rank
     FROM filtered
     ORDER BY rank ASC
-    LIMIT 100;
+    LIMIT ${limit} OFFSET ${offset};
   `);
 
-  return result.map(row => {
+  const total = result.length > 0 ? Number((result[0] as Record<string, unknown>).total_count || 0) : 0;
+
+  const projects = result.map(row => {
     const r = row as Record<string, unknown>;
     return {
       id: r.project_id as string,
       source: r.source as "github" | "huggingface" | "paperwithcode",
+      projectType: (r.project_type || 'repository') as "repository" | "model" | "dataset",
       sourceId: r.source_id as string,
       slug: r.slug as string,
       name: r.name as string,
@@ -140,6 +225,8 @@ export async function getDynamicTrendingProjects(days: number, minStars: number,
       sparklineData: Array.isArray(r.sparkline_data) ? (r.sparkline_data as number[]) : Array.from({ length: 14 }, () => Math.floor(Math.random() * 50) + 10),
     };
   });
+
+  return { projects, total };
 }
 
 export async function getGlobalStats() {
@@ -147,15 +234,29 @@ export async function getGlobalStats() {
     const result = await db.execute(sql`
       SELECT 
         (SELECT COUNT(*) FROM projects) as total_projects,
-        (SELECT COUNT(DISTINCT project_id) FROM project_snapshots WHERE snapshot_date >= CURRENT_DATE - INTERVAL '7 days') as trending_projects
+        (
+          SELECT COUNT(*) 
+          FROM projects p
+          JOIN (
+            SELECT DISTINCT ON (project_id) project_id, stars, downloads
+            FROM project_snapshots
+            ORDER BY project_id, snapshot_date DESC
+          ) c ON p.id = c.project_id
+          WHERE 
+            (p.source = 'github' AND c.stars >= 100) OR
+            (p.source = 'huggingface' AND c.downloads >= 1000) OR
+            (p.source NOT IN ('github', 'huggingface'))
+        ) as trending_projects,
+        (SELECT COUNT(*) FROM projects WHERE source_created_at >= CURRENT_DATE - INTERVAL '30 days') as new_projects
     `);
     return {
       totalProjects: Number(result[0]?.total_projects || 0),
-      trendingProjects: Number(result[0]?.trending_projects || 0)
+      trendingProjects: Number(result[0]?.trending_projects || 0),
+      newProjects: Number(result[0]?.new_projects || 0)
     };
   } catch (error) {
     console.error("Error fetching stats:", error);
-    return { totalProjects: 0, trendingProjects: 0 };
+    return { totalProjects: 0, trendingProjects: 0, newProjects: 0 };
   }
 }
 
@@ -190,6 +291,41 @@ export async function getCategoryStats() {
   }
 }
 
+export async function getPopularLanguagesAndHashtags() {
+  try {
+    const langs = await db.execute(sql`
+      SELECT primary_language as name, COUNT(*) as count
+      FROM projects
+      WHERE source = 'github' AND primary_language IS NOT NULL AND primary_language != ''
+      GROUP BY primary_language
+      ORDER BY count DESC
+      LIMIT 20;
+    `);
+
+    const tags = await db.execute(sql`
+      SELECT t.topic as name, COUNT(*) as count
+      FROM projects p,
+      LATERAL jsonb_array_elements_text(p.topics) t(topic)
+      WHERE p.topics IS NOT NULL 
+        AND jsonb_typeof(p.topics) = 'array'
+        AND t.topic NOT LIKE '%:%'
+        AND LENGTH(t.topic) > 2
+        AND t.topic NOT IN ('en', 'zh', 'fr', 'ja', 'ko', 'es', 'de', 'pt', 'it', 'ru')
+      GROUP BY t.topic
+      ORDER BY count DESC
+      LIMIT 10;
+    `);
+
+    return {
+      languages: langs.map(r => String(r.name)),
+      hashtags: tags.map(r => String(r.name))
+    };
+  } catch (error) {
+    console.error("Error fetching popular languages/hashtags:", error);
+    return { languages: [], hashtags: [] };
+  }
+}
+
 
 export async function getProjectById(id: string) {
   try {
@@ -220,6 +356,7 @@ export async function getProjectById(id: string) {
     return {
       id: r.id as string,
       source: r.source as "github" | "huggingface" | "paperwithcode",
+      projectType: (r.project_type || 'repository') as "repository" | "model" | "dataset",
       sourceId: r.source_id as string,
       slug: r.slug as string,
       name: r.name as string,
@@ -280,6 +417,7 @@ export async function getProjectBySlug(slug: string) {
     return {
       id: r.id as string,
       source: r.source as "github" | "huggingface" | "paperwithcode",
+      projectType: (r.project_type || 'repository') as "repository" | "model" | "dataset",
       sourceId: r.source_id as string,
       slug: r.slug as string,
       name: r.name as string,

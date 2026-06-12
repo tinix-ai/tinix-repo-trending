@@ -6,7 +6,7 @@ import { ViewToggle } from "@/components/leaderboard/view-toggle";
 import { ProjectCard } from "@/components/leaderboard/project-card";
 import { ProjectTableRow } from "@/components/leaderboard/project-table-row";
 import { formatNumber } from "@/lib/utils";
-import { fetchDynamicRankings, fetchGlobalStats, fetchCategoryStats } from "../actions";
+import { fetchDynamicRankings, fetchGlobalStats, fetchCategoryStats, fetchPopularFilters } from "../actions";
 import { useTranslations } from "next-intl";
 import { Link, useRouter, usePathname } from "@/i18n/routing";
 import { useSearchParams } from "next/navigation";
@@ -16,8 +16,42 @@ import {
   Filter,
   ChevronRight,
   Settings2,
+  Flame,
+  Database,
+  Sparkles,
 } from "lucide-react";
 import { SearchableSelect } from "@/components/common/searchable-select";
+
+function getPageNumbers(currentPage: number, totalPages: number): (number | string)[] {
+  const pages: (number | string)[] = [];
+  const maxVisiblePages = 5;
+
+  if (totalPages <= maxVisiblePages) {
+    for (let i = 1; i <= totalPages; i++) {
+      pages.push(i);
+    }
+  } else {
+    pages.push(1);
+
+    if (currentPage > 3) {
+      pages.push("...");
+    }
+
+    const start = Math.max(2, currentPage - 1);
+    const end = Math.min(totalPages - 1, currentPage + 1);
+
+    for (let i = start; i <= end; i++) {
+      pages.push(i);
+    }
+
+    if (currentPage < totalPages - 2) {
+      pages.push("...");
+    }
+
+    pages.push(totalPages);
+  }
+  return pages;
+}
 
 export default function HomePage() {
   const router = useRouter();
@@ -25,25 +59,31 @@ export default function HomePage() {
   const [view, setView] = useState<ViewMode>("card");
   const [selectedLanguage, setSelectedLanguage] = useState<string>("");
   const [selectedSource, setSelectedSource] = useState<string>("");
-  const [selectedHashtag, setSelectedHashtag] = useState<string>("");
   const [showAdvanced, setShowAdvanced] = useState<boolean>(false);
   
+  const searchParams = useSearchParams();
+
   // Dynamic Ranking Filters
-  const [days, setDays] = useState<number>(7);
+  const [days, setDays] = useState<number>(Number(searchParams.get("days")) || 7);
   const [minStars, setMinStars] = useState<number>(100);
   const [minDownloads, setMinDownloads] = useState<number>(1000);
   
-  // Pagination
-  const [currentPage, setCurrentPage] = useState(1);
+  // Pagination & Filter
+  const currentPage = Number(searchParams.get("page")) || 1;
+  const filterType = (searchParams.get("filter") as "trending" | "all" | "new") || "trending";
+  const sortBy = (searchParams.get("sortBy") as "project" | "stars" | "trend" | "updated") || undefined;
+  const sortOrder = (searchParams.get("sortOrder") as "asc" | "desc") || undefined;
   const itemsPerPage = 20;
 
   const t = useTranslations("HomePage");
   const [projects, setProjects] = useState<RankedProject[]>([]);
-  const [stats, setStats] = useState({ totalProjects: 12847, trendingProjects: 2340 });
+  const [totalProjects, setTotalProjects] = useState(0);
+  const [stats, setStats] = useState({ totalProjects: 12847, trendingProjects: 2340, newProjects: 0 });
   const [categories, setCategories] = useState<Category[]>([]);
+  const [popularFilters, setPopularFilters] = useState<{ languages: string[], hashtags: string[] }>({ languages: [], hashtags: [] });
   const [isPending, startTransition] = useTransition();
-  const searchParams = useSearchParams();
   const searchQuery = searchParams.get("q")?.toLowerCase() || "";
+  const selectedTag = searchParams.get("tag") || "";
 
   const categoryParam = searchParams.get("category") || "";
   const selectedCategoryObj = categories.find(
@@ -63,69 +103,100 @@ export default function HomePage() {
     } else {
       params.delete("category");
     }
+    params.delete("page");
     router.push(`${pathname}?${params.toString()}`);
   };
+
+  const handleFilterChange = (newFilter: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("filter", newFilter);
+    params.delete("page");
+    router.push(`${pathname}?${params.toString()}`);
+  };
+
+  const handlePageChange = (newPage: number) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (newPage > 1) {
+      params.set("page", newPage.toString());
+    } else {
+      params.delete("page");
+    }
+    router.push(`${pathname}?${params.toString()}`);
+  };
+
+  const handleDaysChange = (newDays: number) => {
+    setDays(newDays);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("days", newDays.toString());
+    params.delete("page");
+    router.push(`${pathname}?${params.toString()}`);
+  };
+
+  const handleTagClear = () => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("tag");
+    params.delete("page");
+    router.push(`${pathname}?${params.toString()}`);
+  };
+
+  const handleSort = (column: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (sortBy === column) {
+      if (sortOrder === "desc") {
+        params.set("sortOrder", "asc");
+      } else {
+        params.delete("sortBy");
+        params.delete("sortOrder");
+      }
+    } else {
+      params.set("sortBy", column);
+      params.set("sortOrder", "desc");
+    }
+    params.delete("page");
+    router.push(`${pathname}?${params.toString()}`);
+  };
+
+  const totalPages = Math.ceil(totalProjects / itemsPerPage);
 
   useEffect(() => {
     fetchGlobalStats().then(setStats);
     fetchCategoryStats().then(setCategories);
+    fetchPopularFilters().then(setPopularFilters);
   }, []);
 
   useEffect(() => {
     startTransition(() => {
-      fetchDynamicRankings(days, minStars, minDownloads).then((data) => {
-        setProjects(data);
+      fetchDynamicRankings({
+        days,
+        minStars,
+        minDownloads,
+        limit: itemsPerPage,
+        offset: (currentPage - 1) * itemsPerPage,
+        category: selectedCategory || categoryParam,
+        source: selectedSource || undefined,
+        language: selectedLanguage || undefined,
+        searchQuery: searchQuery || undefined,
+        tag: selectedTag || undefined,
+        filterType,
+        sortBy,
+        sortOrder
+      }).then((res) => {
+        setProjects(res.projects);
+        setTotalProjects(res.total);
       });
     });
-  }, [days, minStars, minDownloads]);
+  }, [days, minStars, minDownloads, selectedCategory, categoryParam, selectedSource, selectedLanguage, searchQuery, selectedTag, currentPage, filterType, sortBy, sortOrder]);
 
-  const filteredProjects = projects.filter((p) => {
-    if (searchQuery) {
-      const match = p.name.toLowerCase().includes(searchQuery) || 
-                    (p.description && p.description.toLowerCase().includes(searchQuery)) ||
-                    (p.ownerName && p.ownerName.toLowerCase().includes(searchQuery));
-      if (!match) return false;
-    }
+  const filteredProjects = projects;
 
-    if (selectedSource && p.source !== selectedSource) return false;
-    
-    // Language filter applies when source is GitHub or All
-    if (selectedLanguage) {
-      if (p.source !== "github" || p.primaryLanguage !== selectedLanguage) return false;
-    }
-    
-    // Hashtag filter applies when source is HuggingFace or All
-    if (selectedHashtag) {
-      if (p.source !== "huggingface" || p.primaryLanguage !== selectedHashtag) return false;
-    }
-    
-    // Category filter
-    if (selectedCategory) {
-      if (!p.categories?.some(c => c.name === selectedCategory)) return false;
-    }
+  const paginatedProjects = filteredProjects;
 
-    return true;
-  });
-
-  // Reset page to 1 when filters change
-  useEffect(() => {
-    const timer = setTimeout(() => setCurrentPage(1), 0);
-    return () => clearTimeout(timer);
-  }, [selectedLanguage, selectedSource, selectedCategory, selectedHashtag, days, minStars, minDownloads]);
-
-  const totalPages = Math.ceil(filteredProjects.length / itemsPerPage);
-  const paginatedProjects = filteredProjects.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
-
-  const languages = [...new Set(projects.filter(p => p.source === 'github').map((p) => p.primaryLanguage).filter((l): l is string => !!l))].sort();
-  const hashtags = [...new Set(projects.filter(p => p.source === 'huggingface').map((p) => p.primaryLanguage).filter((h): h is string => !!h))].sort();
+  const languages = popularFilters.languages;
+  const hashtags = popularFilters.hashtags;
   const categoryOptions = categories.map(c => c.name);
 
   return (
     <div className="w-full">
-      {/* Hero Section — Edge to edge tile */}
       <section className="apple-tile-light w-full py-16 lg:py-24 border-b border-[var(--color-divider-soft)]">
         <div className="page-container flex flex-col lg:flex-row lg:items-end lg:justify-between gap-10">
           <div className="max-w-2xl">
@@ -155,62 +226,133 @@ export default function HomePage() {
             </p>
           </div>
 
-          {/* Live Stats Cards */}
-          <div className="flex gap-4 lg:gap-6">
-            <div className="apple-utility-card flex flex-col items-center gap-2 min-w-[120px] py-6 px-4">
-              <TrendingUp className="h-6 w-6 text-[var(--color-action-blue)] mb-2" />
-              <span className="text-apple-display-lg text-[var(--color-ink)] tabular-nums">
+          <div className="flex gap-4 lg:gap-6 flex-wrap md:flex-nowrap justify-start lg:justify-end">
+            <div className="apple-utility-card flex flex-col items-center gap-2 min-w-[120px] py-5 px-4 shadow-sm border border-[var(--color-divider-soft)]">
+              <TrendingUp className="h-5 w-5 text-[var(--color-action-blue)] mb-1 shrink-0" />
+              <span className="text-apple-display-lg text-[var(--color-ink)] tabular-nums font-bold tracking-tight">
                 {formatNumber(stats.totalProjects)}
               </span>
-              <span className="text-apple-caption text-[var(--color-ink-muted-80)] uppercase tracking-widest font-medium">
+              <span className="text-[10px] text-[var(--color-ink-muted-80)] uppercase tracking-widest font-semibold">
                 {t("projects")}
               </span>
             </div>
-            <div className="apple-utility-card flex flex-col items-center gap-2 min-w-[120px] py-6 px-4 hidden sm:flex">
-              <Zap className="h-6 w-6 text-amber-500 mb-2" />
-              <span className="text-apple-display-lg text-[var(--color-ink)] tabular-nums">
+
+            <div className="apple-utility-card flex flex-col items-center gap-2 min-w-[120px] py-5 px-4 shadow-sm border border-[var(--color-divider-soft)]">
+              <Zap className="h-5 w-5 text-amber-500 mb-1 shrink-0" />
+              <span className="text-apple-display-lg text-[var(--color-ink)] tabular-nums font-bold tracking-tight">
                 {formatNumber(stats.trendingProjects)}
               </span>
-              <span className="text-apple-caption text-[var(--color-ink-muted-80)] uppercase tracking-widest font-medium">
+              <span className="text-[10px] text-[var(--color-ink-muted-80)] uppercase tracking-widest font-semibold">
                 {t("trending")}
+              </span>
+            </div>
+
+            <div className="apple-utility-card flex flex-col items-center gap-2 min-w-[120px] py-5 px-4 shadow-sm border border-[var(--color-divider-soft)]">
+              <Sparkles className="h-5 w-5 text-emerald-500 mb-1 shrink-0" />
+              <span className="text-apple-display-lg text-[var(--color-ink)] tabular-nums font-bold tracking-tight">
+                {formatNumber(stats.newProjects)}
+              </span>
+              <span className="text-[10px] text-[var(--color-ink-muted-80)] uppercase tracking-widest font-semibold">
+                {t("new")}
               </span>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Main Content Grid — Edge to edge parchment tile */}
       <section className="apple-tile-parchment w-full py-16">
         <div className="page-container grid grid-cols-1 xl:grid-cols-[1fr_280px] gap-8">
-          {/* Leaderboard Column */}
-          <div>
-            {/* Dynamic Filters Toolbar */}
+          <div className="min-w-0">
             <div className="relative z-30 bg-[var(--color-surface-elevated)] border border-[var(--color-divider-soft)] rounded-2xl p-4 mb-8 shadow-sm flex flex-col gap-4">
               
-              {/* Top Row: Source Tabs & View Toggle */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[var(--color-divider-soft)] pb-4">
-                <div className="flex items-center gap-2 p-1 bg-[var(--color-canvas)] rounded-lg border border-[var(--color-hairline)] w-fit">
-                  <button 
-                    onClick={() => { setSelectedSource(""); setSelectedLanguage(""); setSelectedHashtag(""); }}
-                    className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${!selectedSource ? "bg-[var(--color-surface-elevated)] text-[var(--color-ink)] shadow-sm" : "text-[var(--color-ink-muted-80)] hover:text-[var(--color-ink)]"}`}
-                  >
-                    All Sources
-                  </button>
-                  <button 
-                    onClick={() => { setSelectedSource("github"); setSelectedHashtag(""); }}
-                    className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${selectedSource === "github" ? "bg-[var(--color-surface-elevated)] text-[var(--color-ink)] shadow-sm" : "text-[var(--color-ink-muted-80)] hover:text-[var(--color-ink)]"}`}
-                  >
-                    GitHub
-                  </button>
-                  <button 
-                    onClick={() => { setSelectedSource("huggingface"); setSelectedLanguage(""); }}
-                    className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${selectedSource === "huggingface" ? "bg-[var(--color-surface-elevated)] text-[var(--color-ink)] shadow-sm" : "text-[var(--color-ink-muted-80)] hover:text-[var(--color-ink)]"}`}
-                  >
-                    HuggingFace
-                  </button>
-                </div>
+              {/* Row 1: Primary Navigation & Time & Views */}
+              <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 border-b border-[var(--color-divider-soft)] pb-4 flex-wrap">
                 
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-4 flex-wrap">
+                  {/* Type Filter */}
+                  <div className="flex items-center gap-1 p-1 bg-[var(--color-canvas)] rounded-xl border border-[var(--color-hairline)] w-max">
+                    <button
+                      onClick={() => handleFilterChange("trending")}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+                        filterType === "trending"
+                          ? "bg-[var(--color-surface-elevated)] text-[var(--color-ink)] shadow-sm border border-[var(--color-border)]"
+                          : "text-[var(--color-ink-muted-80)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-pearl)]"
+                      }`}
+                    >
+                      <Flame className={`w-4 h-4 ${filterType === "trending" ? "text-orange-500" : ""}`} />
+                      Trending
+                    </button>
+                    <button
+                      onClick={() => handleFilterChange("all")}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+                        filterType === "all"
+                          ? "bg-[var(--color-surface-elevated)] text-[var(--color-ink)] shadow-sm border border-[var(--color-border)]"
+                          : "text-[var(--color-ink-muted-80)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-pearl)]"
+                      }`}
+                    >
+                      <Database className={`w-4 h-4 ${filterType === "all" ? "text-blue-500" : ""}`} />
+                      All Projects
+                    </button>
+                    <button
+                      onClick={() => handleFilterChange("new")}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+                        filterType === "new"
+                          ? "bg-[var(--color-surface-elevated)] text-[var(--color-ink)] shadow-sm border border-[var(--color-border)]"
+                          : "text-[var(--color-ink-muted-80)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-pearl)]"
+                      }`}
+                    >
+                      <Sparkles className={`w-4 h-4 ${filterType === "new" ? "text-yellow-500" : ""}`} />
+                      New
+                    </button>
+                  </div>
+
+                  {/* Time Filter */}
+                  <div className="flex bg-[var(--color-surface-elevated)] p-1 rounded-xl border border-[var(--color-hairline)] w-full sm:w-auto overflow-x-auto hide-scrollbar">
+                    <button
+                      onClick={() => handleDaysChange(1)}
+                      className={`flex-1 sm:flex-none flex items-center justify-center px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                        days === 1
+                          ? "bg-[var(--color-bg-primary)] text-[var(--color-ink)] shadow-sm border border-[var(--color-border)]"
+                          : "text-[var(--color-ink-muted-80)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-pearl)]"
+                      }`}
+                    >
+                      Day
+                    </button>
+                    <button
+                      onClick={() => handleDaysChange(7)}
+                      className={`flex-1 sm:flex-none flex items-center justify-center px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                        days === 7
+                          ? "bg-[var(--color-bg-primary)] text-[var(--color-ink)] shadow-sm border border-[var(--color-border)]"
+                          : "text-[var(--color-ink-muted-80)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-pearl)]"
+                      }`}
+                    >
+                      Week
+                    </button>
+                    <button
+                      onClick={() => handleDaysChange(30)}
+                      className={`flex-1 sm:flex-none flex items-center justify-center px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                        days === 30
+                          ? "bg-[var(--color-bg-primary)] text-[var(--color-ink)] shadow-sm border border-[var(--color-border)]"
+                          : "text-[var(--color-ink-muted-80)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-pearl)]"
+                      }`}
+                    >
+                      Month
+                    </button>
+                    <button
+                      onClick={() => handleDaysChange(9999)}
+                      className={`flex-1 sm:flex-none flex items-center justify-center px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                        days === 9999
+                          ? "bg-[var(--color-bg-primary)] text-[var(--color-ink)] shadow-sm border border-[var(--color-border)]"
+                          : "text-[var(--color-ink-muted-80)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-pearl)]"
+                      }`}
+                    >
+                      All
+                    </button>
+                  </div>
+                </div>
+
+                {/* View Controls */}
+                <div className="flex items-center gap-2 mt-4 xl:mt-0">
                   <button 
                     onClick={() => setShowAdvanced(!showAdvanced)}
                     className={`flex items-center gap-2 text-sm font-medium transition-colors px-3 py-1.5 rounded-lg border ${showAdvanced ? "bg-[var(--color-action-blue)]/10 text-[var(--color-action-blue)] border-[var(--color-action-blue)]/20" : "text-[var(--color-ink-muted-80)] border-[var(--color-hairline)] hover:bg-[var(--color-surface-elevated)]"}`}
@@ -222,8 +364,29 @@ export default function HomePage() {
                 </div>
               </div>
 
-              {/* Second Row: Contextual Filters */}
+              {/* Row 2: Dropdowns */}
+
               <div className="flex flex-wrap items-center gap-3">
+                <SearchableSelect
+                  options={["GitHub", "HuggingFace"]}
+                  value={
+                    selectedSource === "github" ? "GitHub" :
+                    selectedSource === "huggingface" ? "HuggingFace" : ""
+                  }
+                  onChange={(val) => {
+                    if (!val) {
+                      setSelectedSource("");
+                      setSelectedLanguage("");
+                    } else if (val === "GitHub") {
+                      setSelectedSource("github");
+                    } else if (val === "HuggingFace") {
+                      setSelectedSource("huggingface");
+                      setSelectedLanguage("");
+                    }
+                  }}
+                  placeholder="All Sources"
+                />
+
                 <SearchableSelect
                   options={categoryOptions}
                   value={selectedCategory}
@@ -240,18 +403,26 @@ export default function HomePage() {
                   />
                 )}
 
-                {(!selectedSource || selectedSource === "huggingface") && hashtags.length > 0 && (
+                {hashtags.length > 0 && (
                   <SearchableSelect
-                    options={hashtags}
-                    value={selectedHashtag}
-                    onChange={setSelectedHashtag}
+                    options={hashtags.includes(selectedTag) ? hashtags : [selectedTag, ...hashtags].filter(Boolean)}
+                    value={selectedTag}
+                    onChange={(val) => {
+                      const params = new URLSearchParams(searchParams.toString());
+                      if (val) {
+                        params.set("tag", val);
+                      } else {
+                        params.delete("tag");
+                      }
+                      params.delete("page");
+                      router.push(`${pathname}?${params.toString()}`);
+                    }}
                     placeholder="All Hashtags"
                     prefix="#"
                   />
                 )}
               </div>
 
-              {/* Advanced Settings Row (Collapsible) */}
               {showAdvanced && (
                 <div className="pt-4 border-t border-[var(--color-divider-soft)] grid grid-cols-1 sm:grid-cols-3 gap-6 animate-in slide-in-from-top-2 fade-in duration-200">
                   <div className="flex flex-col gap-2">
@@ -293,14 +464,26 @@ export default function HomePage() {
               )}
             </div>
 
-            {/* Results Info */}
-            <div className="flex items-center justify-between mb-4">
-              <p className="text-apple-caption text-[var(--color-ink-muted-80)]">
-                {t("showing")} <span className="text-[var(--color-ink)] font-semibold">{filteredProjects.length}</span> {t("projects").toLowerCase()}
-              </p>
+            <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className="text-apple-caption text-[var(--color-ink-muted-80)]">
+                  {t("showing")} <span className="text-[var(--color-ink)] font-semibold">{totalProjects}</span> {t("projects").toLowerCase()}
+                </p>
+                {selectedTag && (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-[var(--color-action-blue)]/10 text-[var(--color-action-blue)] border border-[var(--color-action-blue)]/20 animate-in fade-in duration-200 select-none">
+                    #{selectedTag}
+                    <button
+                      onClick={() => handleTagClear()}
+                      className="hover:bg-[var(--color-action-blue)]/20 rounded-full p-0.5 transition-colors cursor-pointer shrink-0"
+                      aria-label="Clear tag filter"
+                    >
+                      <span className="text-[10px] font-bold">✕</span>
+                    </button>
+                  </span>
+                )}
+              </div>
             </div>
 
-            {/* Project List */}
             <div className={`transition-opacity duration-300 ${isPending ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
               {view === "card" ? (
                 <div className="flex flex-col gap-4">
@@ -313,13 +496,53 @@ export default function HomePage() {
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
-                        <tr className="border-b border-[var(--color-divider-soft)]">
-                          <th className="px-4 py-4 text-left text-apple-caption font-semibold text-[var(--color-ink-muted-80)] uppercase tracking-wider w-12">#</th>
-                          <th className="px-4 py-4 text-left text-apple-caption font-semibold text-[var(--color-ink-muted-80)] uppercase tracking-wider">Project</th>
+                        <tr className="border-b border-[var(--color-divider-soft)] bg-[var(--color-surface-pearl)]">
+                          <th className="px-4 py-4 text-apple-caption font-semibold text-[var(--color-ink-muted-80)] uppercase tracking-wider w-16 text-center">#</th>
+                          
+                          <th 
+                            className="px-4 py-4 text-apple-caption font-semibold text-[var(--color-ink-muted-80)] uppercase tracking-wider cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                            onClick={() => handleSort("project")}
+                          >
+                            <div className="flex items-center gap-1">
+                              Project
+                              {sortBy === "project" && <span className="text-xs">{sortOrder === "desc" ? "↓" : "↑"}</span>}
+                            </div>
+                          </th>
+                          
                           <th className="px-4 py-4 text-left text-apple-caption font-semibold text-[var(--color-ink-muted-80)] uppercase tracking-wider hidden md:table-cell">Category</th>
+                          
                           <th className="px-4 py-4 text-left text-apple-caption font-semibold text-[var(--color-ink-muted-80)] uppercase tracking-wider hidden lg:table-cell">Language</th>
-                          <th className="px-4 py-4 text-right text-apple-caption font-semibold text-[var(--color-ink-muted-80)] uppercase tracking-wider">Stars</th>
-                          <th className="px-4 py-4 text-right text-apple-caption font-semibold text-[var(--color-ink-muted-80)] uppercase tracking-wider">Daily</th>
+                          
+                          <th 
+                            className="px-4 py-4 text-right text-apple-caption font-semibold text-[var(--color-ink-muted-80)] uppercase tracking-wider cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                            onClick={() => handleSort("stars")}
+                          >
+                            <div className="flex items-center justify-end gap-1">
+                              Stars
+                              {sortBy === "stars" && <span className="text-xs">{sortOrder === "desc" ? "↓" : "↑"}</span>}
+                            </div>
+                          </th>
+                          
+                          <th 
+                            className="px-4 py-4 text-right text-apple-caption font-semibold text-[var(--color-ink-muted-80)] uppercase tracking-wider cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                            onClick={() => handleSort("trend")}
+                          >
+                            <div className="flex items-center justify-end gap-1">
+                              Daily
+                              {sortBy === "trend" && <span className="text-xs">{sortOrder === "desc" ? "↓" : "↑"}</span>}
+                            </div>
+                          </th>
+                          
+                          <th 
+                            className="px-4 py-4 text-right text-apple-caption font-semibold text-[var(--color-ink-muted-80)] uppercase tracking-wider hidden md:table-cell cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                            onClick={() => handleSort("updated")}
+                          >
+                            <div className="flex items-center justify-end gap-1">
+                              Updated
+                              {sortBy === "updated" && <span className="text-xs">{sortOrder === "desc" ? "↓" : "↑"}</span>}
+                            </div>
+                          </th>
+                          
                           <th className="px-4 py-4 text-right text-apple-caption font-semibold text-[var(--color-ink-muted-80)] uppercase tracking-wider hidden sm:table-cell">Trend</th>
                         </tr>
                       </thead>
@@ -333,26 +556,40 @@ export default function HomePage() {
                 </div>
               ) : (
                 <div className="apple-utility-card divide-y divide-[var(--color-divider-soft)] p-0">
+                  <div className="flex items-center gap-3 px-6 py-3 bg-[var(--color-surface-pearl)] text-apple-caption font-semibold text-[var(--color-ink-muted-80)] uppercase tracking-wider border-b border-[var(--color-divider-soft)]">
+                    <span className="w-8 text-right shrink-0">#</span>
+                    <span className="flex-1">Project</span>
+                    <div className="flex items-center gap-4 shrink-0">
+                      <span className="w-20 text-right">Trend</span>
+                      <span className="w-24 text-right">Stars</span>
+                    </div>
+                  </div>
                   {paginatedProjects.map((project) => (
                     <Link
                       key={project.id}
                       href={`/project/${project.slug.replace(/\//g, '-')}-${project.id}`}
                       className="flex items-center gap-3 px-6 py-4 hover:bg-[var(--color-divider-soft)] transition-colors"
                     >
-                      <span className="text-apple-body-strong tabular-nums w-8 text-right text-[var(--color-ink-muted-80)]">
+                      <span className="text-apple-body-strong tabular-nums w-8 text-right text-[var(--color-ink-muted-80)] shrink-0">
                         {project.rank}
                       </span>
-                      <span className="text-apple-body-strong truncate flex-1">
+                      <span className="text-apple-body-strong truncate flex-1 font-medium">
                         {project.fullName}
                       </span>
-                      {project.starsGained > 0 && (
-                        <span className="delta-positive text-[11px]">
-                          +{formatNumber(project.starsGained)}
+                      <div className="flex items-center gap-4 shrink-0">
+                        <span className="w-20 text-right">
+                          {project.starsGained > 0 ? (
+                            <span className="delta-positive text-[11px] font-medium">
+                              +{formatNumber(project.starsGained)}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-[var(--color-ink-muted-80)]">—</span>
+                          )}
                         </span>
-                      )}
-                      <span className="text-apple-caption text-[var(--color-ink-muted-80)] tabular-nums">
-                        ★ {formatNumber(project.stars)}
-                      </span>
+                        <span className="text-apple-caption text-[var(--color-ink-muted-80)] tabular-nums w-24 text-right font-medium">
+                          {project.source === "github" ? "★" : "♥"} {formatNumber(project.stars)}
+                        </span>
+                      </div>
                     </Link>
                   ))}
                 </div>
@@ -363,29 +600,35 @@ export default function HomePage() {
             {totalPages > 1 && (
               <div className="flex items-center justify-center gap-2 mt-8">
                 <button
-                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
                   disabled={currentPage === 1}
                   className="px-4 py-2 rounded-lg border border-[var(--color-hairline)] bg-[var(--color-canvas)] text-sm font-medium text-[var(--color-ink)] disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[var(--color-surface-elevated)] transition-colors"
                 >
                   Previous
                 </button>
                 <div className="flex items-center gap-1">
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                    <button
-                      key={page}
-                      onClick={() => setCurrentPage(page)}
-                      className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors ${
-                        currentPage === page 
-                          ? "bg-[var(--color-action-blue)] text-white" 
-                          : "text-[var(--color-ink-muted-80)] hover:bg-[var(--color-surface-elevated)]"
-                      }`}
-                    >
-                      {page}
-                    </button>
+                  {getPageNumbers(currentPage, totalPages).map((page, idx) => (
+                    typeof page === "number" ? (
+                      <button
+                        key={idx}
+                        onClick={() => handlePageChange(page)}
+                        className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors ${
+                          currentPage === page 
+                            ? "bg-[var(--color-action-blue)] text-white" 
+                            : "text-[var(--color-ink-muted-80)] hover:bg-[var(--color-surface-elevated)]"
+                        }`}
+                      >
+                        {page}
+                      </button>
+                    ) : (
+                      <span key={idx} className="px-2 text-sm text-[var(--color-ink-muted-80)] select-none">
+                        ...
+                      </span>
+                    )
                   ))}
                 </div>
                 <button
-                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
                   disabled={currentPage === totalPages}
                   className="px-4 py-2 rounded-lg border border-[var(--color-hairline)] bg-[var(--color-canvas)] text-sm font-medium text-[var(--color-ink)] disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[var(--color-surface-elevated)] transition-colors"
                 >
@@ -433,12 +676,13 @@ export default function HomePage() {
               </h2>
               <div className="flex flex-wrap gap-2">
                 {["AI Agent", "MCP", "RAG", "LLM", "Coding Assistant", "Open Source", "Rust", "Agentic", "Multi-modal", "Edge AI"].map((topic) => (
-                  <span
+                  <Link
                     key={topic}
+                    href={`/?tag=${encodeURIComponent(topic)}`}
                     className="inline-flex items-center rounded-full border border-[var(--color-hairline)] bg-[var(--color-canvas)] px-3 py-1 text-apple-caption text-[var(--color-ink-muted-80)] transition-colors hover:border-[var(--color-action-blue)] hover:text-[var(--color-action-blue)] cursor-pointer"
                   >
                     #{topic}
-                  </span>
+                  </Link>
                 ))}
               </div>
             </div>

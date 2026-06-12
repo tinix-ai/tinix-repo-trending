@@ -3,6 +3,7 @@ export type ProjectSource = "github" | "huggingface" | "paperwithcode";
 export interface Project {
   id: string;
   source: ProjectSource;
+  projectType: "repository" | "model" | "dataset";
   sourceId: string;
   slug: string;
   name: string;

@@ -39,7 +39,7 @@ function generateSparkline(base: number, days: number = 14): number[] {
 
 export const MOCK_PROJECTS: RankedProject[] = [
   {
-    id: "1", source: "github", sourceId: "XiaomiMiMo/MiMo-Code", slug: "xiaomimimo-mimo-code",
+    id: "1", source: "github", projectType: "repository", sourceId: "XiaomiMiMo/MiMo-Code", slug: "xiaomimimo-mimo-code",
     name: "MiMo-Code", fullName: "XiaomiMiMo/MiMo-Code",
     description: "An advanced AI coding agent from Xiaomi that leverages reinforcement learning to deliver state-of-the-art code generation, editing, and debugging capabilities.",
     sourceUrl: "https://github.com/XiaomiMiMo/MiMo-Code", primaryLanguage: "TypeScript", license: "Apache-2.0",
@@ -54,7 +54,7 @@ export const MOCK_PROJECTS: RankedProject[] = [
     sparklineData: generateSparkline(1340),
   },
   {
-    id: "2", source: "github", sourceId: "addyosmani/agent-skills", slug: "addyosmani-agent-skills",
+    id: "2", source: "github", projectType: "repository", sourceId: "addyosmani/agent-skills", slug: "addyosmani-agent-skills",
     name: "agent-skills", fullName: "addyosmani/agent-skills",
     description: "Production-grade engineering skills for AI coding agents. A comprehensive collection of reusable skill modules.",
     sourceUrl: "https://github.com/addyosmani/agent-skills", primaryLanguage: "Shell", license: "MIT",
@@ -69,7 +69,7 @@ export const MOCK_PROJECTS: RankedProject[] = [
     sparklineData: generateSparkline(869),
   },
   {
-    id: "3", source: "github", sourceId: "apple/container", slug: "apple-container",
+    id: "3", source: "github", projectType: "repository", sourceId: "apple/container", slug: "apple-container",
     name: "container", fullName: "apple/container",
     description: "A tool for creating and running Linux containers using lightweight virtual machines on a Mac. Written in Swift, optimized for Apple silicon.",
     sourceUrl: "https://github.com/apple/container", primaryLanguage: "Swift", license: "Apache-2.0",
@@ -84,7 +84,7 @@ export const MOCK_PROJECTS: RankedProject[] = [
     sparklineData: generateSparkline(687),
   },
   {
-    id: "4", source: "github", sourceId: "shadcn/improve", slug: "shadcn-improve",
+    id: "4", source: "github", projectType: "repository", sourceId: "shadcn/improve", slug: "shadcn-improve",
     name: "improve", fullName: "shadcn/improve",
     description: "Use your most capable model to audit your codebase and write plans for cheaper models to execute. An intelligent code improvement pipeline.",
     sourceUrl: "https://github.com/shadcn/improve", primaryLanguage: "TypeScript", license: "MIT",
@@ -99,7 +99,7 @@ export const MOCK_PROJECTS: RankedProject[] = [
     sparklineData: generateSparkline(5200),
   },
   {
-    id: "5", source: "github", sourceId: "harry0703/MoneyPrinterTurbo", slug: "harry0703-moneyprinterturbo",
+    id: "5", source: "github", projectType: "repository", sourceId: "harry0703/MoneyPrinterTurbo", slug: "harry0703-moneyprinterturbo",
     name: "MoneyPrinterTurbo", fullName: "harry0703/MoneyPrinterTurbo",
     description: "利用AI大模型，一键生成高清短视频 Generate short videos with one click using AI LLM.",
     sourceUrl: "https://github.com/harry0703/MoneyPrinterTurbo", primaryLanguage: "Python", license: "MIT",
@@ -114,7 +114,7 @@ export const MOCK_PROJECTS: RankedProject[] = [
     sparklineData: generateSparkline(542),
   },
   {
-    id: "6", source: "github", sourceId: "soxoj/maigret", slug: "soxoj-maigret",
+    id: "6", source: "github", projectType: "repository", sourceId: "soxoj/maigret", slug: "soxoj-maigret",
     name: "maigret", fullName: "soxoj/maigret",
     description: "🕵️‍♂️ Collect a dossier on a person by username from 3000+ sites. OSINT tool for comprehensive username search.",
     sourceUrl: "https://github.com/soxoj/maigret", primaryLanguage: "Python", license: "MIT",
@@ -129,7 +129,7 @@ export const MOCK_PROJECTS: RankedProject[] = [
     sparklineData: generateSparkline(478),
   },
   {
-    id: "7", source: "github", sourceId: "activeloopai/hivemind", slug: "activeloopai-hivemind",
+    id: "7", source: "github", projectType: "repository", sourceId: "activeloopai/hivemind", slug: "activeloopai-hivemind",
     name: "hivemind", fullName: "activeloopai/hivemind",
     description: "One brain for all your agents. A unified memory and coordination layer for multi-agent systems.",
     sourceUrl: "https://github.com/activeloopai/hivemind", primaryLanguage: "JavaScript", license: "Apache-2.0",
@@ -144,7 +144,7 @@ export const MOCK_PROJECTS: RankedProject[] = [
     sparklineData: generateSparkline(412),
   },
   {
-    id: "8", source: "github", sourceId: "FareedKhan-dev/train-llm-from-scratch", slug: "fareedkhan-train-llm",
+    id: "8", source: "github", projectType: "repository", sourceId: "FareedKhan-dev/train-llm-from-scratch", slug: "fareedkhan-train-llm",
     name: "train-llm-from-scratch", fullName: "FareedKhan-dev/train-llm-from-scratch",
     description: "A straightforward method for training your LLM, from downloading data to generating text. Complete educational resource.",
     sourceUrl: "https://github.com/FareedKhan-dev/train-llm-from-scratch", primaryLanguage: "Jupyter Notebook", license: "MIT",
@@ -159,7 +159,7 @@ export const MOCK_PROJECTS: RankedProject[] = [
     sparklineData: generateSparkline(389),
   },
   {
-    id: "9", source: "huggingface", sourceId: "deepseek-ai/DeepSeek-R2", slug: "deepseek-r2",
+    id: "9", source: "huggingface", projectType: "model", sourceId: "deepseek-ai/DeepSeek-R2", slug: "deepseek-r2",
     name: "DeepSeek-R2", fullName: "deepseek-ai/DeepSeek-R2",
     description: "DeepSeek-R2: Next-generation reasoning model with enhanced chain-of-thought capabilities and 256K context window.",
     sourceUrl: "https://huggingface.co/deepseek-ai/DeepSeek-R2", primaryLanguage: "Python", license: "Apache-2.0",
@@ -174,7 +174,7 @@ export const MOCK_PROJECTS: RankedProject[] = [
     sparklineData: generateSparkline(180000),
   },
   {
-    id: "10", source: "github", sourceId: "anomalyco/opencode", slug: "anomalyco-opencode",
+    id: "10", source: "github", projectType: "repository", sourceId: "anomalyco/opencode", slug: "anomalyco-opencode",
     name: "opencode", fullName: "anomalyco/opencode",
     description: "The open source coding agent. A terminal-based AI coding assistant with full codebase understanding.",
     sourceUrl: "https://github.com/anomalyco/opencode", primaryLanguage: "TypeScript", license: "MIT",
@@ -189,7 +189,7 @@ export const MOCK_PROJECTS: RankedProject[] = [
     sparklineData: generateSparkline(345),
   },
   {
-    id: "11", source: "github", sourceId: "hugohe3/ppt-master", slug: "hugohe3-ppt-master",
+    id: "11", source: "github", projectType: "repository", sourceId: "hugohe3/ppt-master", slug: "hugohe3-ppt-master",
     name: "ppt-master", fullName: "hugohe3/ppt-master",
     description: "AI generates natively editable PPTX from any document — real PowerPoint shapes with native animations, not images.",
     sourceUrl: "https://github.com/hugohe3/ppt-master", primaryLanguage: "Python", license: "MIT",
@@ -204,7 +204,7 @@ export const MOCK_PROJECTS: RankedProject[] = [
     sparklineData: generateSparkline(310),
   },
   {
-    id: "12", source: "github", sourceId: "chopratejas/headroom", slug: "chopratejas-headroom",
+    id: "12", source: "github", projectType: "repository", sourceId: "chopratejas/headroom", slug: "chopratejas-headroom",
     name: "headroom", fullName: "chopratejas/headroom",
     description: "Compress tool outputs, logs, files, and RAG chunks before they reach the LLM. 60-95% fewer tokens, same answers.",
     sourceUrl: "https://github.com/chopratejas/headroom", primaryLanguage: "Python", license: "MIT",

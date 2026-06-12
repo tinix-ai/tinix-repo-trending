@@ -10,7 +10,7 @@ import { eq, lte, or, isNull } from 'drizzle-orm';
  * Job 1: Daily Discovery
  * Scans GitHub and HuggingFace for new AI/ML repos/models and adds them to the crawler queue.
  */
-async function runDailyDiscovery() {
+export async function runDailyDiscovery() {
   console.log('[Cron] Running Daily Discovery...');
   
   // 1. GitHub Discovery
@@ -43,7 +43,7 @@ async function runDailyDiscovery() {
  * Job 2: Daily Update
  * Pulls ALL tracked projects from the DB and adds them to the respective queues for metric updates.
  */
-async function runDailyUpdate() {
+export async function runDailyUpdate() {
   console.log('[Cron] Running Daily Update for tracked repos...');
 
   const trackedProjects = await db.select({ 
@@ -89,25 +89,4 @@ async function runDailyUpdate() {
   }
 
   console.log(`[Cron] Queued ${ghCount} GitHub repos and ${hfCount} HuggingFace models for daily update.`);
-}
-
-// Simple CLI execution for testing
-async function main() {
-  const arg = process.argv[2];
-  
-  if (arg === '--discovery') {
-    await runDailyDiscovery();
-  } else if (arg === '--update') {
-    await runDailyUpdate();
-  } else {
-    console.log('Running ALL Cron Jobs...');
-    await runDailyDiscovery();
-    await runDailyUpdate();
-  }
-  
-  process.exit(0);
-}
-
-if (require.main === module) {
-  main();
 }

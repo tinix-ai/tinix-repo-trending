@@ -2,12 +2,13 @@
 
 import { Link } from "@/i18n/routing";
 import type { RankedProject } from "@/types";
-import { formatNumber, getDeltaPrefix } from "@/lib/utils";
+import { formatNumber, getDeltaPrefix, timeAgo } from "@/lib/utils";
 import { Star, GitFork, Download, ArrowUpRight, ExternalLink } from "lucide-react";
 import { Sparkline } from "@/components/common/sparkline";
 import { SourceBadge } from "@/components/common/source-badge";
 
 import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 
 interface ProjectCardProps {
   project: RankedProject;
@@ -27,7 +28,16 @@ function RankBadge({ rank }: { rank: number }) {
   return <div className={`rank-badge ${cls}`}>{rank}</div>;
 }
 
+function buildCategoryHref(slug: string, filter: string | null) {
+  const params = new URLSearchParams();
+  params.set("category", slug);
+  if (filter && filter !== "trending") params.set("filter", filter);
+  return `/?${params.toString()}`;
+}
+
 export function ProjectCard({ project, index }: ProjectCardProps) {
+  const searchParams = useSearchParams();
+  const currentFilter = searchParams.get("filter");
   const [isNew, setIsNew] = useState(false);
 
   useEffect(() => {
@@ -51,29 +61,27 @@ export function ProjectCard({ project, index }: ProjectCardProps) {
 
           {/* Main Content */}
           <div className="min-w-0 flex-1">
-            {/* Header Row */}
-            <div className="flex items-center gap-2 mb-1">
-              <SourceBadge source={project.source} />
+            {/* Project Name & Badges */}
+            <div className="flex items-center gap-2 flex-wrap mb-1 min-w-0 w-full">
+              <Link
+                href={`/project/${project.slug.replace(/\//g, '-')}-${project.id}`}
+                className="group/link inline-flex items-center gap-1.5 min-w-0 max-w-full"
+              >
+                <h3 className="text-[17px] font-semibold text-[var(--color-text-primary)] group-hover/link:text-[var(--color-accent)] transition-colors truncate">
+                  {project.fullName}
+                </h3>
+                <ArrowUpRight className="h-3.5 w-3.5 text-[var(--color-text-muted)] opacity-0 group-hover/link:opacity-100 transition-all group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5 shrink-0" />
+              </Link>
+              <SourceBadge source={project.source} projectType={project.projectType} />
               {isNew && (
-                <span className="text-[10px] font-semibold tracking-wider uppercase bg-[var(--color-accent-dim)] text-[var(--color-accent)] px-1.5 py-0.5 rounded">
+                <span className="text-[10px] font-semibold tracking-wider uppercase bg-[var(--color-accent-dim)] text-[var(--color-accent)] px-1.5 py-0.5 rounded shrink-0">
                   NEW
                 </span>
               )}
             </div>
 
-            {/* Project Name */}
-            <Link
-              href={`/project/${project.slug.replace(/\//g, '-')}-${project.id}`}
-              className="group/link inline-flex items-center gap-1.5"
-            >
-              <h3 className="text-[17px] font-semibold text-[var(--color-text-primary)] group-hover/link:text-[var(--color-accent)] transition-colors truncate">
-                {project.fullName}
-              </h3>
-              <ArrowUpRight className="h-3.5 w-3.5 text-[var(--color-text-muted)] opacity-0 group-hover/link:opacity-100 transition-all group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5" />
-            </Link>
-
             {/* Description */}
-            <p className="text-[14px] text-[var(--color-text-secondary)] line-clamp-2 mt-1 leading-relaxed">
+            <p className="text-[14px] text-[var(--color-text-secondary)] line-clamp-2 mt-1 leading-relaxed break-words">
               {project.description}
             </p>
 
@@ -82,7 +90,7 @@ export function ProjectCard({ project, index }: ProjectCardProps) {
               {project.categories.slice(0, 2).map((cat) => (
                 <Link
                   key={cat.id}
-                  href={`/?category=${cat.slug}`}
+                  href={buildCategoryHref(cat.slug, currentFilter)}
                   className="category-chip transition-all hover:scale-105 active:scale-95 cursor-pointer"
                   style={{
                     color: cat.color,
@@ -96,10 +104,22 @@ export function ProjectCard({ project, index }: ProjectCardProps) {
                 </Link>
               ))}
               {project.primaryLanguage && (
-                <span className="category-chip text-[var(--color-text-tertiary)] bg-[var(--color-bg-secondary)] border border-[var(--color-border)]">
+                <span className="category-chip text-[var(--color-text-tertiary)] bg-[var(--color-bg-secondary)] border border-[var(--color-border)] select-none">
                   {project.primaryLanguage}
                 </span>
               )}
+              {project.topics && project.topics.slice(0, 4).map((topic) => (
+                <Link
+                  key={topic}
+                  href={`/?tag=${encodeURIComponent(topic)}`}
+                  className="category-chip text-[var(--color-action-blue)] bg-[var(--color-action-blue)]/5 border border-[var(--color-action-blue)]/10 hover:bg-[var(--color-action-blue)]/10 hover:text-[var(--color-action-blue-focus)] transition-all cursor-pointer font-medium"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                  }}
+                >
+                  #{topic}
+                </Link>
+              ))}
             </div>
           </div>
 
@@ -144,6 +164,11 @@ export function ProjectCard({ project, index }: ProjectCardProps) {
                 </span>
               )}
             </div>
+
+            {/* Updated time info */}
+            <span className="text-[11px] text-[var(--color-text-tertiary)] select-none opacity-80" title="Last Crawled">
+              Updated {timeAgo(project.lastCrawledAt || project.updatedAt)}
+            </span>
           </div>
         </div>
 
@@ -172,12 +197,17 @@ export function ProjectCard({ project, index }: ProjectCardProps) {
               </span>
             )}
           </div>
-          {project.starsGained > 0 && (
-            <span className="delta-positive">
-              {getDeltaPrefix(project.starsGained)}
-              {formatNumber(project.starsGained)}
+          <div className="flex items-center gap-2">
+            {project.starsGained > 0 && (
+              <span className="delta-positive">
+                {getDeltaPrefix(project.starsGained)}
+                {formatNumber(project.starsGained)}
+              </span>
+            )}
+            <span className="text-[11px] text-[var(--color-text-tertiary)]" title="Last Crawled">
+              Updated {timeAgo(project.lastCrawledAt || project.updatedAt)}
             </span>
-          )}
+          </div>
         </div>
       </div>
 

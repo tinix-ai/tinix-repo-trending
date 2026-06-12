@@ -13,7 +13,8 @@ import {
   Code2, 
   Tag, 
   LayoutGrid,
-  ArrowLeft
+  ArrowLeft,
+  Calendar
 } from "lucide-react";
 import { Link } from "@/i18n/routing";
 import ReactMarkdown from "react-markdown";
@@ -40,6 +41,31 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   };
 }
 
+function resolveRelativeUrl(url: string, sourceUrl: string | undefined, source: string, isImage: boolean): string {
+  if (!url || !sourceUrl) return url;
+  if (/^(https?:\/\/|mailto:|tel:|#|data:)/i.test(url) || url.startsWith("//")) return url;
+
+  // Clean leading ./ or /
+  const cleanUrl = url.replace(/^\.?\//, "");
+  const base = sourceUrl.replace(/\/$/, "");
+
+  if (source === "github") {
+    if (isImage) {
+      const rawBase = base.replace("github.com", "raw.githubusercontent.com");
+      return `${rawBase}/main/${cleanUrl}`;
+    } else {
+      return `${base}/blob/main/${cleanUrl}`;
+    }
+  } else if (source === "huggingface") {
+    if (isImage) {
+      return `${base}/resolve/main/${cleanUrl}`;
+    } else {
+      return `${base}/blob/main/${cleanUrl}`;
+    }
+  }
+  return url;
+}
+
 export default async function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params;
   const paramId = resolvedParams.id;
@@ -57,123 +83,130 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 
   return (
     <div className="w-full min-h-screen bg-[var(--color-bg-primary)]">
-      {/* Navigation Bar */}
-      <div className="w-full border-b border-[var(--color-divider-soft)] bg-[var(--color-canvas)]">
-        <div className="page-container max-w-5xl py-4">
-          <Link 
-            href="/" 
-            className="inline-flex items-center gap-2 text-sm font-medium text-[var(--color-ink-muted-80)] hover:text-[var(--color-action-blue)] transition-colors"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Trending
-          </Link>
-        </div>
-      </div>
-
       {/* Hero Section */}
-      <section className="apple-tile-light w-full py-12 lg:py-20 border-b border-[var(--color-divider-soft)]">
+      <section className="apple-tile-light w-full py-8 lg:py-12 border-b border-[var(--color-divider-soft)]">
         <div className="page-container max-w-5xl">
-          <div className="flex flex-col md:flex-row md:items-start justify-between gap-8">
+          <div className="flex flex-col gap-6">
             
-            {/* Title & Description */}
-            <div className="flex-1">
-              <div className="flex items-center gap-3 mb-6">
-                <SourceBadge source={project.source} />
-                {project.primaryLanguage && (
-                  <span className="flex items-center gap-1.5 text-[12px] font-semibold tracking-wider uppercase text-[var(--color-ink-muted-80)] bg-[var(--color-bg-secondary)] px-2 py-1 rounded-md border border-[var(--color-border)]">
-                    <Code2 className="h-3.5 w-3.5" />
-                    {project.primaryLanguage}
-                  </span>
+            {/* Breadcrumb */}
+            <div className="flex flex-wrap items-center gap-3 border-b border-[var(--color-divider-soft)] pb-4 mb-2">
+              <Link 
+                href="/" 
+                className="group inline-flex items-center gap-1.5 rounded-full border border-[var(--color-border)] bg-[var(--color-bg-secondary)] px-3 py-1.5 text-[11px] font-semibold tracking-wide uppercase text-[var(--color-ink-muted-80)] hover:text-[var(--color-action-blue)] hover:border-[var(--color-action-blue)]/30 hover:bg-[var(--color-canvas)] transition-all duration-200"
+              >
+                <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" />
+                Back to Trending
+              </Link>
+              
+              <div className="h-4 w-px bg-[var(--color-border)] mx-1 hidden sm:block" />
+              
+              <nav className="flex flex-wrap items-center gap-1.5 text-[11px] font-semibold tracking-wider uppercase text-[var(--color-ink-muted-48)]">
+                <Link href="/" className="hover:text-[var(--color-ink)] transition-colors">
+                  Trending
+                </Link>
+                <span className="text-[var(--color-border)] select-none">/</span>
+                {project.categories && project.categories.length > 0 && (
+                  <>
+                    <Link 
+                      href={`/?category=${project.categories[0].toLowerCase().replace(/\s+/g, "-")}`}
+                      className="hover:text-[var(--color-ink)] transition-colors truncate max-w-[120px]"
+                    >
+                      {project.categories[0]}
+                    </Link>
+                    <span className="text-[var(--color-border)] select-none">/</span>
+                  </>
                 )}
-              </div>
-
-              <h1 className="mb-4 flex items-center gap-4 flex-wrap">
-                <ProjectAvatar 
-                  src={project.ownerAvatarUrl} 
-                  name={project.ownerName} 
-                  size={48} 
-                />
-                <span className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-semibold tracking-tight text-[var(--color-ink)] break-all whitespace-normal">
-                  {project.fullName}
+                <span className="text-[var(--color-ink-muted-80)] truncate max-w-[180px]">
+                  {project.name}
                 </span>
-              </h1>
-
-              <p className="text-apple-lead text-[var(--color-ink-muted-80)] max-w-3xl">
-                {project.description || "No description provided for this repository."}
-              </p>
-
-              <div className="flex flex-wrap items-center gap-4 mt-8">
-                <a 
-                  href={project.sourceUrl} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="apple-btn-primary flex items-center gap-2 shadow-sm"
-                >
-                  Visit Repository <ExternalLink className="h-4 w-4" />
-                </a>
-                {project.homepageUrl && (
-                  <a 
-                    href={project.homepageUrl} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="apple-btn-secondary flex items-center gap-2 bg-[var(--color-canvas)] shadow-sm"
-                  >
-                    Homepage <ExternalLink className="h-4 w-4" />
-                  </a>
-                )}
-              </div>
+              </nav>
             </div>
 
-            {/* Metrics Widget */}
-            <div className="grid grid-cols-2 gap-4 shrink-0 w-full md:w-auto">
+            {/* Source Badges */}
+            <div className="flex items-center gap-3">
+              <SourceBadge source={project.source} projectType={project.projectType} />
+              {project.primaryLanguage && (
+                <span className="flex items-center gap-1.5 text-[12px] font-semibold tracking-wider uppercase text-[var(--color-ink-muted-80)] bg-[var(--color-bg-secondary)] px-2.5 py-1 rounded-md border border-[var(--color-border)]">
+                  <Code2 className="h-3.5 w-3.5" />
+                  {project.primaryLanguage}
+                </span>
+              )}
+            </div>
+
+            {/* Title & Avatar */}
+            <div className="flex items-center gap-4 flex-wrap">
+              <ProjectAvatar 
+                src={project.ownerAvatarUrl} 
+                name={project.ownerName} 
+                size={40} 
+              />
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-[var(--color-ink)] break-all whitespace-normal">
+                {project.fullName}
+              </h1>
+            </div>
+
+            {/* Description */}
+            <p className="text-apple-body text-[var(--color-ink-muted-80)] max-w-3xl leading-relaxed">
+              {project.description || "No description provided for this repository."}
+            </p>
+
+            {/* Stats Bar */}
+            <div className="flex flex-wrap items-center gap-x-8 gap-y-3 py-3 border-y border-[var(--color-divider-soft)] mt-2">
               {isGithub && (
                 <>
-                  <div className="apple-utility-card py-4 px-5 flex flex-col gap-1 items-start min-w-[140px]">
-                    <span className="flex items-center gap-1.5 text-apple-caption text-[var(--color-ink-muted-80)] font-semibold uppercase tracking-wider">
-                      <Star className="h-4 w-4 text-[var(--color-warning)]" /> Stars
-                    </span>
-                    <span className="text-apple-display-md text-[var(--color-ink)] tabular-nums">
-                      {formatNumber(project.stars)}
-                    </span>
+                  <div className="flex items-center gap-1.5">
+                    <Star className="h-4 w-4 text-[var(--color-warning)]" />
+                    <span className="text-sm font-semibold text-[var(--color-ink)] tabular-nums">{formatNumber(project.stars)}</span>
+                    <span className="text-xs text-[var(--color-ink-muted-80)] uppercase tracking-wider font-medium">stars</span>
                   </div>
-                  <div className="apple-utility-card py-4 px-5 flex flex-col gap-1 items-start min-w-[140px]">
-                    <span className="flex items-center gap-1.5 text-apple-caption text-[var(--color-ink-muted-80)] font-semibold uppercase tracking-wider">
-                      <GitFork className="h-4 w-4 text-[var(--color-text-muted)]" /> Forks
-                    </span>
-                    <span className="text-apple-display-md text-[var(--color-ink)] tabular-nums">
-                      {formatNumber(project.forks)}
-                    </span>
+                  <div className="flex items-center gap-1.5">
+                    <GitFork className="h-4 w-4 text-[var(--color-ink-muted-80)]" />
+                    <span className="text-sm font-semibold text-[var(--color-ink)] tabular-nums">{formatNumber(project.forks)}</span>
+                    <span className="text-xs text-[var(--color-ink-muted-80)] uppercase tracking-wider font-medium">forks</span>
                   </div>
-                  <div className="apple-utility-card py-4 px-5 flex flex-col gap-1 items-start min-w-[140px]">
-                    <span className="flex items-center gap-1.5 text-apple-caption text-[var(--color-ink-muted-80)] font-semibold uppercase tracking-wider">
-                      <CircleDot className="h-4 w-4 text-[var(--color-positive)]" /> Issues
-                    </span>
-                    <span className="text-apple-display-md text-[var(--color-ink)] tabular-nums">
-                      {formatNumber(project.openIssues)}
-                    </span>
+                  <div className="flex items-center gap-1.5">
+                    <CircleDot className="h-4 w-4 text-[var(--color-positive)]" />
+                    <span className="text-sm font-semibold text-[var(--color-ink)] tabular-nums">{formatNumber(project.openIssues)}</span>
+                    <span className="text-xs text-[var(--color-ink-muted-80)] uppercase tracking-wider font-medium">issues</span>
                   </div>
                 </>
               )}
 
               {isHuggingFace && (
                 <>
-                  <div className="apple-utility-card py-4 px-5 flex flex-col gap-1 items-start min-w-[140px]">
-                    <span className="flex items-center gap-1.5 text-apple-caption text-[var(--color-ink-muted-80)] font-semibold uppercase tracking-wider">
-                      <Star className="h-4 w-4 text-[var(--color-warning)]" /> Likes
-                    </span>
-                    <span className="text-apple-display-md text-[var(--color-ink)] tabular-nums">
-                      {formatNumber(project.stars)}
-                    </span>
+                  <div className="flex items-center gap-1.5">
+                    <Star className="h-4 w-4 text-[var(--color-warning)]" />
+                    <span className="text-sm font-semibold text-[var(--color-ink)] tabular-nums">{formatNumber(project.stars)}</span>
+                    <span className="text-xs text-[var(--color-ink-muted-80)] uppercase tracking-wider font-medium">likes</span>
                   </div>
-                  <div className="apple-utility-card py-4 px-5 flex flex-col gap-1 items-start min-w-[140px]">
-                    <span className="flex items-center gap-1.5 text-apple-caption text-[var(--color-ink-muted-80)] font-semibold uppercase tracking-wider">
-                      <Download className="h-4 w-4 text-[var(--color-info)]" /> Downloads
-                    </span>
-                    <span className="text-apple-display-md text-[var(--color-ink)] tabular-nums">
-                      {formatNumber(project.downloads)}
-                    </span>
+                  <div className="flex items-center gap-1.5">
+                    <Download className="h-4 w-4 text-[var(--color-info)]" />
+                    <span className="text-sm font-semibold text-[var(--color-ink)] tabular-nums">{formatNumber(project.downloads)}</span>
+                    <span className="text-xs text-[var(--color-ink-muted-80)] uppercase tracking-wider font-medium">downloads</span>
                   </div>
                 </>
+              )}
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-wrap items-center gap-3 mt-1">
+              <a 
+                href={project.sourceUrl} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="apple-btn-primary py-2 px-4 text-xs flex items-center gap-1.5"
+              >
+                Visit Repository <ExternalLink className="h-3.5 w-3.5" />
+              </a>
+              {project.homepageUrl && (
+                <a 
+                  href={project.homepageUrl} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="apple-btn-secondary py-2 px-4 text-xs flex items-center gap-1.5 bg-[var(--color-canvas)]"
+                >
+                  Homepage <ExternalLink className="h-3.5 w-3.5" />
+                </a>
               )}
             </div>
           </div>
@@ -188,7 +221,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
           <div className="min-w-0 space-y-8">
             
             {/* Historical Chart */}
-            <div className="apple-utility-card p-6 sm:p-8 shadow-sm">
+            <div className="apple-utility-card p-6 sm:p-8">
               <h3 className="text-apple-body-strong mb-6 text-[var(--color-ink)] flex items-center gap-2">
                 <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[var(--color-bg-secondary)] border border-[var(--color-border)]">📈</span>
                 30-Day Growth History
@@ -200,11 +233,31 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 
             {/* README */}
             {cleanedReadme ? (
-              <div className="apple-utility-card p-8 sm:p-10 shadow-sm overflow-hidden">
+              <div className="apple-utility-card p-8 sm:p-10 overflow-hidden">
                 <div className="prose max-w-none prose-headings:font-semibold prose-a:text-[var(--color-action-blue)] hover:prose-a:text-[var(--color-action-blue-focus)] prose-img:rounded-xl">
                   <ReactMarkdown 
                     remarkPlugins={[remarkGfm, [remarkToc, { heading: 'table of contents|toc|mục lục', tight: true }]]}
                     rehypePlugins={[rehypeRaw, rehypeSlug, rehypeHighlight]}
+                    components={{
+                      a: ({ href, children, ...props }) => (
+                        <a 
+                          href={resolveRelativeUrl(typeof href === "string" ? href : "", project.sourceUrl, project.source, false)} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          {...props}
+                        >
+                          {children}
+                        </a>
+                      ),
+                      img: ({ src, alt, ...props }) => (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img 
+                          src={resolveRelativeUrl(typeof src === "string" ? src : "", project.sourceUrl, project.source, true)} 
+                          alt={alt || ""} 
+                          {...props} 
+                        />
+                      )
+                    }}
                   >
                     {cleanedReadme}
                   </ReactMarkdown>
@@ -228,7 +281,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
             
             {/* AI Summary Widget */}
             {project.aiSummary && (
-              <div className="apple-utility-card p-6 bg-gradient-to-br from-[var(--color-surface-elevated)] to-[var(--color-bg-secondary)] border-[var(--color-action-blue)]/20 shadow-sm">
+              <div className="apple-utility-card p-6 bg-[var(--color-canvas)] border border-[var(--color-action-blue)]/20">
                 <h3 className="text-apple-body-strong mb-3 flex items-center gap-2">
                   <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[var(--color-action-blue)] text-white">✨</span>
                   AI Summary
@@ -264,15 +317,47 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                     <div className="text-[11px] font-semibold text-[var(--color-ink-muted-80)] uppercase tracking-wider mb-2">Topics</div>
                     <div className="flex flex-wrap gap-2">
                       {Array.from(new Set(project.topics)).map((topic: string) => (
-                        <span key={topic} className="inline-flex items-center gap-1 text-xs text-[var(--color-action-blue)] hover:underline cursor-pointer">
-                          <Tag className="h-3 w-3" /> {topic}
-                        </span>
+                        <Link 
+                          key={topic} 
+                          href={`/?tag=${encodeURIComponent(topic)}`}
+                          className="inline-flex items-center gap-1 text-xs text-[var(--color-action-blue)] hover:underline cursor-pointer font-medium"
+                        >
+                          <Tag className="h-3 w-3" /> #{topic}
+                        </Link>
                       ))}
                     </div>
                   </div>
                 )}
               </div>
             )}
+
+            {/* Timeline */}
+            <div className="apple-utility-card p-6">
+              <h3 className="text-apple-body-strong mb-4 flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-[var(--color-ink-muted-48)]" />
+                Timeline
+              </h3>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-[var(--color-ink-muted-80)]">Created</span>
+                  <span className="text-[var(--color-ink)] font-medium">
+                    {new Date(project.sourceCreatedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-[var(--color-ink-muted-80)]">Last Updated</span>
+                  <span className="text-[var(--color-ink)] font-medium">
+                    {new Date(project.updatedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-sm border-t border-[var(--color-divider-soft)] pt-3">
+                  <span className="text-[var(--color-ink-muted-80)]">Last Crawled</span>
+                  <span className="text-[var(--color-ink)] font-medium">
+                    {new Date(project.lastCrawledAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </div>
+              </div>
+            </div>
 
             {/* Meta Info */}
             <div className="apple-utility-card p-6">
