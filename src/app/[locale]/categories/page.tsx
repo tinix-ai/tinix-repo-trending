@@ -2,6 +2,7 @@ import { getCategoryStats } from "@/lib/db/queries";
 import { Link } from "@/i18n/routing";
 import { ChevronRight } from "lucide-react";
 import { getTranslations } from "next-intl/server";
+import { CategoryIcon } from "@/components/common/category-icon";
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
@@ -36,10 +37,10 @@ export default async function CategoriesPage() {
           >
             <div className="flex items-start justify-between mb-4">
               <div
-                className="flex items-center justify-center w-11 h-11 rounded-xl text-xl"
-                style={{ backgroundColor: `${cat.color}12` }}
+                className="flex items-center justify-center w-11 h-11 rounded-xl"
+                style={{ backgroundColor: `${cat.color}12`, color: cat.color }}
               >
-                {cat.icon}
+                <CategoryIcon icon={cat.icon} name={cat.name} className="h-5 w-5" />
               </div>
               <ChevronRight className="h-4 w-4 text-zinc-700 group-hover:text-zinc-400 group-hover:translate-x-0.5 transition-all" />
             </div>

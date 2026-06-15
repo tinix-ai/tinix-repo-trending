@@ -97,6 +97,14 @@ class GithubTokenPool {
       console.warn(`[GithubTokenPool] Token ${maskedToken} is EXHAUSTED! Locked until: ${resetDate}`);
     }
   }
+
+  /**
+   * Returns the timestamp when the next token becomes available.
+   */
+  public getNextAvailableTime(): number {
+    if (this.tokens.length === 0) return 0;
+    return Math.min(...this.tokens.map(t => t.exhaustedUntil));
+  }
 }
 
 export const githubPool = new GithubTokenPool();

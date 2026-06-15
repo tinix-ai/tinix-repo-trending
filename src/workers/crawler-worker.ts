@@ -8,6 +8,7 @@ import { categorizeProject } from '../lib/categorizer';
 import { updateProjectCrawlSchedule } from '../lib/crawlers/scheduler';
 import { githubPool } from '../lib/crawlers/github-pool';
 import { proxyManager } from '../lib/crawlers/proxy';
+import { setTimeout } from 'timers/promises';
 
 const redisConfig = {
   host: process.env.REDIS_HOST || 'localhost',
@@ -17,6 +18,10 @@ const redisConfig = {
 };
 
 const redisConnection = new Redis(redisConfig);
+
+redisConnection.on('error', (err) => {
+  console.error('[Crawler Worker] Redis connection error:', err.message);
+});
 
 interface CrawlJobData {
   owner: string;
@@ -31,12 +36,36 @@ export const crawlerWorker = new Worker<CrawlJobData>(
     console.log(`[Crawler] Starting crawl for ${owner}/${repo}`);
 
     try {
-      // Helper function to fetch from Github with Token Rotation and Retries
+      // Helper function to fetch from Github with Token Rotation, Proxy Rotation, and Smart Rate-Limit Waiting
       const fetchWithTokenRotation = async (url: string, isReadme = false) => {
-        let maxRetries = 3;
+        let maxRetries = 5; // Allow more retries to try multiple proxies/tokens
         while (maxRetries > 0) {
-          const currentToken = githubPool.getAvailableToken();
-          
+          let currentToken: string | null = null;
+          let tokenExhaustedError = false;
+
+          try {
+            currentToken = githubPool.getAvailableToken();
+          } catch (err: unknown) {
+            const error = err as Error;
+            if (error.message.includes('ALL tokens are currently exhausted')) {
+              tokenExhaustedError = true;
+            } else {
+              throw err;
+            }
+          }
+
+          // Case: All tokens exhausted, but we have proxies to fall back on for unauthenticated requests
+          const hasProxies = (process.env.PROXY_URLS || '').split(',').map(p => p.trim()).filter(Boolean).length > 0;
+          if (tokenExhaustedError && !hasProxies) {
+            // No proxies configured, so we must sleep until the next token availability
+            const nextTime = githubPool.getNextAvailableTime();
+            const sleepMs = Math.max(5000, nextTime - Date.now() + 5000);
+            const resetMinutes = Math.ceil(sleepMs / 60000);
+            console.warn(`[Crawler] All tokens exhausted and no proxies configured. Sleeping for ${resetMinutes} minute(s) before retry...`);
+            await setTimeout(sleepMs);
+            continue; // retry
+          }
+
           const headers: Record<string, string> = {
             'Accept': isReadme ? 'application/vnd.github.v3.raw' : 'application/vnd.github.v3+json',
           };
@@ -58,12 +87,26 @@ export const crawlerWorker = new Worker<CrawlJobData>(
           if (!response.ok) {
             if (response.status === 403 || response.status === 429) {
               if (currentToken) {
+                // Token-based limit
                 githubPool.markTokenExhausted(currentToken, reset);
                 console.warn(`[Crawler] 403/429 caught. Rotated token. Retries left: ${maxRetries - 1}`);
                 maxRetries--;
                 continue; // Retry with next token
+              } else if (hasProxies) {
+                // IP-based limit when using proxies
+                console.warn(`[Crawler] 403/429 caught on proxy/direct connection. Rotating proxy. Retries left: ${maxRetries - 1}`);
+                maxRetries--;
+                await setTimeout(2000); // 2 seconds delay
+                continue; // Retry with next random proxy
               } else {
-                throw new Error(`Rate limit exceeded and no tokens configured.`);
+                // No token and no proxies -> We hit IP rate limit on host. Must wait for reset.
+                const sleepMs = reset 
+                  ? Math.max(5000, (parseInt(reset) * 1000) - Date.now() + 5000)
+                  : 60000; // Default to 60s sleep
+                console.warn(`[Crawler] IP rate limited. No tokens or proxies available. Sleeping for ${Math.ceil(sleepMs / 1000)}s...`);
+                await setTimeout(sleepMs);
+                maxRetries--;
+                continue;
               }
             }
             if (response.status === 404) {
@@ -138,6 +181,7 @@ export const crawlerWorker = new Worker<CrawlJobData>(
           topics: data.topics || [],
           categories: canonicalCategories,
           sourceCreatedAt: new Date(data.created_at),
+          sourceUpdatedAt: new Date(data.pushed_at || data.updated_at || data.created_at),
           lastCrawledAt: new Date(),
         })
         .onConflictDoUpdate({
@@ -212,3 +256,12 @@ crawlerWorker.on('failed', (job, err) => {
 });
 
 console.log('[Crawler] Worker started and waiting for jobs...');
+
+// Global error handling for unhandled exceptions
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[Crawler Worker] Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+process.on('uncaughtException', (error) => {
+  console.error('[Crawler Worker] Uncaught Exception:', error);
+});

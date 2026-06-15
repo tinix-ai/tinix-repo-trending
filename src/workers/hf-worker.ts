@@ -6,6 +6,8 @@ import { projects, projectSnapshots } from '../lib/db/schema';
 import { sql } from 'drizzle-orm';
 import { categorizeProject } from '../lib/categorizer';
 import { updateProjectCrawlSchedule } from '../lib/crawlers/scheduler';
+import { proxyManager } from '../lib/crawlers/proxy';
+import { setTimeout } from 'timers/promises';
 
 const redisConfig = {
   host: process.env.REDIS_HOST || 'localhost',
@@ -15,6 +17,10 @@ const redisConfig = {
 };
 
 const redisConnection = new Redis(redisConfig);
+
+redisConnection.on('error', (err) => {
+  console.error('[HF Worker] Redis connection error:', err.message);
+});
 
 interface HFCrawlJobData {
   id: string; // e.g., 'meta-llama/Llama-2-7b'
@@ -28,38 +34,72 @@ export const hfWorker = new Worker<HFCrawlJobData>(
     console.log(`[HF Crawler] Starting crawl for ${type}: ${id}`);
 
     try {
-      // 1. Fetch data from HuggingFace API
-      const response = await fetch(`https://huggingface.co/api/${type}/${id}`, {
-        headers: {
-          'Accept': 'application/json',
-          ...(process.env.HF_TOKEN && {
-            'Authorization': `Bearer ${process.env.HF_TOKEN}`,
-          }),
-        },
-      });
+      // Helper function to fetch from HuggingFace with Proxy Rotation and Rate Limit Recovery
+      const fetchHFWithRetry = async (url: string, isText = false) => {
+        let maxRetries = 5;
+        const hasProxies = (process.env.PROXY_URLS || '').split(',').map(p => p.trim()).filter(Boolean).length > 0;
 
-      const remaining = response.headers.get('x-rate-limit-remaining') || response.headers.get('ratelimit-remaining');
-      const reset = response.headers.get('x-rate-limit-reset') || response.headers.get('ratelimit-reset');
-      if (remaining && parseInt(remaining) < 20) {
-        console.warn(`[HF Crawler] HF API rate limit is low: ${remaining} remaining. Resets in ${reset || 'unknown'}s`);
-      }
-
-      if (!response.ok) {
-        if (response.status === 404) {
-          console.warn(`[HF Crawler] Not found: ${id}`);
-          return { status: 'not_found' };
-        }
-        if (response.status === 429) {
-          let delayMsg = '';
-          if (reset) {
-            delayMsg = ` Resets in ${reset}s.`;
+        while (maxRetries > 0) {
+          const headers: Record<string, string> = {
+            'Accept': isText ? 'text/plain' : 'application/json',
+          };
+          if (process.env.HF_TOKEN) {
+            headers['Authorization'] = `Bearer ${process.env.HF_TOKEN}`;
           }
-          throw new Error(`Rate limited by HuggingFace API for ${id}.${delayMsg}`);
+
+          const dispatcher = proxyManager.getRandomDispatcher();
+          const fetchOptions: RequestInit & { dispatcher?: unknown } = { headers };
+          if (dispatcher) {
+            fetchOptions.dispatcher = dispatcher;
+          }
+
+          const response = await fetch(url, fetchOptions);
+
+          const remaining = response.headers.get('x-rate-limit-remaining') || response.headers.get('ratelimit-remaining');
+          const reset = response.headers.get('x-rate-limit-reset') || response.headers.get('ratelimit-reset');
+
+          if (remaining && parseInt(remaining) < 20) {
+            console.warn(`[HF Crawler] HF API rate limit is low: ${remaining} remaining. Resets in ${reset || 'unknown'}s`);
+          }
+
+          if (!response.ok) {
+            if (response.status === 429) {
+              if (hasProxies) {
+                console.warn(`[HF Crawler] 429 caught on proxy/direct connection. Rotating proxy. Retries left: ${maxRetries - 1}`);
+                maxRetries--;
+                await setTimeout(2000); // Wait 2s before retry
+                continue;
+              } else {
+                // No proxies -> sleep until reset time or default to 60s
+                const sleepMs = reset 
+                  ? Math.max(5000, parseInt(reset) * 1000)
+                  : 60000;
+                console.warn(`[HF Crawler] Rate limited by HuggingFace API. Sleeping for ${Math.ceil(sleepMs / 1000)}s before retry...`);
+                await setTimeout(sleepMs);
+                maxRetries--;
+                continue;
+              }
+            }
+            if (response.status === 404) {
+              return { status: 404, data: null };
+            }
+            throw new Error(`HuggingFace API error: ${response.status} ${response.statusText}`);
+          }
+
+          return { status: 200, data: isText ? await response.text() : await response.json() };
         }
-        throw new Error(`HuggingFace API error: ${response.statusText}`);
+        throw new Error('Failed to fetch HF data after max retries due to rate limiting.');
+      };
+
+      // 1. Fetch data from HuggingFace API
+      const result = await fetchHFWithRetry(`https://huggingface.co/api/${type}/${id}`);
+
+      if (result.status === 404) {
+        console.warn(`[HF Crawler] Not found: ${id}`);
+        return { status: 'not_found' };
       }
 
-      const data = await response.json();
+      const data = result.data;
 
       // 2. Process data and update database
       // HF IDs often contain slashes (e.g., meta-llama/Llama-2). We slugify it safely.
@@ -87,12 +127,9 @@ export const hfWorker = new Worker<HFCrawlJobData>(
       let finalDescription = data.cardData?.summary || data.description || '';
       try {
         const prefix = type === 'datasets' ? 'datasets/' : '';
-        const readmeRes = await fetch(`https://huggingface.co/${prefix}${id}/resolve/main/README.md`);
-        if (readmeRes.status === 429) {
-          throw new Error('Rate limit');
-        }
-        if (readmeRes.ok) {
-          readme = await readmeRes.text();
+        const readmeRes = await fetchHFWithRetry(`https://huggingface.co/${prefix}${id}/resolve/main/README.md`, true);
+        if (readmeRes.status === 200 && readmeRes.data) {
+          readme = readmeRes.data;
           if (!finalDescription && readme) {
             let clean = readme.trim();
             if (clean.startsWith('---')) {
@@ -106,10 +143,6 @@ export const hfWorker = new Worker<HFCrawlJobData>(
           }
         }
       } catch (e) {
-        const err = e as Error;
-        if (err.message === 'Rate limit') {
-          throw new Error(`Rate limited by HuggingFace API during README fetch for ${id}`);
-        }
         console.warn(`[HF Crawler] Failed to fetch README for ${id}`);
       }
 
@@ -134,6 +167,7 @@ export const hfWorker = new Worker<HFCrawlJobData>(
           topics: rawTags,
           categories: canonicalCategories,
           sourceCreatedAt: data.createdAt ? new Date(data.createdAt) : new Date(),
+          sourceUpdatedAt: data.lastModified ? new Date(data.lastModified) : (data.createdAt ? new Date(data.createdAt) : new Date()),
           lastCrawledAt: new Date(),
         })
         .onConflictDoUpdate({
@@ -190,9 +224,9 @@ export const hfWorker = new Worker<HFCrawlJobData>(
     connection: redisConnection as unknown as Worker['opts']['connection'],
     concurrency: 5, 
     limiter: {
-      // If HF_TOKEN is present, allow up to 5000 requests per hour (since each project has ~2 requests, so 2500 projects/hr)
-      // Otherwise, restrict to 60 requests per hour to avoid getting blocked.
-      max: process.env.HF_TOKEN ? 5000 : 60,
+      // If HF_TOKEN or PROXY_URLS is present, allow up to 5000 requests per hour
+      // Otherwise, restrict to 120 requests per hour (2 requests per project, so 60 projects/hr)
+      max: (process.env.HF_TOKEN || process.env.PROXY_URLS) ? 5000 : 120,
       duration: 3600000,
     },
     stalledInterval: 15000,
@@ -209,3 +243,12 @@ hfWorker.on('failed', (job, err) => {
 });
 
 console.log('[HF Crawler] Worker started and waiting for jobs...');
+
+// Global error handling for unhandled exceptions
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[HF Worker] Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+process.on('uncaughtException', (error) => {
+  console.error('[HF Worker] Uncaught Exception:', error);
+});

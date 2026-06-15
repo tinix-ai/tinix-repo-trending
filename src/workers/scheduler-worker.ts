@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { Worker, Job } from 'bullmq';
 import { redisConnection, schedulerQueue } from './queue';
-import { runDailyDiscovery, runDailyUpdate } from './cron';
+import { runDailyDiscovery, runDailyUpdate, runTrendCalculation } from './cron';
 
 console.log('[Scheduler Worker] Starting...');
 
@@ -13,6 +13,8 @@ const schedulerWorker = new Worker('scheduler-queue', async (job: Job) => {
       await runDailyDiscovery();
     } else if (job.name === 'daily-update') {
       await runDailyUpdate();
+    } else if (job.name === 'daily-trend-calc') {
+      await runTrendCalculation();
     } else {
       console.warn(`[Scheduler Worker] Unknown job name: ${job.name}`);
     }
@@ -57,6 +59,12 @@ async function setupRepeatableJobs() {
     jobId: 'repeat-daily-update'
   });
 
+  // 3. Daily Trend Calculation: Run at 01:00 every day (give crawler/update time to finish)
+  await schedulerQueue.add('daily-trend-calc', {}, {
+    repeat: { pattern: '0 1 * * *' },
+    jobId: 'repeat-daily-trend-calc'
+  });
+
   console.log('[Scheduler Worker] Repeatable jobs registered successfully.');
 }
 
@@ -74,4 +82,13 @@ process.on('SIGINT', async () => {
   console.log('[Scheduler Worker] Shutting down...');
   await schedulerWorker.close();
   process.exit(0);
+});
+
+// Global error handling for unhandled exceptions
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[Scheduler Worker] Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+process.on('uncaughtException', (error) => {
+  console.error('[Scheduler Worker] Uncaught Exception:', error);
 });

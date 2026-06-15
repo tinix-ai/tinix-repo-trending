@@ -2,6 +2,7 @@ import { fetchGlobalStats, fetchCategoryStats } from "@/app/actions";
 import { Database, TrendingUp, Layers } from "lucide-react";
 import type { Category } from "@/types";
 import { getTranslations } from "next-intl/server";
+import { CategoryIcon } from "@/components/common/category-icon";
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
@@ -74,7 +75,12 @@ export default async function StatsPage() {
               {categoryStats.map((cat: Category) => (
                 <tr key={cat.id} className="hover:bg-[var(--color-divider-soft)] transition-colors">
                   <td className="py-4 px-6 flex items-center gap-3">
-                    <span className="text-xl" style={{ color: cat.color }}>{cat.icon}</span>
+                    <span 
+                      className="flex items-center justify-center w-7 h-7 rounded-lg" 
+                      style={{ backgroundColor: `${cat.color}15`, color: cat.color }}
+                    >
+                      <CategoryIcon icon={cat.icon} name={cat.name} className="h-4 w-4" />
+                    </span>
                     <span className="font-medium text-[var(--color-ink)]">{cat.name}</span>
                   </td>
                   <td className="py-4 px-6 text-right font-medium tabular-nums text-[var(--color-ink-muted-80)]">

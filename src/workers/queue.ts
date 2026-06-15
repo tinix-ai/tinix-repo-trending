@@ -20,6 +20,10 @@ const globalForRedis = globalThis as unknown as {
 
 export const redisConnection = globalForRedis.redisConnection ?? new Redis(redisConfig);
 
+redisConnection.on('error', (err) => {
+  console.error('[Redis Connection] Global Redis connection error:', err.message);
+});
+
 if (process.env.NODE_ENV !== 'production') {
   globalForRedis.redisConnection = redisConnection;
 }

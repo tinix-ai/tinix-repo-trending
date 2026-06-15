@@ -1,5 +1,6 @@
 "use client";
 
+import { useSyncExternalStore } from 'react';
 import { 
   Line, 
   XAxis, 
@@ -25,6 +26,12 @@ interface ProjectHistoryChartProps {
 }
 
 export function ProjectHistoryChart({ data, source }: ProjectHistoryChartProps) {
+  const isClient = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
+
   // Determine primary metric based on source
   const isGithub = source === 'github';
   const primaryMetric = isGithub ? 'stars' : 'downloads';
@@ -32,9 +39,17 @@ export function ProjectHistoryChart({ data, source }: ProjectHistoryChartProps) 
   const secondaryMetric = isGithub ? 'forks' : 'likes';
   const secondaryColor = isGithub ? '#9ca3af' : '#eab308';
 
+  if (!isClient) {
+    return (
+      <div className="w-full h-full min-h-[180px] bg-[var(--color-bg-secondary)]/50 rounded-xl animate-pulse flex items-center justify-center border border-[var(--color-divider-soft)]">
+        <span className="text-xs text-[var(--color-ink-muted-48)]">Loading growth chart...</span>
+      </div>
+    );
+  }
+
   if (!data || data.length === 0) {
     return (
-      <div className="w-full h-full min-h-[300px] flex items-center justify-center bg-[var(--color-bg-secondary)] rounded-xl border border-dashed border-[var(--color-divider-soft)]">
+      <div className="w-full h-full min-h-[180px] flex items-center justify-center bg-[var(--color-bg-secondary)] rounded-xl border border-dashed border-[var(--color-divider-soft)]">
         <p className="text-sm text-[var(--color-ink-muted-48)]">No historical data available</p>
       </div>
     );
@@ -47,39 +62,50 @@ export function ProjectHistoryChart({ data, source }: ProjectHistoryChartProps) 
     return tickItem.toString();
   };
 
+  // Find min and max to prevent YAxis repeating ticks for identical values
+  const values = data.map(d => Number(d[primaryMetric] || 0)).filter(v => !isNaN(v));
+  const minVal = values.length > 0 ? Math.min(...values) : 0;
+  const maxVal = values.length > 0 ? Math.max(...values) : 100;
+  const isConstant = minVal === maxVal;
+  
+  const yDomain: [string | number, string | number] = isConstant
+    ? [Math.max(0, minVal - Math.max(10, Math.floor(minVal * 0.1))), maxVal + Math.max(10, Math.floor(maxVal * 0.1))]
+    : ['auto', 'auto'];
+
   return (
-    <div className="w-full h-full min-h-[300px] font-sans">
-      <ResponsiveContainer width="100%" height="100%">
+    <div className="w-full h-full font-sans min-h-[180px] min-w-0">
+      <ResponsiveContainer width="99%" height={180}>
         <AreaChart
           data={data}
           margin={{
             top: 10,
-            right: 10,
-            left: 0,
+            right: 5,
+            left: -25,
             bottom: 0,
           }}
         >
           <defs>
             <linearGradient id="colorPrimary" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor={primaryColor} stopOpacity={0.3}/>
+              <stop offset="5%" stopColor={primaryColor} stopOpacity={0.2}/>
               <stop offset="95%" stopColor={primaryColor} stopOpacity={0}/>
             </linearGradient>
           </defs>
-          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-divider-soft)" />
+          <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="var(--color-divider-soft)" opacity={0.4} />
           <XAxis 
             dataKey="date" 
             axisLine={false}
             tickLine={false}
-            tick={{ fontSize: 12, fill: 'var(--color-ink-muted-80)' }}
-            dy={10}
-            minTickGap={30}
+            tick={{ fontSize: 10, fill: 'var(--color-ink-muted-48)' }}
+            dy={8}
+            minTickGap={20}
           />
           <YAxis 
             axisLine={false}
             tickLine={false}
-            tick={{ fontSize: 12, fill: 'var(--color-ink-muted-80)' }}
+            tick={{ fontSize: 10, fill: 'var(--color-ink-muted-48)' }}
             tickFormatter={formatYAxis}
             width={40}
+            domain={yDomain}
           />
           <Tooltip 
             contentStyle={{ 
@@ -87,7 +113,8 @@ export function ProjectHistoryChart({ data, source }: ProjectHistoryChartProps) 
               borderColor: 'var(--color-divider-soft)',
               borderRadius: '12px',
               boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
-              color: 'var(--color-ink)'
+              color: 'var(--color-ink)',
+              fontSize: '12px'
             }}
             itemStyle={{
               color: 'var(--color-ink)',
@@ -98,7 +125,7 @@ export function ProjectHistoryChart({ data, source }: ProjectHistoryChartProps) 
             type="monotone" 
             dataKey={primaryMetric} 
             stroke={primaryColor} 
-            strokeWidth={3}
+            strokeWidth={2.5}
             fillOpacity={1} 
             fill="url(#colorPrimary)" 
             name={primaryMetric.charAt(0).toUpperCase() + primaryMetric.slice(1)}
@@ -108,7 +135,7 @@ export function ProjectHistoryChart({ data, source }: ProjectHistoryChartProps) 
             type="monotone" 
             dataKey={secondaryMetric} 
             stroke={secondaryColor} 
-            strokeWidth={2}
+            strokeWidth={1.5}
             dot={false}
             name={secondaryMetric.charAt(0).toUpperCase() + secondaryMetric.slice(1)}
           />

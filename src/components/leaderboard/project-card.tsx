@@ -6,6 +6,7 @@ import { formatNumber, getDeltaPrefix, timeAgo } from "@/lib/utils";
 import { Star, GitFork, Download, ArrowUpRight, ExternalLink } from "lucide-react";
 import { Sparkline } from "@/components/common/sparkline";
 import { SourceBadge } from "@/components/common/source-badge";
+import { CategoryIcon } from "@/components/common/category-icon";
 
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
@@ -102,7 +103,10 @@ export function ProjectCard({ project, index }: ProjectCardProps) {
                     e.stopPropagation();
                   }}
                 >
-                  {cat.icon} {cat.name}
+                  <div className="flex items-center gap-1">
+                    <CategoryIcon icon={cat.icon} name={cat.name} className="h-3 w-3 shrink-0" />
+                    <span>{cat.name}</span>
+                  </div>
                 </Link>
               ))}
               {project.primaryLanguage && (
@@ -168,8 +172,8 @@ export function ProjectCard({ project, index }: ProjectCardProps) {
             </div>
 
             {/* Updated time info */}
-            <span className="text-[11px] text-[var(--color-text-tertiary)] select-none opacity-80" title="Last Crawled">
-              {t("updated", { time: timeAgo(project.lastCrawledAt || project.updatedAt) })}
+            <span className="text-[11px] text-[var(--color-text-tertiary)] select-none opacity-80" title="Source Updated">
+              {t("updated", { time: timeAgo(project.sourceUpdatedAt || project.sourceCreatedAt || project.updatedAt) })}
             </span>
           </div>
         </div>
@@ -206,8 +210,8 @@ export function ProjectCard({ project, index }: ProjectCardProps) {
                 {formatNumber(project.starsGained)}
               </span>
             )}
-            <span className="text-[11px] text-[var(--color-text-tertiary)]" title="Last Crawled">
-              {t("updated", { time: timeAgo(project.lastCrawledAt || project.updatedAt) })}
+            <span className="text-[11px] text-[var(--color-text-tertiary)]" title="Source Updated">
+              {t("updated", { time: timeAgo(project.sourceUpdatedAt || project.sourceCreatedAt || project.updatedAt) })}
             </span>
           </div>
         </div>

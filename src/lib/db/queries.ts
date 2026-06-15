@@ -133,6 +133,7 @@ export async function getDynamicTrendingProjects(params: ProjectQueryParams): Pr
         p.updated_at,
         p.last_crawled_at,
         p.source_created_at,
+        p.source_updated_at,
         p.categories,
         GREATEST(c.stars - COALESCE(prev.stars, earliest.stars, c.stars), 0) as stars_gained,
         GREATEST(c.forks - COALESCE(prev.forks, earliest.forks, c.forks), 0) as forks_gained,
@@ -151,8 +152,8 @@ export async function getDynamicTrendingProjects(params: ProjectQueryParams): Pr
       SELECT 
         *,
         CASE 
-          WHEN source = 'github' THEN stars_gained + (forks_gained * 2.0) + (contributors_gained * 5.0)
-          WHEN source = 'huggingface' THEN likes_gained + (downloads_gained / 1000.0)
+          WHEN source = 'github' THEN stars_gained
+          WHEN source = 'huggingface' THEN downloads_gained
           ELSE 0 
         END as momentum_score
       FROM deltas
@@ -195,6 +196,7 @@ export async function getDynamicTrendingProjects(params: ProjectQueryParams): Pr
       createdAt: typeof r.created_at === 'string' ? r.created_at : ((r.created_at as Date)?.toISOString() || new Date().toISOString()),
       updatedAt: typeof r.updated_at === 'string' ? r.updated_at : ((r.updated_at as Date)?.toISOString() || new Date().toISOString()),
       sourceCreatedAt: typeof r.source_created_at === 'string' ? r.source_created_at : ((r.source_created_at as Date)?.toISOString() || new Date().toISOString()),
+      sourceUpdatedAt: r.source_updated_at ? (typeof r.source_updated_at === 'string' ? r.source_updated_at : (r.source_updated_at as Date).toISOString()) : undefined,
       lastCrawledAt: typeof r.last_crawled_at === 'string' ? r.last_crawled_at : ((r.last_crawled_at as Date)?.toISOString() || new Date().toISOString()),
       
       rank: Number(r.rank),
@@ -452,7 +454,7 @@ export async function getProjectBySlug(slug: string) {
 export async function getProjectHistory(projectId: string, days: number = 30) {
   try {
     const result = await db.execute(sql`
-      SELECT 
+      SELECT DISTINCT ON (snapshot_date) 
         snapshot_date,
         stars,
         forks,
@@ -461,7 +463,7 @@ export async function getProjectHistory(projectId: string, days: number = 30) {
       FROM project_snapshots
       WHERE project_id = ${projectId}
         AND snapshot_date >= CURRENT_DATE - ${days} * INTERVAL '1 day'
-      ORDER BY snapshot_date ASC
+      ORDER BY snapshot_date ASC, created_at DESC
     `);
     
     return result.map(row => {

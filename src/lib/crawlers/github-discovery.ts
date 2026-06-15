@@ -18,7 +18,7 @@ export async function discoverNewRepos(maxPages: number = 3): Promise<Discovered
   const checkpointKey = "crawler:checkpoint:github-discovery";
   
   // We look for AI/ML topics, with a reasonable star threshold to filter spam
-  const query = encodeURIComponent("topic:ai topic:machine-learning topic:llm stars:>100");
+  const query = encodeURIComponent("(topic:ai OR topic:machine-learning OR topic:llm OR topic:deep-learning) stars:>100");
   const sort = "updated"; // Get most recently active
   const order = "desc";
   
@@ -46,9 +46,32 @@ export async function discoverNewRepos(maxPages: number = 3): Promise<Discovered
 
   // Helper for Token Rotation (shared across all pages)
   const fetchWithTokenRotation = async (url: string) => {
-    let maxRetries = 3;
+    let maxRetries = 5;
     while (maxRetries > 0) {
-      const currentToken = githubPool.getAvailableToken();
+      let currentToken: string | null = null;
+      let tokenExhaustedError = false;
+
+      try {
+        currentToken = githubPool.getAvailableToken();
+      } catch (err: unknown) {
+        const error = err as Error;
+        if (error.message.includes('ALL tokens are currently exhausted')) {
+          tokenExhaustedError = true;
+        } else {
+          throw err;
+        }
+      }
+
+      const hasProxies = (process.env.PROXY_URLS || '').split(',').map(p => p.trim()).filter(Boolean).length > 0;
+      if (tokenExhaustedError && !hasProxies) {
+        const nextTime = githubPool.getNextAvailableTime();
+        const sleepMs = Math.max(5000, nextTime - Date.now() + 5000);
+        const resetMinutes = Math.ceil(sleepMs / 60000);
+        console.warn(`[Discovery] All tokens exhausted and no proxies configured. Sleeping for ${resetMinutes} minute(s) before retry...`);
+        await setTimeout(sleepMs);
+        continue;
+      }
+
       const headers: Record<string, string> = {
         "Accept": "application/vnd.github.v3+json",
       };
@@ -70,8 +93,19 @@ export async function discoverNewRepos(maxPages: number = 3): Promise<Discovered
             console.warn(`[Discovery] Rate limit hit. Rotated token. Retries left: ${maxRetries - 1}`);
             maxRetries--;
             continue;
+          } else if (hasProxies) {
+            console.warn(`[Discovery] 403/429 caught on proxy/direct connection. Rotating proxy. Retries left: ${maxRetries - 1}`);
+            maxRetries--;
+            await setTimeout(2000);
+            continue;
           } else {
-            throw new Error(`Rate limit exceeded and no tokens configured.`);
+            const sleepMs = reset 
+              ? Math.max(5000, (parseInt(reset) * 1000) - Date.now() + 5000)
+              : 60000;
+            console.warn(`[Discovery] IP rate limited. Sleeping for ${Math.ceil(sleepMs / 1000)}s...`);
+            await setTimeout(sleepMs);
+            maxRetries--;
+            continue;
           }
         }
         throw new Error(`GitHub API Error: ${response.status} ${response.statusText}`);

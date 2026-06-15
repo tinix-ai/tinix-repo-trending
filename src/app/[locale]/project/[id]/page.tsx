@@ -1,3 +1,4 @@
+import React from "react";
 import { fetchProjectById, fetchProjectHistory } from "@/app/actions";
 import { notFound } from "next/navigation";
 import { formatNumber, cleanReadme } from "@/lib/utils";
@@ -11,7 +12,6 @@ import {
   ExternalLink, 
   Clock, 
   Code2, 
-  Tag, 
   LayoutGrid,
   ArrowLeft,
   Calendar
@@ -25,6 +25,7 @@ import rehypeSlug from "rehype-slug";
 import rehypeRaw from "rehype-raw";
 import "highlight.js/styles/github-dark.css";
 import { ProjectHistoryChart } from "@/components/project/history-chart";
+import { TopicsList } from "@/components/project/topics-list";
 import { getTranslations } from "next-intl/server";
 
 // Metadata generation
@@ -223,17 +224,6 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
           {/* Left Column: Chart & README */}
           <div className="min-w-0 space-y-8">
             
-            {/* Historical Chart */}
-            <div className="apple-utility-card p-6 sm:p-8">
-              <h3 className="text-apple-body-strong mb-6 text-[var(--color-ink)] flex items-center gap-2">
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[var(--color-bg-secondary)] border border-[var(--color-border)]">📈</span>
-                {t("growthHistory")}
-              </h3>
-              <div className="h-[300px]">
-                <ProjectHistoryChart data={historyData} source={project.source} />
-              </div>
-            </div>
-
             {/* README */}
             {cleanedReadme ? (
               <div className="apple-utility-card p-8 sm:p-10 overflow-hidden">
@@ -259,7 +249,12 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                           alt={alt || ""} 
                           {...props} 
                         />
-                      )
+                      ),
+                      /* eslint-disable @typescript-eslint/no-unused-vars */
+                      td: ({ node, vAlign, valign, ...props }: React.ComponentPropsWithoutRef<"td"> & { node?: unknown; vAlign?: unknown; valign?: unknown }) => <td {...props} />,
+                      th: ({ node, vAlign, valign, ...props }: React.ComponentPropsWithoutRef<"th"> & { node?: unknown; vAlign?: unknown; valign?: unknown }) => <th {...props} />,
+                      tr: ({ node, vAlign, valign, ...props }: React.ComponentPropsWithoutRef<"tr"> & { node?: unknown; vAlign?: unknown; valign?: unknown }) => <tr {...props} />
+                      /* eslint-enable @typescript-eslint/no-unused-vars */
                     }}
                   >
                     {cleanedReadme}
@@ -282,6 +277,17 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
           {/* Right Column: Sidebar */}
           <aside className="space-y-6">
             
+            {/* Historical Chart Widget */}
+            <div className="apple-utility-card p-5 overflow-hidden">
+              <h3 className="text-apple-body-strong mb-4 text-[var(--color-ink)] flex items-center gap-2 text-sm">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[var(--color-bg-secondary)] border border-[var(--color-border)] text-xs">📈</span>
+                {t("growthHistory")}
+              </h3>
+              <div className="h-[200px]">
+                <ProjectHistoryChart data={historyData} source={project.source} />
+              </div>
+            </div>
+
             {/* AI Summary Widget */}
             {project.aiSummary && (
               <div className="apple-utility-card p-6 bg-[var(--color-canvas)] border border-[var(--color-action-blue)]/20">
@@ -318,17 +324,11 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                 {project.topics?.length > 0 && (
                   <div>
                     <div className="text-[11px] font-semibold text-[var(--color-ink-muted-80)] uppercase tracking-wider mb-2">{t("topics")}</div>
-                    <div className="flex flex-wrap gap-2">
-                      {Array.from(new Set(project.topics)).map((topic: string) => (
-                        <Link 
-                          key={topic} 
-                          href={`/?tag=${encodeURIComponent(topic)}`}
-                          className="inline-flex items-center gap-1 text-xs text-[var(--color-action-blue)] hover:underline cursor-pointer font-medium"
-                        >
-                          <Tag className="h-3 w-3" /> #{topic}
-                        </Link>
-                      ))}
-                    </div>
+                    <TopicsList 
+                      topics={project.topics}
+                      showMoreLabel={t("showMore")}
+                      showLessLabel={t("showLess")}
+                    />
                   </div>
                 )}
               </div>

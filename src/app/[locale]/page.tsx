@@ -21,6 +21,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { SearchableSelect } from "@/components/common/searchable-select";
+import { CategoryIcon } from "@/components/common/category-icon";
 
 function getPageNumbers(currentPage: number, totalPages: number): (number | string)[] {
   const pages: (number | string)[] = [];
@@ -64,7 +65,7 @@ export default function HomePage() {
   const searchParams = useSearchParams();
 
   // Dynamic Ranking Filters
-  const [days, setDays] = useState<number>(Number(searchParams.get("days")) || 7);
+  const [days, setDays] = useState<number>(Number(searchParams.get("days")) || 1);
   const [minStars, setMinStars] = useState<number>(100);
   const [minDownloads, setMinDownloads] = useState<number>(1000);
   
@@ -197,10 +198,10 @@ export default function HomePage() {
 
   return (
     <div className="w-full">
-      <section className="apple-tile-light w-full py-16 lg:py-24 border-b border-[var(--color-divider-soft)]">
-        <div className="page-container flex flex-col lg:flex-row lg:items-end lg:justify-between gap-10">
-          <div className="max-w-2xl">
-            <div className="flex items-center gap-2 mb-6">
+      <section className="apple-tile-light w-full pt-8 pb-10 lg:pt-12 lg:pb-14 border-b border-[var(--color-divider-soft)]">
+        <div className="page-container flex flex-col items-center text-center max-w-4xl mx-auto gap-6">
+          <div className="flex flex-col items-center max-w-2xl">
+            <div className="flex items-center gap-2 mb-4">
               <div className="flex items-center gap-1.5 rounded-full border border-[var(--color-accent-dim)] bg-[var(--color-accent-dim)] px-3 py-1 text-[11px] font-semibold tracking-wider text-[var(--color-accent)] uppercase">
                 <span className="relative flex h-1.5 w-1.5">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--color-accent)] opacity-75" />
@@ -213,47 +214,52 @@ export default function HomePage() {
               </span>
             </div>
 
-            <h1 className="text-apple-hero text-[var(--color-ink)] mb-6">
-              {t("heroTitle")}
-              <br />
-              <span className="text-[var(--color-action-blue)]">
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-[var(--color-ink)] mb-4 leading-tight">
+              {t("heroTitle")}{" "}
+              <span className="text-[var(--color-action-blue)] block sm:inline">
                 {t("heroHighlight")}
               </span>
             </h1>
 
-            <p className="text-apple-lead text-[var(--color-ink-muted-80)] max-w-xl">
+            <p className="text-sm sm:text-base text-[var(--color-ink-muted-80)] max-w-xl leading-relaxed">
               {t("heroDesc")}
             </p>
           </div>
 
-          <div className="flex gap-4 lg:gap-6 flex-wrap md:flex-nowrap justify-start lg:justify-end">
-            <div className="apple-utility-card flex flex-col items-center gap-2 min-w-[120px] py-5 px-4 shadow-sm border border-[var(--color-divider-soft)]">
-              <TrendingUp className="h-5 w-5 text-[var(--color-action-blue)] mb-1 shrink-0" />
-              <span className="text-apple-display-lg text-[var(--color-ink)] tabular-nums font-bold tracking-tight">
+          <div className="flex items-center justify-center divide-x divide-[var(--color-divider-soft)] bg-[var(--color-surface-pearl)] border border-[var(--color-border)] rounded-full px-6 py-3.5 shadow-sm max-w-xl w-full mx-auto">
+            <div className="flex-1 flex flex-col items-center px-2">
+              <div className="flex items-center gap-1.5 text-[var(--color-action-blue)] mb-0.5">
+                <TrendingUp className="h-4 w-4 shrink-0" />
+                <span className="text-[10px] text-[var(--color-ink-muted-80)] uppercase tracking-wider font-semibold">
+                  {t("projects")}
+                </span>
+              </div>
+              <span className="text-lg md:text-xl text-[var(--color-ink)] tabular-nums font-bold tracking-tight">
                 {formatNumber(stats.totalProjects)}
               </span>
-              <span className="text-[10px] text-[var(--color-ink-muted-80)] uppercase tracking-widest font-semibold">
-                {t("projects")}
-              </span>
             </div>
 
-            <div className="apple-utility-card flex flex-col items-center gap-2 min-w-[120px] py-5 px-4 shadow-sm border border-[var(--color-divider-soft)]">
-              <Zap className="h-5 w-5 text-amber-500 mb-1 shrink-0" />
-              <span className="text-apple-display-lg text-[var(--color-ink)] tabular-nums font-bold tracking-tight">
+            <div className="flex-1 flex flex-col items-center px-2">
+              <div className="flex items-center gap-1.5 text-amber-500 mb-0.5">
+                <Zap className="h-4 w-4 shrink-0" />
+                <span className="text-[10px] text-[var(--color-ink-muted-80)] uppercase tracking-wider font-semibold">
+                  {t("trending")}
+                </span>
+              </div>
+              <span className="text-lg md:text-xl text-[var(--color-ink)] tabular-nums font-bold tracking-tight">
                 {formatNumber(stats.trendingProjects)}
               </span>
-              <span className="text-[10px] text-[var(--color-ink-muted-80)] uppercase tracking-widest font-semibold">
-                {t("trending")}
-              </span>
             </div>
 
-            <div className="apple-utility-card flex flex-col items-center gap-2 min-w-[120px] py-5 px-4 shadow-sm border border-[var(--color-divider-soft)]">
-              <Sparkles className="h-5 w-5 text-emerald-500 mb-1 shrink-0" />
-              <span className="text-apple-display-lg text-[var(--color-ink)] tabular-nums font-bold tracking-tight">
+            <div className="flex-1 flex flex-col items-center px-2">
+              <div className="flex items-center gap-1.5 text-emerald-500 mb-0.5">
+                <Sparkles className="h-4 w-4 shrink-0" />
+                <span className="text-[10px] text-[var(--color-ink-muted-80)] uppercase tracking-wider font-semibold">
+                  {t("new")}
+                </span>
+              </div>
+              <span className="text-lg md:text-xl text-[var(--color-ink)] tabular-nums font-bold tracking-tight">
                 {formatNumber(stats.newProjects)}
-              </span>
-              <span className="text-[10px] text-[var(--color-ink-muted-80)] uppercase tracking-widest font-semibold">
-                {t("new")}
               </span>
             </div>
           </div>
@@ -484,6 +490,34 @@ export default function HomePage() {
                   </span>
                 )}
               </div>
+
+              {/* Sort Controls */}
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-[var(--color-ink-muted-80)] font-medium hidden sm:inline">{t("sortBy")}:</span>
+                <select 
+                  className="h-8 rounded-lg border border-[var(--color-hairline)] bg-[var(--color-surface-elevated)] px-2.5 py-1 text-xs outline-none focus:border-[var(--color-action-blue)] focus:ring-1 focus:ring-[var(--color-action-blue)] font-medium text-[var(--color-ink)] cursor-pointer transition-all hover:bg-[var(--color-surface-pearl)]"
+                  value={sortBy && sortOrder ? `${sortBy}-${sortOrder}` : ""}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    const params = new URLSearchParams(searchParams.toString());
+                    if (!val) {
+                       params.delete("sortBy");
+                       params.delete("sortOrder");
+                    } else {
+                      const [col, ord] = val.split("-");
+                      params.set("sortBy", col);
+                      params.set("sortOrder", ord);
+                    }
+                    params.delete("page");
+                    router.push(`${pathname}?${params.toString()}`);
+                  }}
+                >
+                  <option value="">{t("sortTrendDesc")}</option>
+                  <option value="stars-desc">{t("sortStarsDesc")}</option>
+                  <option value="stars-asc">{t("sortStarsAsc")}</option>
+                  <option value="updated-desc">{t("sortUpdatedDesc")}</option>
+                </select>
+              </div>
             </div>
 
             <div className={`transition-opacity duration-300 ${isPending ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
@@ -653,17 +687,24 @@ export default function HomePage() {
                   <Link
                     key={cat.id}
                     href={`/?category=${cat.slug}`}
-                    className="flex items-center justify-between rounded-lg px-3 py-2.5 transition-colors hover:bg-[var(--color-divider-soft)] group"
+                    className="flex items-center justify-between rounded-xl px-3.5 py-2.5 transition-all duration-200 hover:bg-[var(--color-divider-soft)] active:scale-[0.98] group min-w-0"
                   >
-                    <span className="flex items-center gap-3">
-                      <span className="text-[var(--color-ink-muted-80)]">{cat.icon}</span>
-                      <span className="text-apple-body text-[var(--color-ink)]">{cat.name}</span>
+                    <span className="flex items-center gap-3 min-w-0">
+                      <span 
+                        className="flex items-center justify-center w-7 h-7 rounded-lg shrink-0" 
+                        style={{ backgroundColor: `${cat.color}15`, color: cat.color }}
+                      >
+                        <CategoryIcon icon={cat.icon} name={cat.name} className="h-4 w-4" />
+                      </span>
+                      <span className="text-sm font-semibold text-[var(--color-ink)] truncate group-hover:text-[var(--color-action-blue)] transition-colors">
+                        {cat.name}
+                      </span>
                     </span>
-                    <span className="flex items-center gap-2">
-                      <span className="text-apple-caption text-[var(--color-ink-muted-80)] tabular-nums">
+                    <span className="flex items-center gap-1.5 shrink-0 ml-2">
+                      <span className="text-xs font-semibold text-[var(--color-ink-muted-80)] tabular-nums bg-[var(--color-bg-secondary)] border border-[var(--color-border)] px-2 py-0.5 rounded-full">
                         {cat.projectCount}
                       </span>
-                      <ChevronRight className="h-3.5 w-3.5 text-[var(--color-ink-muted-48)] group-hover:text-[var(--color-action-blue)] transition-colors" />
+                      <ChevronRight className="h-3.5 w-3.5 text-[var(--color-ink-muted-48)] group-hover:text-[var(--color-action-blue)] group-hover:translate-x-0.5 transition-all" />
                     </span>
                   </Link>
                 ))}

@@ -2,7 +2,7 @@
 
 import { getDynamicTrendingProjects, ProjectQueryParams, getGlobalStats, getProjectBySlug, getProjectHistory, getProjectById, getCategoryStats, getPopularLanguagesAndHashtags } from "@/lib/db/queries";
 import type { RankedProject } from "@/types";
-import { crawlerQueue, hfQueue, schedulerQueue } from "@/workers/queue";
+import { redisConnection, crawlerQueue, hfQueue, schedulerQueue } from "@/workers/queue";
 import { discoverNewRepos } from "@/lib/crawlers/github-discovery";
 import { discoverHFTrending } from "@/lib/crawlers/hf-discovery";
 import { db } from "@/lib/db";
@@ -117,7 +117,7 @@ export async function fetchQueueStats() {
 
 export async function fetchDetailedQueueStats() {
   try {
-    const getQueueDetails = async (queue: typeof crawlerQueue) => {
+    const getQueueDetails = async (queue: typeof crawlerQueue, queueName: string) => {
       const [waiting, active, completed, failed, delayed, paused] = await Promise.all([
         queue.getWaitingCount(),
         queue.getActiveCount(),
@@ -126,18 +126,64 @@ export async function fetchDetailedQueueStats() {
         queue.getDelayedCount(),
         queue.isPaused(),
       ]);
-      return { waiting, active, completed, failed, delayed, isPaused: paused, total: completed + failed };
+
+      // Get breakdown for discovery vs update
+      let discovery = 0;
+      let update = 0;
+
+      try {
+        const [waitingIds, activeJobs] = await Promise.all([
+          redisConnection.lrange(`bull:${queueName}:wait`, 0, -1),
+          queue.getActive(),
+        ]);
+        const activeIds = activeJobs.map(j => j.id).filter((id): id is string => typeof id === 'string');
+
+        const classify = (id: string) => {
+          if (
+            id.startsWith('discovery-') || 
+            id.startsWith('bootstrap-') || 
+            id.startsWith('hf-model-') || 
+            id.startsWith('hf-dataset-') ||
+            id.startsWith('hf-') ||
+            id.includes('manual-submit-')
+          ) {
+            discovery++;
+          } else if (id.startsWith('update-')) {
+            update++;
+          } else {
+            // Default to discovery if unknown prefix
+            discovery++;
+          }
+        };
+
+        waitingIds.forEach(classify);
+        activeIds.forEach(classify);
+      } catch (redisError) {
+        console.error(`Failed to scan job IDs for ${queueName}:`, redisError);
+      }
+
+      return { 
+        waiting, 
+        active, 
+        completed, 
+        failed, 
+        delayed, 
+        isPaused: paused, 
+        total: completed + failed,
+        discovery,
+        update
+      };
     };
 
     const [github, huggingface] = await Promise.all([
-      getQueueDetails(crawlerQueue),
-      getQueueDetails(hfQueue),
+      getQueueDetails(crawlerQueue, 'github-crawler'),
+      getQueueDetails(hfQueue, 'hf-crawler'),
     ]);
 
     return { github, huggingface };
   } catch (error) {
     console.error("Failed to fetch detailed queue stats:", error);
-    const empty = { waiting: 0, active: 0, completed: 0, failed: 0, delayed: 0, isPaused: false, total: 0 };
+    const empty = { waiting: 0, active: 0, completed: 0, failed: 0, delayed: 0, isPaused: false, total: 0, discovery: 0, update: 0 };
     return { github: empty, huggingface: empty };
   }
 }

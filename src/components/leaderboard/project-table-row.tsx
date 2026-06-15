@@ -5,6 +5,7 @@ import type { RankedProject } from "@/types";
 import { formatNumber, getDeltaPrefix, timeAgo } from "@/lib/utils";
 import { Sparkline } from "@/components/common/sparkline";
 import { SourceBadge } from "@/components/common/source-badge";
+import { CategoryIcon } from "@/components/common/category-icon";
 
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
@@ -84,7 +85,10 @@ export function ProjectTableRow({ project, index }: ProjectTableRowProps) {
               backgroundColor: `${project.categories[0].color}15`,
             }}
           >
-            {project.categories[0].icon} {project.categories[0].name}
+            <div className="flex items-center gap-1">
+              <CategoryIcon icon={project.categories[0].icon} name={project.categories[0].name} className="h-3 w-3 shrink-0" />
+              <span>{project.categories[0].name}</span>
+            </div>
           </Link>
         )}
       </td>

@@ -14,6 +14,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 import {
   fetchDetailedQueueStats,
   pauseQueue,
@@ -31,6 +32,8 @@ interface QueueDetails {
   delayed: number;
   isPaused: boolean;
   total: number;
+  discovery: number;
+  update: number;
 }
 
 interface DetailedStats {
@@ -48,6 +51,7 @@ interface Toast {
 }
 
 export function QueueControlPanel() {
+  const t = useTranslations("Admin");
   const [stats, setStats] = useState<DetailedStats | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [countdown, setCountdown] = useState(5);
@@ -164,6 +168,47 @@ export function QueueControlPanel() {
             </div>
           ))}
         </div>
+
+        {/* Job Type Breakdown (Tìm mới & Cập nhật hàng ngày) */}
+        {q.discovery !== undefined && q.update !== undefined && (
+          <div className="mb-6 p-4 rounded-xl bg-[var(--color-bg-secondary)] border border-[var(--color-divider-soft)] space-y-3">
+            <div className="flex justify-between items-center text-xs">
+              <span className="font-semibold text-[var(--color-ink-muted-80)]">{t("queueBreakdown")}</span>
+              <span className="text-[var(--color-ink-muted-48)] tabular-nums">
+                {t("totalJobs", { count: (q.discovery + q.update) })}
+              </span>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-3 rounded-lg bg-[var(--color-canvas)] border border-[var(--color-divider-soft)]">
+                <div className="text-[10px] uppercase tracking-wider text-blue-500 font-bold mb-1">{t("discoveryJobs")}</div>
+                <div className="text-xl font-bold text-[var(--color-ink)] tabular-nums">{q.discovery.toLocaleString()}</div>
+                <div className="text-[10px] text-[var(--color-ink-muted-48)] mt-0.5">{t("discoveryDesc")}</div>
+              </div>
+              <div className="p-3 rounded-lg bg-[var(--color-canvas)] border border-[var(--color-divider-soft)]">
+                <div className="text-[10px] uppercase tracking-wider text-amber-500 font-bold mb-1">{t("updateJobs")}</div>
+                <div className="text-xl font-bold text-[var(--color-ink)] tabular-nums">{q.update.toLocaleString()}</div>
+                <div className="text-[10px] text-[var(--color-ink-muted-48)] mt-0.5">{t("updateDesc")}</div>
+              </div>
+            </div>
+
+            {/* Split Progress Bar */}
+            {q.discovery + q.update > 0 && (
+              <div className="w-full h-2 bg-[var(--color-canvas)] rounded-full overflow-hidden flex border border-[var(--color-divider-soft)]">
+                <div 
+                  className="h-full bg-blue-500 transition-all duration-500" 
+                  style={{ width: `${(q.discovery / (q.discovery + q.update)) * 100}%` }}
+                  title={`${t("discoveryJobs")}: ${((q.discovery / (q.discovery + q.update)) * 100).toFixed(0)}%`}
+                />
+                <div 
+                  className="h-full bg-amber-500 transition-all duration-500" 
+                  style={{ width: `${(q.update / (q.discovery + q.update)) * 100}%` }}
+                  title={`${t("updateJobs")}: ${((q.update / (q.discovery + q.update)) * 100).toFixed(0)}%`}
+                />
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Total processed */}
         <div className="flex items-center justify-between text-xs text-[var(--color-ink-muted-80)] mb-4 px-1">

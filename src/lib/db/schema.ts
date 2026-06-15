@@ -24,6 +24,7 @@ export const projects = pgTable("projects", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
   sourceCreatedAt: timestamp("source_created_at"),
+  sourceUpdatedAt: timestamp("source_updated_at"),
   lastCrawledAt: timestamp("last_crawled_at"),
   crawlInterval: integer("crawl_interval").default(1),
   nextCrawlAt: timestamp("next_crawl_at").defaultNow(),
@@ -44,3 +45,14 @@ export const projectSnapshots = pgTable("project_snapshots", {
 }, (table) => [
   index("project_snapshot_date_idx").on(table.projectId, table.snapshotDate)
 ]);
+
+export const projectTrends = pgTable("project_trends", {
+  projectId: uuid("project_id").references(() => projects.id).primaryKey(),
+  dailyStars: integer("daily_stars").default(0),
+  weeklyStars: integer("weekly_stars").default(0),
+  monthlyStars: integer("monthly_stars").default(0),
+  dailyDownloads: integer("daily_downloads").default(0),
+  weeklyDownloads: integer("weekly_downloads").default(0),
+  monthlyDownloads: integer("monthly_downloads").default(0),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});

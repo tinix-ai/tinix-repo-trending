@@ -27,6 +27,7 @@ export interface Project {
   createdAt: string;
   updatedAt: string;
   sourceCreatedAt: string;
+  sourceUpdatedAt?: string;
   lastCrawledAt: string;
 }
 

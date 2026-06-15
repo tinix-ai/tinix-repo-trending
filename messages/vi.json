@@ -44,7 +44,12 @@
     "hotTopicsWidget": "Chủ đề hot",
     "aboutWidgetTitle": "Về Tinix Trending",
     "aboutWidgetDesc": "Chúng tôi theo dõi xu hướng tăng trưởng trên GitHub & HuggingFace để hiển thị các dự án tiềm năng trước khi chúng trở nên phổ biến. Cập nhật hàng giờ.",
-    "submitBtn": "Gửi một dự án"
+    "submitBtn": "Gửi một dự án",
+    "sortBy": "Sắp xếp theo",
+    "sortTrendDesc": "Thịnh hành nhất",
+    "sortStarsDesc": "Nhiều Sao nhất",
+    "sortStarsAsc": "Ít Sao nhất",
+    "sortUpdatedDesc": "Mới cập nhật"
   },
   "Navigation": {
     "trending": "Thịnh hành",
@@ -105,7 +110,13 @@
     "triggerJobFailed": "Kích hoạt tác vụ {name} thất bại",
     "removingJob": "Đang xóa tác vụ...",
     "jobRemoved": "Xóa tác vụ thành công",
-    "removeJobFailed": "Xóa tác vụ thất bại"
+    "removeJobFailed": "Xóa tác vụ thất bại",
+    "queueBreakdown": "Phân loại hàng đợi",
+    "totalJobs": "Tổng {count}",
+    "discoveryJobs": "Tìm mới",
+    "discoveryDesc": "Crawl dự án mới",
+    "updateJobs": "Cập nhật hàng ngày",
+    "updateDesc": "Cập nhật chỉ số hàng ngày"
   },
   "ProjectDetail": {
     "backBtn": "Quay lại Trending",
@@ -129,7 +140,9 @@
     "forks": "fork",
     "issues": "issue",
     "likes": "thích",
-    "downloads": "tải xuống"
+    "downloads": "tải xuống",
+    "showMore": "Xem thêm",
+    "showLess": "Thu gọn"
   },
   "Categories": {
     "title": "Danh mục - TiniX",

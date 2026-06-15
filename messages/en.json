@@ -44,7 +44,12 @@
     "hotTopicsWidget": "Hot Topics",
     "aboutWidgetTitle": "About Tinix Trending",
     "aboutWidgetDesc": "We track momentum across GitHub & HuggingFace to surface rising projects before they hit mainstream. Updated hourly.",
-    "submitBtn": "Submit a project"
+    "submitBtn": "Submit a project",
+    "sortBy": "Sort by",
+    "sortTrendDesc": "Highest Trending",
+    "sortStarsDesc": "Most Stars",
+    "sortStarsAsc": "Fewest Stars",
+    "sortUpdatedDesc": "Recently Updated"
   },
   "Navigation": {
     "trending": "Trending",
@@ -105,7 +110,13 @@
     "triggerJobFailed": "Failed to trigger job {name}",
     "removingJob": "Removing job...",
     "jobRemoved": "Job removed successfully",
-    "removeJobFailed": "Failed to remove job"
+    "removeJobFailed": "Failed to remove job",
+    "queueBreakdown": "Queue Breakdown",
+    "totalJobs": "{count} total",
+    "discoveryJobs": "Discovery",
+    "discoveryDesc": "Crawl new projects",
+    "updateJobs": "Daily Update",
+    "updateDesc": "Update daily metrics"
   },
   "ProjectDetail": {
     "backBtn": "Back to Trending",
@@ -129,7 +140,9 @@
     "forks": "forks",
     "issues": "issues",
     "likes": "likes",
-    "downloads": "downloads"
+    "downloads": "downloads",
+    "showMore": "Show more",
+    "showLess": "Show less"
   },
   "Categories": {
     "title": "Categories - Tinix",
