@@ -10,6 +10,7 @@
     "db:push": "drizzle-kit push",
     "db:generate": "drizzle-kit generate",
     "db:studio": "drizzle-kit studio",
+    "db:seed": "tsx scripts/seed.ts",
     "worker": "tsx src/workers/crawler-worker.ts",
     "worker:hf": "tsx src/workers/hf-worker.ts",
     "check-db": "tsx check-db.ts",

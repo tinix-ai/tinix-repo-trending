@@ -159,9 +159,12 @@ Push Drizzle schema definitions to PostgreSQL:
 ```bash
 npm run db:push
 ```
-To run seed/initial data:
+To seed initial projects list from local compressed data (fast, recommended):
 ```bash
-# Seed initial projects list
+npm run db:seed
+```
+Alternatively, to fetch and queue a fresh list of up to 100,000 repositories directly from remote APIs:
+```bash
 npm run bootstrap
 npm run bootstrap:hf
 ```
