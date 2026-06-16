@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { crawlerQueue, hfQueue } from './queue';
 import { db } from '../lib/db';
-import { projects, projectTrends } from '../lib/db/schema';
+import { projects } from '../lib/db/schema';
 import { discoverNewRepos } from '../lib/crawlers/github-discovery';
 import { discoverHFTrending } from '../lib/crawlers/hf-discovery';
 import { eq, lte, or, isNull, sql } from 'drizzle-orm';
@@ -101,24 +101,28 @@ export async function runTrendCalculation() {
   try {
     const query = sql`
       WITH current_snaps AS (
-        SELECT project_id, stars, downloads
+        SELECT DISTINCT ON (project_id) project_id, COALESCE(stars, likes, 0) as stars, downloads
         FROM project_snapshots
-        WHERE snapshot_date = CURRENT_DATE
+        WHERE snapshot_date <= CURRENT_DATE
+        ORDER BY project_id, snapshot_date DESC
       ),
       daily_snaps AS (
-        SELECT project_id, stars, downloads
+        SELECT DISTINCT ON (project_id) project_id, COALESCE(stars, likes, 0) as stars, downloads
         FROM project_snapshots
-        WHERE snapshot_date = CURRENT_DATE - INTERVAL '1 day'
+        WHERE snapshot_date <= CURRENT_DATE - INTERVAL '1 day'
+        ORDER BY project_id, snapshot_date DESC
       ),
       weekly_snaps AS (
-        SELECT project_id, stars, downloads
+        SELECT DISTINCT ON (project_id) project_id, COALESCE(stars, likes, 0) as stars, downloads
         FROM project_snapshots
-        WHERE snapshot_date = CURRENT_DATE - INTERVAL '7 days'
+        WHERE snapshot_date <= CURRENT_DATE - INTERVAL '7 days'
+        ORDER BY project_id, snapshot_date DESC
       ),
       monthly_snaps AS (
-        SELECT project_id, stars, downloads
+        SELECT DISTINCT ON (project_id) project_id, COALESCE(stars, likes, 0) as stars, downloads
         FROM project_snapshots
-        WHERE snapshot_date = CURRENT_DATE - INTERVAL '30 days'
+        WHERE snapshot_date <= CURRENT_DATE - INTERVAL '30 days'
+        ORDER BY project_id, snapshot_date DESC
       )
       INSERT INTO project_trends (
         project_id, 

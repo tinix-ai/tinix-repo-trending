@@ -1,8 +1,8 @@
 "use client";
 
-import { Link } from "@/i18n/routing";
+import { Link, useRouter } from "@/i18n/routing";
 import type { RankedProject } from "@/types";
-import { formatNumber, getDeltaPrefix, timeAgo } from "@/lib/utils";
+import { formatNumber, timeAgo } from "@/lib/utils";
 import { Star, GitFork, Download, ArrowUpRight, ExternalLink } from "lucide-react";
 import { Sparkline } from "@/components/common/sparkline";
 import { SourceBadge } from "@/components/common/source-badge";
@@ -15,6 +15,7 @@ import { useTranslations } from "next-intl";
 interface ProjectCardProps {
   project: RankedProject;
   index: number;
+  days: number;
 }
 
 function RankBadge({ rank }: { rank: number }) {
@@ -37,9 +38,10 @@ function buildCategoryHref(slug: string, filter: string | null) {
   return `/?${params.toString()}`;
 }
 
-export function ProjectCard({ project, index }: ProjectCardProps) {
+export function ProjectCard({ project, index, days }: ProjectCardProps) {
   const t = useTranslations("HomePage");
   const searchParams = useSearchParams();
+  const router = useRouter();
   const currentFilter = searchParams.get("filter");
   const [isNew, setIsNew] = useState(false);
 
@@ -53,9 +55,38 @@ export function ProjectCard({ project, index }: ProjectCardProps) {
     return () => clearTimeout(timer);
   }, [project.sourceCreatedAt]);
 
+  const handleCardClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement;
+    if (
+      target.closest("a") || 
+      target.closest("button") || 
+      target.closest(".category-chip") || 
+      target.tagName === "A" || 
+      target.tagName === "BUTTON"
+    ) {
+      return;
+    }
+    router.push(`/project/${project.slug.replace(/\//g, '-')}-${project.id}`);
+  };
+
+  const getGrowthText = () => {
+    const isGithub = project.source === "github";
+    const gained = isGithub ? project.starsGained : (project.downloadsGained ?? 0);
+    
+    if (gained <= 0) return null;
+    
+    const formatted = formatNumber(gained);
+    const key = isGithub
+      ? (days === 1 ? "starsToday" : days === 7 ? "starsThisWeek" : days === 30 ? "starsThisMonth" : "starsGained")
+      : (days === 1 ? "downloadsToday" : days === 7 ? "downloadsThisWeek" : days === 30 ? "downloadsThisMonth" : "downloadsGained");
+      
+    return t(key, { count: formatted });
+  };
+
   return (
     <div
-      className={`card group relative overflow-hidden animate-fade-in-up animate-stagger-${Math.min(index + 1, 12)}`}
+      onClick={handleCardClick}
+      className={`card group relative overflow-hidden cursor-pointer hover:-translate-y-0.5 hover:shadow-md transition-all duration-250 ease-in-out animate-fade-in-up animate-stagger-${Math.min(index + 1, 12)}`}
     >
       <div className="p-5">
         <div className="flex items-start gap-4">
@@ -131,12 +162,11 @@ export function ProjectCard({ project, index }: ProjectCardProps) {
 
           {/* Right Column: Metrics + Sparkline */}
           <div className="hidden sm:flex flex-col items-end gap-3 shrink-0">
-            {/* Star delta */}
+            {/* Star/Download delta */}
             <div className="flex items-center gap-2">
-              {project.starsGained > 0 && (
-                <span className="delta-positive">
-                  {getDeltaPrefix(project.starsGained)}
-                  {formatNumber(project.starsGained)}
+              {getGrowthText() && (
+                <span className="delta-positive font-medium text-xs">
+                  {getGrowthText()}
                 </span>
               )}
             </div>
@@ -204,10 +234,9 @@ export function ProjectCard({ project, index }: ProjectCardProps) {
             )}
           </div>
           <div className="flex items-center gap-2">
-            {project.starsGained > 0 && (
-              <span className="delta-positive">
-                {getDeltaPrefix(project.starsGained)}
-                {formatNumber(project.starsGained)}
+            {getGrowthText() && (
+              <span className="delta-positive font-medium text-xs">
+                {getGrowthText()}
               </span>
             )}
             <span className="text-[11px] text-[var(--color-text-tertiary)]" title="Source Updated">

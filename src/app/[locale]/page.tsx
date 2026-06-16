@@ -189,8 +189,21 @@ export default function HomePage() {
   }, [days, minStars, minDownloads, selectedCategory, categoryParam, selectedSource, selectedLanguage, searchQuery, selectedTag, currentPage, filterType, sortBy, sortOrder]);
 
   const filteredProjects = projects;
-
   const paginatedProjects = filteredProjects;
+
+  const getGrowthText = (project: RankedProject) => {
+    const isGithub = project.source === "github";
+    const gained = isGithub ? project.starsGained : (project.downloadsGained ?? 0);
+    
+    if (gained <= 0) return null;
+    
+    const formatted = formatNumber(gained);
+    const key = isGithub
+      ? (days === 1 ? "starsToday" : days === 7 ? "starsThisWeek" : days === 30 ? "starsThisMonth" : "starsGained")
+      : (days === 1 ? "downloadsToday" : days === 7 ? "downloadsThisWeek" : days === 30 ? "downloadsThisMonth" : "downloadsGained");
+      
+    return t(key, { count: formatted });
+  };
 
   const languages = popularFilters.languages;
   const hashtags = popularFilters.hashtags;
@@ -524,7 +537,7 @@ export default function HomePage() {
               {view === "card" ? (
                 <div className="flex flex-col gap-4">
                   {paginatedProjects.map((project, i) => (
-                    <ProjectCard key={project.id} project={project} index={i} />
+                    <ProjectCard key={project.id} project={project} index={i} days={days} />
                   ))}
                 </div>
               ) : view === "table" ? (
@@ -564,7 +577,7 @@ export default function HomePage() {
                             onClick={() => handleSort("trend")}
                           >
                             <div className="flex items-center justify-end gap-1">
-                              {t("dailyCol")}
+                              {days === 1 ? t("dailyCol") : days === 7 ? t("weeklyCol") : days === 30 ? t("monthlyCol") : t("growthCol")}
                               {sortBy === "trend" && <span className="text-xs">{sortOrder === "desc" ? "↓" : "↑"}</span>}
                             </div>
                           </th>
@@ -584,7 +597,7 @@ export default function HomePage() {
                       </thead>
                       <tbody>
                         {paginatedProjects.map((project, i) => (
-                          <ProjectTableRow key={project.id} project={project} index={i} />
+                          <ProjectTableRow key={project.id} project={project} index={i} days={days} />
                         ))}
                       </tbody>
                     </table>
@@ -596,7 +609,9 @@ export default function HomePage() {
                     <span className="w-8 text-right shrink-0">#</span>
                     <span className="flex-1">{t("projectCol")}</span>
                     <div className="flex items-center gap-4 shrink-0">
-                      <span className="w-20 text-right">{t("trendCol")}</span>
+                      <span className="w-32 text-right">
+                        {days === 1 ? t("dailyCol") : days === 7 ? t("weeklyCol") : days === 30 ? t("monthlyCol") : t("growthCol")}
+                      </span>
                       <span className="w-24 text-right">{t("starsCol")}</span>
                     </div>
                   </div>
@@ -613,10 +628,10 @@ export default function HomePage() {
                         {project.fullName}
                       </span>
                       <div className="flex items-center gap-4 shrink-0">
-                        <span className="w-20 text-right">
-                          {project.starsGained > 0 ? (
-                            <span className="delta-positive text-[11px] font-medium">
-                              +{formatNumber(project.starsGained)}
+                        <span className="w-32 text-right">
+                          {getGrowthText(project) ? (
+                            <span className="delta-positive text-[11px] font-medium animate-fade-in">
+                              {getGrowthText(project)}
                             </span>
                           ) : (
                             <span className="text-xs text-[var(--color-ink-muted-80)]">—</span>

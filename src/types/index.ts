@@ -94,6 +94,7 @@ export interface RankedProject extends Project {
   score: number;
   starsGained: number;
   forksGained: number;
+  downloadsGained?: number;
   velocityScore: number;
   momentumScore: number;
   categories: Category[];

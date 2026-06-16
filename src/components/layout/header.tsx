@@ -1,7 +1,7 @@
 "use client";
 
 import { Link, useRouter } from "@/i18n/routing";
-import { useState, FormEvent } from "react";
+import { useState, FormEvent, useEffect, useRef } from "react";
 import { useTranslations } from "next-intl";
 import {
   Search,
@@ -23,6 +23,19 @@ export function Header() {
   const [searchFocused, setSearchFocused] = useState(false);
   const t = useTranslations("Navigation");
   const router = useRouter();
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+        searchInputRef.current?.select();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   const handleSearch = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -70,6 +83,7 @@ export function Header() {
           <form onSubmit={handleSearch} className="relative flex-1 max-w-xl mx-auto hidden sm:block">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--color-ink-muted-48)]" />
             <input
+              ref={searchInputRef}
               type="search"
               name="q"
               placeholder={t("searchPlaceholder")}
@@ -129,14 +143,15 @@ export function Header() {
         {mobileOpen && (
           <nav className="md:hidden border-t border-[var(--color-divider-soft)] py-3 animate-fade-in-up">
             {/* Mobile search */}
-            <div className="relative mb-3">
+            <form onSubmit={handleSearch} className="relative mb-3">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--color-ink-muted-48)]" />
               <input
                 type="search"
+                name="q"
                 placeholder={t("searchPlaceholder")}
                 className="w-full h-10 rounded-lg border border-[var(--color-hairline)] bg-[var(--color-canvas)] pl-10 pr-4 text-sm text-[var(--color-ink)] placeholder:text-[var(--color-ink-muted-48)] outline-none"
               />
-            </div>
+            </form>
             {NAV_ITEMS.map((item) => (
               <Link
                 key={item.href}

@@ -1,22 +1,26 @@
 "use client";
 
-import { Link } from "@/i18n/routing";
+import { Link, useRouter } from "@/i18n/routing";
 import type { RankedProject } from "@/types";
-import { formatNumber, getDeltaPrefix, timeAgo } from "@/lib/utils";
+import { formatNumber, timeAgo } from "@/lib/utils";
 import { Sparkline } from "@/components/common/sparkline";
 import { SourceBadge } from "@/components/common/source-badge";
 import { CategoryIcon } from "@/components/common/category-icon";
 
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 interface ProjectTableRowProps {
   project: RankedProject;
   index: number;
+  days: number;
 }
 
-export function ProjectTableRow({ project, index }: ProjectTableRowProps) {
+export function ProjectTableRow({ project, index, days }: ProjectTableRowProps) {
+  const t = useTranslations("HomePage");
   const searchParams = useSearchParams();
+  const router = useRouter();
   const currentFilter = searchParams.get("filter");
   const [isNew, setIsNew] = useState(false);
 
@@ -30,9 +34,38 @@ export function ProjectTableRow({ project, index }: ProjectTableRowProps) {
     return () => clearTimeout(timer);
   }, [project.sourceCreatedAt]);
 
+  const handleRowClick = (e: React.MouseEvent<HTMLTableRowElement>) => {
+    const target = e.target as HTMLElement;
+    if (
+      target.closest("a") || 
+      target.closest("button") || 
+      target.closest(".category-chip") || 
+      target.tagName === "A" || 
+      target.tagName === "BUTTON"
+    ) {
+      return;
+    }
+    router.push(`/project/${project.slug.replace(/\//g, '-')}-${project.id}`);
+  };
+
+  const getGrowthText = () => {
+    const isGithub = project.source === "github";
+    const gained = isGithub ? project.starsGained : (project.downloadsGained ?? 0);
+    
+    if (gained <= 0) return null;
+    
+    const formatted = formatNumber(gained);
+    const key = isGithub
+      ? (days === 1 ? "starsToday" : days === 7 ? "starsThisWeek" : days === 30 ? "starsThisMonth" : "starsGained")
+      : (days === 1 ? "downloadsToday" : days === 7 ? "downloadsThisWeek" : days === 30 ? "downloadsThisMonth" : "downloadsGained");
+      
+    return t(key, { count: formatted });
+  };
+
   return (
     <tr
-      className={`border-b border-[var(--color-divider-soft)] hover:bg-[var(--color-canvas-parchment)] transition-colors animate-fade-in-up animate-stagger-${Math.min(index + 1, 12)}`}
+      onClick={handleRowClick}
+      className={`border-b border-[var(--color-divider-soft)] hover:bg-[var(--color-canvas-parchment)]/60 cursor-pointer transition-colors duration-150 animate-fade-in-up animate-stagger-${Math.min(index + 1, 12)}`}
     >
       {/* Rank */}
       <td className="px-4 py-3">
@@ -121,12 +154,11 @@ export function ProjectTableRow({ project, index }: ProjectTableRowProps) {
         )}
       </td>
 
-      {/* Daily spike */}
+      {/* Growth spike */}
       <td className="px-4 py-3 text-right">
-        {project.starsGained > 0 ? (
-          <span className="delta-positive">
-            {getDeltaPrefix(project.starsGained)}
-            {formatNumber(project.starsGained)}
+        {getGrowthText() ? (
+          <span className="delta-positive font-medium text-xs">
+            {getGrowthText()}
           </span>
         ) : (
           <span className="text-xs text-[var(--color-ink-muted-80)]">—</span>

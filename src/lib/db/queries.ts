@@ -83,93 +83,185 @@ export async function getDynamicTrendingProjects(params: ProjectQueryParams): Pr
       : sql`ORDER BY momentum_score DESC`;
   }
 
-  const result = await db.execute(sql`
-    WITH current_snapshots AS (
-      SELECT DISTINCT ON (project_id) project_id, stars, forks, contributors_count, open_issues, likes, downloads, snapshot_date
-      FROM project_snapshots
-      ORDER BY project_id, snapshot_date DESC
-    ),
-    previous_snapshots AS (
-      SELECT DISTINCT ON (project_id) project_id, stars, forks, contributors_count, open_issues, likes, downloads, snapshot_date
-      FROM project_snapshots
-      WHERE snapshot_date <= CURRENT_DATE - ${days} * INTERVAL '1 day'
-      ORDER BY project_id, snapshot_date DESC
-    ),
-    earliest_snapshots AS (
-      SELECT DISTINCT ON (project_id) project_id, stars, forks, contributors_count, open_issues, likes, downloads, snapshot_date
-      FROM project_snapshots
-      ORDER BY project_id, snapshot_date ASC
-    ),
-    sparkline_history AS (
-      SELECT 
-        project_id,
-        json_agg(
-          COALESCE(stars, likes, 0) ORDER BY snapshot_date ASC
-        ) as sparkline_data
-      FROM project_snapshots
-      WHERE snapshot_date >= CURRENT_DATE - INTERVAL '14 days'
-      GROUP BY project_id
-    ),
-    deltas AS (
-      SELECT 
-        p.id as project_id,
-        p.source,
-        p.project_type,
-        p.source_id,
-        p.slug,
-        p.name,
-        p.full_name,
-        p.description,
-        p.ai_summary,
-        p.homepage_url,
-        p.source_url,
-        p.primary_language,
-        p.license,
-        p.owner_name,
-        p.owner_avatar_url,
-        p.owner_type,
-        p.topics,
-        p.created_at,
-        p.updated_at,
-        p.last_crawled_at,
-        p.source_created_at,
-        p.source_updated_at,
-        p.categories,
-        GREATEST(c.stars - COALESCE(prev.stars, earliest.stars, c.stars), 0) as stars_gained,
-        GREATEST(c.forks - COALESCE(prev.forks, earliest.forks, c.forks), 0) as forks_gained,
-        GREATEST(c.contributors_count - COALESCE(prev.contributors_count, earliest.contributors_count, c.contributors_count), 0) as contributors_gained,
-        GREATEST(c.likes - COALESCE(prev.likes, earliest.likes, c.likes), 0) as likes_gained,
-        GREATEST(c.downloads - COALESCE(prev.downloads, earliest.downloads, c.downloads), 0) as downloads_gained,
-        sh.sparkline_data,
-        c.stars, c.forks, c.downloads, c.likes, c.open_issues, c.contributors_count as current_contributors_count
-      FROM projects p
-      JOIN current_snapshots c ON p.id = c.project_id
-      LEFT JOIN previous_snapshots prev ON p.id = prev.project_id
-      LEFT JOIN earliest_snapshots earliest ON p.id = earliest.project_id
-      LEFT JOIN sparkline_history sh ON p.id = sh.project_id
-    ),
-    scored AS (
+  let result;
+  if (days === 1 || days === 7 || days === 30) {
+    const starsGainedCol = days === 1 ? sql`t.daily_stars` : days === 7 ? sql`t.weekly_stars` : sql`t.monthly_stars`;
+    const downloadsGainedCol = days === 1 ? sql`t.daily_downloads` : days === 7 ? sql`t.weekly_downloads` : sql`t.monthly_downloads`;
+
+    result = await db.execute(sql`
+      WITH current_snapshots AS (
+        SELECT DISTINCT ON (project_id) project_id, stars, forks, contributors_count, open_issues, likes, downloads, snapshot_date
+        FROM project_snapshots
+        ORDER BY project_id, snapshot_date DESC
+      ),
+      sparkline_history AS (
+        SELECT 
+          project_id,
+          json_agg(
+            COALESCE(stars, likes, 0) ORDER BY snapshot_date ASC
+          ) as sparkline_data
+        FROM project_snapshots
+        WHERE snapshot_date >= CURRENT_DATE - INTERVAL '14 days'
+        GROUP BY project_id
+      ),
+      deltas AS (
+        SELECT 
+          p.id as project_id,
+          p.source,
+          p.project_type,
+          p.source_id,
+          p.slug,
+          p.name,
+          p.full_name,
+          p.description,
+          p.ai_summary,
+          p.homepage_url,
+          p.source_url,
+          p.primary_language,
+          p.license,
+          p.owner_name,
+          p.owner_avatar_url,
+          p.owner_type,
+          p.topics,
+          p.created_at,
+          p.updated_at,
+          p.last_crawled_at,
+          p.source_created_at,
+          p.source_updated_at,
+          p.categories,
+          COALESCE(
+            CASE 
+              WHEN p.source = 'github' THEN ${starsGainedCol}
+              ELSE 0
+            END, 0
+          ) as stars_gained,
+          0 as forks_gained,
+          0 as contributors_gained,
+          COALESCE(
+            CASE 
+              WHEN p.source = 'huggingface' THEN ${starsGainedCol}
+              ELSE 0
+            END, 0
+          ) as likes_gained,
+          COALESCE(${downloadsGainedCol}, 0) as downloads_gained,
+          sh.sparkline_data,
+          c.stars, c.forks, c.downloads, c.likes, c.open_issues, c.contributors_count as current_contributors_count
+        FROM projects p
+        JOIN current_snapshots c ON p.id = c.project_id
+        LEFT JOIN project_trends t ON p.id = t.project_id
+        LEFT JOIN sparkline_history sh ON p.id = sh.project_id
+      ),
+      scored AS (
+        SELECT 
+          *,
+          CASE 
+            WHEN source = 'github' THEN stars_gained
+            WHEN source = 'huggingface' THEN downloads_gained
+            ELSE 0 
+          END as momentum_score
+        FROM deltas
+      ),
+      filtered AS (
+        SELECT * FROM scored
+        WHERE ${whereFragment}
+      )
       SELECT 
         *,
-        CASE 
-          WHEN source = 'github' THEN stars_gained
-          WHEN source = 'huggingface' THEN downloads_gained
-          ELSE 0 
-        END as momentum_score
-      FROM deltas
-    ),
-    filtered AS (
-      SELECT * FROM scored
-      WHERE ${whereFragment}
-    )
-    SELECT 
-      *,
-      COUNT(*) OVER() as total_count,
-      ROW_NUMBER() OVER(${orderFragment}) as rank
-    FROM filtered
-    ORDER BY rank ASC
-    LIMIT ${limit} OFFSET ${offset};
-  `);
+        COUNT(*) OVER() as total_count,
+        ROW_NUMBER() OVER(${orderFragment}) as rank
+      FROM filtered
+      ORDER BY rank ASC
+      LIMIT ${limit} OFFSET ${offset};
+    `);
+  } else {
+    result = await db.execute(sql`
+      WITH current_snapshots AS (
+        SELECT DISTINCT ON (project_id) project_id, stars, forks, contributors_count, open_issues, likes, downloads, snapshot_date
+        FROM project_snapshots
+        ORDER BY project_id, snapshot_date DESC
+      ),
+      previous_snapshots AS (
+        SELECT DISTINCT ON (project_id) project_id, stars, forks, contributors_count, open_issues, likes, downloads, snapshot_date
+        FROM project_snapshots
+        WHERE snapshot_date <= CURRENT_DATE - ${days} * INTERVAL '1 day'
+        ORDER BY project_id, snapshot_date DESC
+      ),
+      earliest_snapshots AS (
+        SELECT DISTINCT ON (project_id) project_id, stars, forks, contributors_count, open_issues, likes, downloads, snapshot_date
+        FROM project_snapshots
+        ORDER BY project_id, snapshot_date ASC
+      ),
+      sparkline_history AS (
+        SELECT 
+          project_id,
+          json_agg(
+            COALESCE(stars, likes, 0) ORDER BY snapshot_date ASC
+          ) as sparkline_data
+        FROM project_snapshots
+        WHERE snapshot_date >= CURRENT_DATE - INTERVAL '14 days'
+        GROUP BY project_id
+      ),
+      deltas AS (
+        SELECT 
+          p.id as project_id,
+          p.source,
+          p.project_type,
+          p.source_id,
+          p.slug,
+          p.name,
+          p.full_name,
+          p.description,
+          p.ai_summary,
+          p.homepage_url,
+          p.source_url,
+          p.primary_language,
+          p.license,
+          p.owner_name,
+          p.owner_avatar_url,
+          p.owner_type,
+          p.topics,
+          p.created_at,
+          p.updated_at,
+          p.last_crawled_at,
+          p.source_created_at,
+          p.source_updated_at,
+          p.categories,
+          GREATEST(c.stars - COALESCE(prev.stars, earliest.stars, c.stars), 0) as stars_gained,
+          GREATEST(c.forks - COALESCE(prev.forks, earliest.forks, c.forks), 0) as forks_gained,
+          GREATEST(c.contributors_count - COALESCE(prev.contributors_count, earliest.contributors_count, c.contributors_count), 0) as contributors_gained,
+          GREATEST(c.likes - COALESCE(prev.likes, earliest.likes, c.likes), 0) as likes_gained,
+          GREATEST(c.downloads - COALESCE(prev.downloads, earliest.downloads, c.downloads), 0) as downloads_gained,
+          sh.sparkline_data,
+          c.stars, c.forks, c.downloads, c.likes, c.open_issues, c.contributors_count as current_contributors_count
+        FROM projects p
+        JOIN current_snapshots c ON p.id = c.project_id
+        LEFT JOIN previous_snapshots prev ON p.id = prev.project_id
+        LEFT JOIN earliest_snapshots earliest ON p.id = earliest.project_id
+        LEFT JOIN sparkline_history sh ON p.id = sh.project_id
+      ),
+      scored AS (
+        SELECT 
+          *,
+          CASE 
+            WHEN source = 'github' THEN stars_gained
+            WHEN source = 'huggingface' THEN downloads_gained
+            ELSE 0 
+          END as momentum_score
+        FROM deltas
+      ),
+      filtered AS (
+        SELECT * FROM scored
+        WHERE ${whereFragment}
+      )
+      SELECT 
+        *,
+        COUNT(*) OVER() as total_count,
+        ROW_NUMBER() OVER(${orderFragment}) as rank
+      FROM filtered
+      ORDER BY rank ASC
+      LIMIT ${limit} OFFSET ${offset};
+    `);
+  }
 
   const total = result.length > 0 ? Number((result[0] as Record<string, unknown>).total_count || 0) : 0;
 
@@ -203,6 +295,7 @@ export async function getDynamicTrendingProjects(params: ProjectQueryParams): Pr
       score: Number(r.momentum_score),
       starsGained: Number(r.source === 'github' ? r.stars_gained : r.likes_gained),
       forksGained: Number(r.source === 'github' ? r.forks_gained : 0),
+      downloadsGained: Number(r.downloads_gained || 0),
       velocityScore: Number(r.momentum_score),
       momentumScore: Number(r.momentum_score),
       

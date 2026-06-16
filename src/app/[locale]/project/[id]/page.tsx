@@ -313,9 +313,13 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                     <div className="text-[11px] font-semibold text-[var(--color-ink-muted-80)] uppercase tracking-wider mb-2">{t("categories")}</div>
                     <div className="flex flex-wrap gap-2">
                       {Array.from(new Set(project.categories)).map((cat: string) => (
-                        <span key={cat} className="inline-flex items-center rounded-md bg-[var(--color-bg-secondary)] px-2.5 py-1 text-xs font-medium text-[var(--color-ink)] border border-[var(--color-border)]">
+                        <Link 
+                          key={cat} 
+                          href={`/?category=${cat.toLowerCase().replace(/\s+/g, "-")}`}
+                          className="inline-flex items-center rounded-md bg-[var(--color-bg-secondary)] hover:bg-[var(--color-divider-soft)] px-2.5 py-1 text-xs font-semibold text-[var(--color-ink)] border border-[var(--color-border)] hover:border-[var(--color-action-blue)]/30 hover:text-[var(--color-action-blue)] transition-all duration-200 cursor-pointer"
+                        >
                           {cat}
-                        </span>
+                        </Link>
                       ))}
                     </div>
                   </div>
