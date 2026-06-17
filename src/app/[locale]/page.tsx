@@ -19,6 +19,7 @@ import {
   Flame,
   Database,
   Sparkles,
+  Github,
 } from "lucide-react";
 import { SearchableSelect } from "@/components/common/searchable-select";
 import { CategoryIcon } from "@/components/common/category-icon";
@@ -59,10 +60,10 @@ export default function HomePage() {
   const pathname = usePathname();
   const [view, setView] = useState<ViewMode>("card");
   const [selectedLanguage, setSelectedLanguage] = useState<string>("");
-  const [selectedSource, setSelectedSource] = useState<string>("");
   const [showAdvanced, setShowAdvanced] = useState<boolean>(false);
   
   const searchParams = useSearchParams();
+  const selectedSource = searchParams.get("source") || "github";
 
   // Dynamic Ranking Filters
   const [days, setDays] = useState<number>(Number(searchParams.get("days")) || 1);
@@ -105,6 +106,18 @@ export default function HomePage() {
       params.delete("category");
     }
     params.delete("page");
+    router.push(`${pathname}?${params.toString()}`);
+  };
+
+  const handleSourceChange = (newSource: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("source", newSource);
+    params.delete("page");
+    params.delete("sortBy");
+    params.delete("sortOrder");
+    if (newSource === "huggingface") {
+      setSelectedLanguage("");
+    }
     router.push(`${pathname}?${params.toString()}`);
   };
 
@@ -198,11 +211,7 @@ export default function HomePage() {
     if (gained <= 0) return null;
     
     const formatted = formatNumber(gained);
-    const key = isGithub
-      ? (days === 1 ? "starsToday" : days === 7 ? "starsThisWeek" : days === 30 ? "starsThisMonth" : "starsGained")
-      : (days === 1 ? "downloadsToday" : days === 7 ? "downloadsThisWeek" : days === 30 ? "downloadsThisMonth" : "downloadsGained");
-      
-    return t(key, { count: formatted });
+    return `+${formatted}`;
   };
 
   const languages = popularFilters.languages;
@@ -282,10 +291,39 @@ export default function HomePage() {
       <section className="apple-tile-parchment w-full py-16">
         <div className="page-container grid grid-cols-1 xl:grid-cols-[1fr_280px] gap-8">
           <div className="min-w-0">
+            {/* Platform Switcher Tabs above Filter Card */}
+            <div className="flex justify-start mb-5">
+              <div className="flex items-center gap-1 p-1 bg-[var(--color-surface-elevated)] rounded-xl border border-[var(--color-divider-soft)] shadow-sm w-full sm:w-auto max-w-sm">
+                <button
+                  onClick={() => handleSourceChange("github")}
+                  className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
+                    selectedSource === "github"
+                      ? "bg-[var(--color-bg-primary)] text-[var(--color-ink)] shadow-sm border border-[var(--color-border)]"
+                      : "text-[var(--color-ink-muted-80)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-pearl)]"
+                  }`}
+                >
+                  <Github className="w-4 h-4" />
+                  {t("githubTab")}
+                </button>
+                <button
+                  onClick={() => handleSourceChange("huggingface")}
+                  className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
+                    selectedSource === "huggingface"
+                      ? "bg-[var(--color-bg-primary)] text-[var(--color-ink)] shadow-sm border border-[var(--color-border)]"
+                      : "text-[var(--color-ink-muted-80)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-pearl)]"
+                  }`}
+                >
+                  <span className="text-base leading-none">🤗</span>
+                  {t("huggingfaceTab")}
+                </button>
+              </div>
+            </div>
+
+            {/* Filter Card */}
             <div className="relative z-30 bg-[var(--color-surface-elevated)] border border-[var(--color-divider-soft)] rounded-2xl p-4 mb-8 shadow-sm flex flex-col gap-4">
               
               {/* Row 1: Primary Navigation & Time */}
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[var(--color-divider-soft)] pb-4">
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-[var(--color-divider-soft)] pb-4">
                 {/* Type Filter */}
                 <div className="flex items-center gap-1 p-1 bg-[var(--color-canvas)] rounded-xl border border-[var(--color-hairline)] w-max">
                   <button
@@ -371,27 +409,6 @@ export default function HomePage() {
               {/* Row 2: Dropdowns & View Controls */}
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex flex-wrap items-center gap-2 md:gap-3">
-                  <SearchableSelect
-                    options={["GitHub", "HuggingFace"]}
-                    value={
-                      selectedSource === "github" ? "GitHub" :
-                      selectedSource === "huggingface" ? "HuggingFace" : ""
-                    }
-                    onChange={(val) => {
-                      if (!val) {
-                        setSelectedSource("");
-                        setSelectedLanguage("");
-                      } else if (val === "GitHub") {
-                        setSelectedSource("github");
-                      } else if (val === "HuggingFace") {
-                        setSelectedSource("huggingface");
-                        setSelectedLanguage("");
-                      }
-                    }}
-                    placeholder={t("allSources")}
-                    className="w-full sm:w-36 md:w-[130px] lg:w-36 xl:w-[150px]"
-                  />
-
                   <SearchableSelect
                     options={categoryOptions}
                     value={selectedCategory}

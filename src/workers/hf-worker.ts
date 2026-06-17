@@ -6,6 +6,7 @@ import { projects, projectSnapshots } from '../lib/db/schema';
 import { sql } from 'drizzle-orm';
 import { categorizeProject } from '../lib/categorizer';
 import { updateProjectCrawlSchedule } from '../lib/crawlers/scheduler';
+import { calculateProjectTrendInline } from './cron';
 import { proxyManager } from '../lib/crawlers/proxy';
 import { setTimeout } from 'timers/promises';
 
@@ -205,6 +206,9 @@ export const hfWorker = new Worker<HFCrawlJobData>(
 
       // Recalculate and update the next crawl schedule
       await updateProjectCrawlSchedule(project.id, 'huggingface');
+
+      // Calculate project trends inline immediately
+      await calculateProjectTrendInline(project.id);
 
       console.log(`[HF Crawler] Successfully fetched & saved ${id}: ${likes} likes, ${downloads} downloads`);
 

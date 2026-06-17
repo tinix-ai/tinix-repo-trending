@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { Worker, Job } from 'bullmq';
 import { redisConnection, schedulerQueue } from './queue';
-import { runDailyDiscovery, runDailyUpdate, runTrendCalculation } from './cron';
+import { runDailyDiscovery, runDailyUpdate } from './cron';
 
 console.log('[Scheduler Worker] Starting...');
 
@@ -13,8 +13,6 @@ const schedulerWorker = new Worker('scheduler-queue', async (job: Job) => {
       await runDailyDiscovery();
     } else if (job.name === 'daily-update') {
       await runDailyUpdate();
-    } else if (job.name === 'daily-trend-calc') {
-      await runTrendCalculation();
     } else {
       console.warn(`[Scheduler Worker] Unknown job name: ${job.name}`);
     }
@@ -45,27 +43,31 @@ async function setupRepeatableJobs() {
     return;
   }
 
-  console.log('[Scheduler Worker] Registering repeatable cron jobs...');
+  console.log('[Scheduler Worker] Syncing repeatable cron jobs...');
+
+  // Clean up existing repeatable jobs to avoid stale/removed configs in Redis
+  try {
+    const repeatableJobs = await schedulerQueue.getRepeatableJobs();
+    for (const job of repeatableJobs) {
+      await schedulerQueue.removeRepeatableByKey(job.key);
+    }
+  } catch (error) {
+    console.error('[Scheduler Worker] Error cleaning up repeatable jobs:', error);
+  }
 
   // 1. Daily Discovery: Run at 00:00 every day
   await schedulerQueue.add('daily-discovery', {}, {
     repeat: { pattern: '0 0 * * *' },
-    jobId: 'repeat-daily-discovery' // Ensure uniqueness
+    jobId: 'repeat-daily-discovery'
   });
 
-  // 2. Daily Update: Run at 00:30 every day (give discovery some head start)
+  // 2. Daily Update: Run at 00:30 every day
   await schedulerQueue.add('daily-update', {}, {
     repeat: { pattern: '30 0 * * *' },
     jobId: 'repeat-daily-update'
   });
 
-  // 3. Daily Trend Calculation: Run at 01:00 every day (give crawler/update time to finish)
-  await schedulerQueue.add('daily-trend-calc', {}, {
-    repeat: { pattern: '0 1 * * *' },
-    jobId: 'repeat-daily-trend-calc'
-  });
-
-  console.log('[Scheduler Worker] Repeatable jobs registered successfully.');
+  console.log('[Scheduler Worker] Repeatable jobs synced successfully.');
 }
 
 // Initialize repeatable jobs on startup

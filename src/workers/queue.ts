@@ -58,7 +58,8 @@ export const schedulerQueue = globalForRedis.schedulerQueue ?? new Queue('schedu
   connection: redisConnection as unknown as ConnectionOptions,
   defaultJobOptions: {
     attempts: 1, // Repeatable jobs shouldn't retry infinitely if they fail
-    removeOnComplete: true,
+    removeOnComplete: { count: 100 },
+    removeOnFail: { count: 100 },
   },
 });
 

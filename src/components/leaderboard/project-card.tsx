@@ -76,11 +76,7 @@ export function ProjectCard({ project, index, days }: ProjectCardProps) {
     if (gained <= 0) return null;
     
     const formatted = formatNumber(gained);
-    const key = isGithub
-      ? (days === 1 ? "starsToday" : days === 7 ? "starsThisWeek" : days === 30 ? "starsThisMonth" : "starsGained")
-      : (days === 1 ? "downloadsToday" : days === 7 ? "downloadsThisWeek" : days === 30 ? "downloadsThisMonth" : "downloadsGained");
-      
-    return t(key, { count: formatted });
+    return `+${formatted}`;
   };
 
   return (

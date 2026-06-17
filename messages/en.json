@@ -60,7 +60,9 @@
     "sortTrendDesc": "Highest Trending",
     "sortStarsDesc": "Most Stars",
     "sortStarsAsc": "Fewest Stars",
-    "sortUpdatedDesc": "Recently Updated"
+    "sortUpdatedDesc": "Recently Updated",
+    "githubTab": "GitHub",
+    "huggingfaceTab": "Hugging Face"
   },
   "Navigation": {
     "trending": "Trending",
@@ -127,7 +129,9 @@
     "discoveryJobs": "Discovery",
     "discoveryDesc": "Crawl new projects",
     "updateJobs": "Daily Update",
-    "updateDesc": "Update daily metrics"
+    "updateDesc": "Update daily metrics",
+    "activeCrawlers": "Active Crawlers: {count} projects are being processed in the background queue.",
+    "runningSchedulerJobs": "Running system tasks: {jobs}"
   },
   "ProjectDetail": {
     "backBtn": "Back to Trending",

@@ -4,13 +4,12 @@ import { sql } from 'drizzle-orm';
 import { runTrendCalculation } from '../src/workers/cron';
 
 async function main() {
-  console.log('Fetching projects that have snapshots...');
+  console.log('Fetching all projects...');
   const activeProjects = await db.execute(sql`
-    SELECT id, source, stars, downloads
+    SELECT id, source
     FROM projects
-    WHERE id IN (SELECT DISTINCT project_id FROM project_snapshots)
   `);
-  console.log(`Found ${activeProjects.length} projects with snapshots.`);
+  console.log(`Found ${activeProjects.length} projects.`);
 
   console.log('Generating mock historical snapshots...');
   
@@ -18,13 +17,28 @@ async function main() {
   await db.execute(sql`DELETE FROM project_snapshots`);
   console.log('Cleared existing snapshots.');
 
-  const snapshotsToInsert: any[] = [];
+  const snapshotsToInsert: {
+    project_id: string;
+    stars: number;
+    likes: number;
+    downloads: number;
+    snapshot_date: string;
+  }[] = [];
   
-  for (const proj of activeProjects as any[]) {
+  const todayStr = new Date().toISOString().split('T')[0];
+  const yesterdayStr = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  const weekAgoStr = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  const monthAgoStr = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  
+  for (const proj of activeProjects as unknown as { id: string; source: string; stars?: number; downloads?: number; }[]) {
     const isGithub = proj.source === 'github';
     // Current metrics
-    const currentStars = Number(proj.stars || 0);
-    const currentDownloads = Number(proj.downloads || 0);
+    const currentStars = isGithub 
+      ? Math.floor(Math.random() * 45000) + 500 
+      : Math.floor(Math.random() * 4500) + 50;
+    const currentDownloads = isGithub 
+      ? 0 
+      : Math.floor(Math.random() * 4995000) + 5000;
     
     // Generate growth values
     let dailyGrowth, weeklyGrowth, monthlyGrowth;
@@ -39,10 +53,10 @@ async function main() {
     }
     
     // Snaps to create:
-    // 1. Today (2026-06-16)
-    // 2. Yesterday (2026-06-15)
-    // 3. 7 days ago (2026-06-09)
-    // 4. 30 days ago (2026-05-17)
+    // 1. Today
+    // 2. Yesterday
+    // 3. 7 days ago
+    // 4. 30 days ago
     
     // Today snapshot
     snapshotsToInsert.push({
@@ -50,7 +64,7 @@ async function main() {
       stars: currentStars,
       likes: isGithub ? 0 : currentStars,
       downloads: currentDownloads,
-      snapshot_date: '2026-06-16'
+      snapshot_date: todayStr
     });
     
     // Yesterday snapshot
@@ -59,7 +73,7 @@ async function main() {
       stars: Math.max(0, currentStars - dailyGrowth),
       likes: isGithub ? 0 : Math.max(0, currentStars - dailyGrowth),
       downloads: Math.max(0, currentDownloads - dailyGrowth),
-      snapshot_date: '2026-06-15'
+      snapshot_date: yesterdayStr
     });
     
     // 7 days ago snapshot
@@ -68,7 +82,7 @@ async function main() {
       stars: Math.max(0, currentStars - weeklyGrowth),
       likes: isGithub ? 0 : Math.max(0, currentStars - weeklyGrowth),
       downloads: Math.max(0, currentDownloads - weeklyGrowth),
-      snapshot_date: '2026-06-09'
+      snapshot_date: weekAgoStr
     });
     
     // 30 days ago snapshot
@@ -77,7 +91,7 @@ async function main() {
       stars: Math.max(0, currentStars - monthlyGrowth),
       likes: isGithub ? 0 : Math.max(0, currentStars - monthlyGrowth),
       downloads: Math.max(0, currentDownloads - monthlyGrowth),
-      snapshot_date: '2026-05-17'
+      snapshot_date: monthAgoStr
     });
   }
 

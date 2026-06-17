@@ -129,21 +129,21 @@ export async function getDynamicTrendingProjects(params: ProjectQueryParams): Pr
           p.source_created_at,
           p.source_updated_at,
           p.categories,
-          COALESCE(
+          GREATEST(COALESCE(
             CASE 
               WHEN p.source = 'github' THEN ${starsGainedCol}
               ELSE 0
             END, 0
-          ) as stars_gained,
+          ), 0) as stars_gained,
           0 as forks_gained,
           0 as contributors_gained,
-          COALESCE(
+          GREATEST(COALESCE(
             CASE 
               WHEN p.source = 'huggingface' THEN ${starsGainedCol}
               ELSE 0
             END, 0
-          ) as likes_gained,
-          COALESCE(${downloadsGainedCol}, 0) as downloads_gained,
+          ), 0) as likes_gained,
+          GREATEST(COALESCE(${downloadsGainedCol}, 0), 0) as downloads_gained,
           sh.sparkline_data,
           c.stars, c.forks, c.downloads, c.likes, c.open_issues, c.contributors_count as current_contributors_count
         FROM projects p
@@ -155,8 +155,8 @@ export async function getDynamicTrendingProjects(params: ProjectQueryParams): Pr
         SELECT 
           *,
           CASE 
-            WHEN source = 'github' THEN stars_gained
-            WHEN source = 'huggingface' THEN downloads_gained
+            WHEN source = 'github' THEN LN(stars_gained + 1) * 15.0
+            WHEN source = 'huggingface' THEN LN(downloads_gained + 1) * 2.5
             ELSE 0 
           END as momentum_score
         FROM deltas
@@ -243,8 +243,8 @@ export async function getDynamicTrendingProjects(params: ProjectQueryParams): Pr
         SELECT 
           *,
           CASE 
-            WHEN source = 'github' THEN stars_gained
-            WHEN source = 'huggingface' THEN downloads_gained
+            WHEN source = 'github' THEN LN(stars_gained + 1) * 15.0
+            WHEN source = 'huggingface' THEN LN(downloads_gained + 1) * 2.5
             ELSE 0 
           END as momentum_score
         FROM deltas

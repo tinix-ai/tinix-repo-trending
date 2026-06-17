@@ -46,7 +46,8 @@ export default async function RootLayout({
   params,
 }: {
   children: React.ReactNode;
-  params: Promise<{ locale: string }>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  params: Promise<any>;
 }) {
   const { locale } = await params;
   const messages = await getMessages();

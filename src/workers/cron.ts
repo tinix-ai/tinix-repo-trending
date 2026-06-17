@@ -17,13 +17,16 @@ export async function runDailyDiscovery() {
   const newRepos = await discoverNewRepos();
   console.log(`[Cron] Discovered ${newRepos.length} trending repos from Search.`);
 
-  const existingGitHub = await db.select({ sourceId: projects.sourceId }).from(projects).where(eq(projects.source, 'github'));
-  const existingGHSet = new Set(existingGitHub.map(p => p.sourceId));
+  const existingGitHub = await db.select({ id: projects.id, sourceId: projects.sourceId }).from(projects).where(eq(projects.source, 'github'));
+  const existingGHMap = new Map(existingGitHub.map(p => [p.sourceId, p.id]));
 
   let queuedCount = 0;
   for (const repo of newRepos) {
     const sourceId = `${repo.owner}/${repo.repo}`;
-    if (!existingGHSet.has(sourceId)) {
+    const existingId = existingGHMap.get(sourceId);
+    
+    if (!existingId) {
+      // New repo: crawl immediately
       await crawlerQueue.add('crawl-repo', {
         owner: repo.owner,
         repo: repo.repo,
@@ -31,9 +34,27 @@ export async function runDailyDiscovery() {
         jobId: `discovery-${sourceId}`,
       });
       queuedCount++;
+    } else {
+      // Existing repo but discovered as trending: reset crawl interval to daily and schedule NOW
+      await db.update(projects)
+        .set({
+          crawlInterval: 1,
+          nextCrawlAt: new Date(),
+        })
+        .where(eq(projects.id, existingId));
+
+      await crawlerQueue.add('crawl-repo', {
+        owner: repo.owner,
+        repo: repo.repo,
+        projectId: existingId,
+      }, {
+        jobId: `discovery-update-gh-${existingId}-${new Date().toISOString().split('T')[0]}`,
+      });
+      queuedCount++;
     }
   }
-  console.log(`[Cron] Queued ${queuedCount} NEW GitHub repos for initial crawling.`);
+  console.log(`[Cron] Queued ${queuedCount} GitHub repos for crawling/update (new/trending reset).`);
+
 
   // 2. HuggingFace Discovery
   await discoverHFTrending();
@@ -159,3 +180,74 @@ export async function runTrendCalculation() {
     console.error('[Cron] Error running trend calculation:', error);
   }
 }
+
+/**
+ * Calculates and updates trends (stars and downloads) inline for a specific project.
+ */
+export async function calculateProjectTrendInline(projectId: string) {
+  try {
+    const query = sql`
+      WITH current_snaps AS (
+        SELECT COALESCE(stars, likes, 0) as stars, downloads
+        FROM project_snapshots
+        WHERE project_id = ${projectId}::uuid AND snapshot_date <= CURRENT_DATE
+        ORDER BY snapshot_date DESC
+        LIMIT 1
+      ),
+      daily_snaps AS (
+        SELECT COALESCE(stars, likes, 0) as stars, downloads
+        FROM project_snapshots
+        WHERE project_id = ${projectId}::uuid AND snapshot_date <= CURRENT_DATE - INTERVAL '1 day'
+        ORDER BY snapshot_date DESC
+        LIMIT 1
+      ),
+      weekly_snaps AS (
+        SELECT COALESCE(stars, likes, 0) as stars, downloads
+        FROM project_snapshots
+        WHERE project_id = ${projectId}::uuid AND snapshot_date <= CURRENT_DATE - INTERVAL '7 days'
+        ORDER BY snapshot_date DESC
+        LIMIT 1
+      ),
+      monthly_snaps AS (
+        SELECT COALESCE(stars, likes, 0) as stars, downloads
+        FROM project_snapshots
+        WHERE project_id = ${projectId}::uuid AND snapshot_date <= CURRENT_DATE - INTERVAL '30 days'
+        ORDER BY snapshot_date DESC
+        LIMIT 1
+      )
+      INSERT INTO project_trends (
+        project_id, 
+        daily_stars, weekly_stars, monthly_stars, 
+        daily_downloads, weekly_downloads, monthly_downloads,
+        updated_at
+      )
+      SELECT 
+        ${projectId}::uuid as project_id,
+        COALESCE(c.stars - d.stars, 0) as daily_stars,
+        COALESCE(c.stars - w.stars, 0) as weekly_stars,
+        COALESCE(c.stars - m.stars, 0) as monthly_stars,
+        COALESCE(c.downloads - d.downloads, 0) as daily_downloads,
+        COALESCE(c.downloads - w.downloads, 0) as weekly_downloads,
+        COALESCE(c.downloads - m.downloads, 0) as monthly_downloads,
+        NOW() as updated_at
+      FROM current_snaps c
+      LEFT JOIN daily_snaps d ON true
+      LEFT JOIN weekly_snaps w ON true
+      LEFT JOIN monthly_snaps m ON true
+      ON CONFLICT (project_id) DO UPDATE SET
+        daily_stars = EXCLUDED.daily_stars,
+        weekly_stars = EXCLUDED.weekly_stars,
+        monthly_stars = EXCLUDED.monthly_stars,
+        daily_downloads = EXCLUDED.daily_downloads,
+        weekly_downloads = EXCLUDED.weekly_downloads,
+        monthly_downloads = EXCLUDED.monthly_downloads,
+        updated_at = EXCLUDED.updated_at;
+    `;
+
+    await db.execute(query);
+    console.log(`[Cron] Inline Trend Calculation completed for project: ${projectId}`);
+  } catch (error) {
+    console.error(`[Cron] Error running inline trend calculation for ${projectId}:`, error);
+  }
+}
+

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   RefreshCw,
   Pause,
@@ -22,6 +22,7 @@ import {
   drainQueue,
   retryFailedJobs,
   triggerCrawlerSync,
+  triggerJobNow,
 } from "@/app/actions";
 
 interface QueueDetails {
@@ -39,16 +40,12 @@ interface QueueDetails {
 interface DetailedStats {
   github: QueueDetails;
   huggingface: QueueDetails;
+  scheduler: QueueDetails;
+  activeSchedulerJobs?: string[];
 }
 
 type ActionType = 'pause' | 'resume' | 'drain' | 'retry' | 'sync';
-type SourceType = 'github' | 'huggingface';
-
-interface Toast {
-  id: number;
-  message: string;
-  type: 'success' | 'error';
-}
+type SourceType = 'github' | 'huggingface' | 'scheduler';
 
 export function QueueControlPanel() {
   const t = useTranslations("Admin");
@@ -101,7 +98,7 @@ export function QueueControlPanel() {
         case 'resume': result = await resumeQueue(source); break;
         case 'drain': result = await drainQueue(source); break;
         case 'retry': result = await retryFailedJobs(source); break;
-        case 'sync': result = await triggerCrawlerSync(source); break;
+        case 'sync': result = await triggerCrawlerSync(source as 'github' | 'huggingface'); break;
       }
       if (!result.success) throw new Error(result.message);
       await loadStats();
@@ -122,38 +119,64 @@ export function QueueControlPanel() {
     });
   };
 
+  const handleTriggerJob = async (name: string) => {
+    const key = `trigger-${name}`;
+    setLoadingActions(prev => new Set(prev).add(key));
+
+    const actionPromise = async () => {
+      const result = await triggerJobNow(name);
+      if (!result.success) throw new Error(result.message);
+      await loadStats();
+      return t("jobTriggered", { name });
+    };
+
+    toast.promise(actionPromise(), {
+      loading: t("triggeringJob", { name }),
+      success: (msg) => msg,
+      error: (err) => err.message || t("triggerJobFailed", { name }),
+      finally: () => {
+        setLoadingActions(prev => {
+          const next = new Set(prev);
+          next.delete(key);
+          return next;
+        });
+      }
+    });
+  };
+
   const isLoading = (action: ActionType, source: SourceType) =>
     loadingActions.has(`${action}-${source}`);
 
   const renderQueueCard = (source: SourceType, label: string, q: QueueDetails) => {
+    const isActive = q.active > 0 || q.waiting > 0;
     const statusColor = q.isPaused
       ? 'bg-amber-500/10 text-amber-500'
-      : q.active > 0
+      : isActive
         ? 'bg-emerald-500/10 text-emerald-500'
         : 'bg-[var(--color-ink-muted-48)]/10 text-[var(--color-ink-muted-48)]';
 
-    const statusLabel = q.isPaused ? 'Paused' : q.active > 0 ? 'Processing' : 'Idle';
+    const statusLabel = q.isPaused ? 'Paused' : isActive ? 'Processing' : 'Idle';
     const statusDot = q.isPaused
       ? 'bg-amber-500'
-      : q.active > 0
+      : isActive
         ? 'bg-emerald-500 animate-pulse'
         : 'bg-[var(--color-ink-muted-48)]';
 
     return (
       <div key={source} className="apple-utility-card">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <div className={`w-2.5 h-2.5 rounded-full ${statusDot}`} />
-            <h3 className="text-apple-body-strong">{label}</h3>
-            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColor}`}>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <div className={`w-2 h-2 rounded-full ${statusDot}`} />
+            <h3 className="text-sm font-semibold text-[var(--color-ink)]">{label}</h3>
+            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ${statusColor}`}>
               {statusLabel}
             </span>
           </div>
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-5 gap-3 mb-6">
+        <div className="grid grid-cols-5 gap-1.5 mb-4">
           {[
             { label: 'Active', value: q.active, icon: Zap, color: 'text-emerald-500' },
             { label: 'Waiting', value: q.waiting, icon: Clock, color: 'text-blue-500' },
@@ -161,40 +184,40 @@ export function QueueControlPanel() {
             { label: 'Completed', value: q.completed, icon: CheckCircle2, color: 'text-emerald-400' },
             { label: 'Failed', value: q.failed, icon: AlertTriangle, color: 'text-red-500' },
           ].map(stat => (
-            <div key={stat.label} className="text-center p-3 rounded-xl bg-[var(--color-canvas-parchment)] border border-[var(--color-divider-soft)]">
-              <stat.icon className={`w-4 h-4 mx-auto mb-1.5 ${stat.color}`} />
-              <div className="text-lg font-semibold text-[var(--color-ink)] tabular-nums">{stat.value.toLocaleString()}</div>
-              <div className="text-[10px] text-[var(--color-ink-muted-48)] uppercase tracking-wider mt-0.5">{stat.label}</div>
+            <div key={stat.label} className="text-center p-2 rounded-lg bg-[var(--color-canvas-parchment)] border border-[var(--color-divider-soft)]">
+              <stat.icon className={`w-3.5 h-3.5 mx-auto mb-1 ${stat.color}`} />
+              <div className="text-sm font-bold text-[var(--color-ink)] tabular-nums">{stat.value.toLocaleString()}</div>
+              <div className="text-[9px] text-[var(--color-ink-muted-48)] uppercase tracking-wider mt-0.5">{stat.label}</div>
             </div>
           ))}
         </div>
 
         {/* Job Type Breakdown (Tìm mới & Cập nhật hàng ngày) */}
         {q.discovery !== undefined && q.update !== undefined && (
-          <div className="mb-6 p-4 rounded-xl bg-[var(--color-bg-secondary)] border border-[var(--color-divider-soft)] space-y-3">
-            <div className="flex justify-between items-center text-xs">
+          <div className="mb-4 p-3 rounded-lg bg-[var(--color-bg-secondary)] border border-[var(--color-divider-soft)] space-y-2">
+            <div className="flex justify-between items-center text-[11px]">
               <span className="font-semibold text-[var(--color-ink-muted-80)]">{t("queueBreakdown")}</span>
               <span className="text-[var(--color-ink-muted-48)] tabular-nums">
                 {t("totalJobs", { count: (q.discovery + q.update) })}
               </span>
             </div>
             
-            <div className="grid grid-cols-2 gap-4">
-              <div className="p-3 rounded-lg bg-[var(--color-canvas)] border border-[var(--color-divider-soft)]">
-                <div className="text-[10px] uppercase tracking-wider text-blue-500 font-bold mb-1">{t("discoveryJobs")}</div>
-                <div className="text-xl font-bold text-[var(--color-ink)] tabular-nums">{q.discovery.toLocaleString()}</div>
-                <div className="text-[10px] text-[var(--color-ink-muted-48)] mt-0.5">{t("discoveryDesc")}</div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="p-2.5 rounded-lg bg-[var(--color-canvas)] border border-[var(--color-divider-soft)]">
+                <div className="text-[9px] uppercase tracking-wider text-blue-500 font-bold mb-0.5">{t("discoveryJobs")}</div>
+                <div className="text-sm font-bold text-[var(--color-ink)] tabular-nums">{q.discovery.toLocaleString()}</div>
+                <div className="text-[9px] text-[var(--color-ink-muted-48)] mt-0.5">{t("discoveryDesc")}</div>
               </div>
-              <div className="p-3 rounded-lg bg-[var(--color-canvas)] border border-[var(--color-divider-soft)]">
-                <div className="text-[10px] uppercase tracking-wider text-amber-500 font-bold mb-1">{t("updateJobs")}</div>
-                <div className="text-xl font-bold text-[var(--color-ink)] tabular-nums">{q.update.toLocaleString()}</div>
-                <div className="text-[10px] text-[var(--color-ink-muted-48)] mt-0.5">{t("updateDesc")}</div>
+              <div className="p-2.5 rounded-lg bg-[var(--color-canvas)] border border-[var(--color-divider-soft)]">
+                <div className="text-[9px] uppercase tracking-wider text-amber-500 font-bold mb-0.5">{t("updateJobs")}</div>
+                <div className="text-sm font-bold text-[var(--color-ink)] tabular-nums">{q.update.toLocaleString()}</div>
+                <div className="text-[9px] text-[var(--color-ink-muted-48)] mt-0.5">{t("updateDesc")}</div>
               </div>
             </div>
 
             {/* Split Progress Bar */}
             {q.discovery + q.update > 0 && (
-              <div className="w-full h-2 bg-[var(--color-canvas)] rounded-full overflow-hidden flex border border-[var(--color-divider-soft)]">
+              <div className="w-full h-1.5 bg-[var(--color-canvas)] rounded-full overflow-hidden flex border border-[var(--color-divider-soft)]">
                 <div 
                   className="h-full bg-blue-500 transition-all duration-500" 
                   style={{ width: `${(q.discovery / (q.discovery + q.update)) * 100}%` }}
@@ -211,7 +234,7 @@ export function QueueControlPanel() {
         )}
 
         {/* Total processed */}
-        <div className="flex items-center justify-between text-xs text-[var(--color-ink-muted-80)] mb-4 px-1">
+        <div className="flex items-center justify-between text-[11px] text-[var(--color-ink-muted-80)] mb-3 px-1">
           <span>Total Processed: <strong className="text-[var(--color-ink)]">{q.total.toLocaleString()}</strong></span>
           <span>Success Rate: <strong className="text-[var(--color-ink)]">
             {q.total > 0 ? `${((q.completed / q.total) * 100).toFixed(1)}%` : 'N/A'}
@@ -219,7 +242,7 @@ export function QueueControlPanel() {
         </div>
 
         {/* Action Buttons */}
-        <div className="flex flex-wrap gap-2 pt-4 border-t border-[var(--color-divider-soft)]">
+        <div className="flex flex-wrap gap-1.5 pt-3 border-t border-[var(--color-divider-soft)]">
           {q.isPaused ? (
             <ActionButton
               icon={Play}
@@ -253,17 +276,41 @@ export function QueueControlPanel() {
             variant="default"
             disabled={q.failed === 0}
           />
-          <ActionButton
-            icon={RefreshCw}
-            label="Run Sync"
-            onClick={() => handleAction('sync', source)}
-            loading={isLoading('sync', source)}
-            variant="primary"
-          />
+          {source !== 'scheduler' ? (
+            <ActionButton
+              icon={RefreshCw}
+              label="Run Sync"
+              onClick={() => handleAction('sync', source)}
+              loading={isLoading('sync', source)}
+              variant="primary"
+            />
+          ) : (
+            <>
+              <ActionButton
+                icon={Play}
+                label="Run Discovery"
+                onClick={() => handleTriggerJob('daily-discovery')}
+                loading={loadingActions.has('trigger-daily-discovery')}
+                variant="primary"
+              />
+              <ActionButton
+                icon={Play}
+                label="Run Update"
+                onClick={() => handleTriggerJob('daily-update')}
+                loading={loadingActions.has('trigger-daily-update')}
+                variant="primary"
+              />
+            </>
+          )}
         </div>
       </div>
     );
   };
+
+  const totalPending = stats 
+    ? (stats.github.waiting + stats.github.active + stats.huggingface.waiting + stats.huggingface.active)
+    : 0;
+  const hasActiveScheduler = !!(stats?.activeSchedulerJobs && stats.activeSchedulerJobs.length > 0);
 
   return (
     <div className="space-y-4">
@@ -284,18 +331,50 @@ export function QueueControlPanel() {
         <button
           onClick={loadStats}
           disabled={isRefreshing}
-          className="apple-btn-secondary py-1.5 px-3 text-xs flex items-center gap-1.5 disabled:opacity-50"
+          className="apple-btn-secondary py-1 px-2.5 text-[11px] flex items-center gap-1 disabled:opacity-50"
           aria-label="Refresh queue stats"
         >
           <RefreshCw className={`w-3 h-3 ${isRefreshing ? 'animate-spin' : ''}`} /> Refresh
         </button>
       </div>
 
+      {/* Active System Tasks & Crawlers Banner */}
+      {stats && (hasActiveScheduler || totalPending > 0) && (
+        <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 flex flex-col gap-3">
+          {hasActiveScheduler && (
+            <div className="flex items-center gap-3">
+              <Loader2 className="w-4 h-4 animate-spin text-emerald-500" />
+              <div className="text-[11px] font-semibold">
+                {t("runningSchedulerJobs", {
+                  jobs: stats.activeSchedulerJobs!.map(name => {
+                    if (name === 'daily-discovery') return 'Daily Discovery (scanning GitHub and HuggingFace for trending projects)';
+                    if (name === 'daily-update') return 'Daily Update (generating metrics update queue)';
+                    return name;
+                  }).join(', ')
+                })}
+              </div>
+            </div>
+          )}
+          {totalPending > 0 && (
+            <div className="flex items-center gap-3">
+              <div className="relative flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+              </div>
+              <div className="text-[11px] font-medium">
+                {t("activeCrawlers", { count: totalPending })}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Queue cards */}
       {stats ? (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
           {renderQueueCard('github', 'GitHub Crawler', stats.github)}
           {renderQueueCard('huggingface', 'HuggingFace Crawler', stats.huggingface)}
+          {renderQueueCard('scheduler', 'System Scheduler', stats.scheduler)}
         </div>
       ) : (
         <div className="apple-utility-card flex items-center justify-center py-12">
@@ -336,7 +415,7 @@ function ActionButton({
     <button
       onClick={onClick}
       disabled={loading || disabled}
-      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed ${variantStyles[variant]}`}
+      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md border text-[11px] font-semibold transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed ${variantStyles[variant]}`}
       aria-label={label}
     >
       {loading ? (

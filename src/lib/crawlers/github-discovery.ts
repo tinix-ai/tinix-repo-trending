@@ -14,11 +14,7 @@ interface DiscoveredRepo {
  * Uses a cautious delay to respect the 30 req/min limit of the Search API.
  */
 export async function discoverNewRepos(maxPages: number = 3): Promise<DiscoveredRepo[]> {
-  const discovered: DiscoveredRepo[] = [];
   const checkpointKey = "crawler:checkpoint:github-discovery";
-  
-  // We look for AI/ML topics, with a reasonable star threshold to filter spam
-  const query = encodeURIComponent("(topic:ai OR topic:machine-learning OR topic:llm OR topic:deep-learning) stars:>100");
   const sort = "updated"; // Get most recently active
   const order = "desc";
   
@@ -41,8 +37,10 @@ export async function discoverNewRepos(maxPages: number = 3): Promise<Discovered
       await redisConnection.del(checkpointKey);
     } catch {}
   }
-  
-  let completedAll = false;
+
+  const topics = ['ai', 'machine-learning', 'llm', 'deep-learning'];
+  const discoveredMap = new Map<string, DiscoveredRepo>();
+  let completedAll = true;
 
   // Helper for Token Rotation (shared across all pages)
   const fetchWithTokenRotation = async (url: string) => {
@@ -115,51 +113,59 @@ export async function discoverNewRepos(maxPages: number = 3): Promise<Discovered
     throw new Error('Failed to fetch after max retries due to rate limiting.');
   };
 
-  for (let page = startPage; page <= maxPages; page++) {
-    console.log(`[Discovery] Fetching page ${page} of GitHub Search...`);
-    
-    try {
-      const data = await fetchWithTokenRotation(
-        `https://api.github.com/search/repositories?q=${query}&sort=${sort}&order=${order}&per_page=100&page=${page}`
-      );
-      const items = data.items || [];
+  for (const topic of topics) {
+    let completedTopic = false;
+    for (let page = startPage; page <= maxPages; page++) {
+      console.log(`[Discovery] Fetching page ${page} of GitHub Search for topic:${topic}...`);
       
-      if (items.length === 0) {
-        completedAll = true;
-        break; // No more results
-      }
-
-      for (const item of items) {
-        discovered.push({
-          owner: item.owner.login,
-          repo: item.name,
-          stars: item.stargazers_count,
-        });
-      }
-
-      // Save checkpoint page to Redis
       try {
-        await redisConnection.set(checkpointKey, page);
-      } catch (err) {
-        console.warn(`[Discovery] Failed to save page ${page} checkpoint in Redis`, err);
-      }
+        const query = encodeURIComponent(`topic:${topic} stars:>100`);
+        const data = await fetchWithTokenRotation(
+          `https://api.github.com/search/repositories?q=${query}&sort=${sort}&order=${order}&per_page=100&page=${page}`
+        );
+        const items = data.items || [];
+        
+        if (items.length === 0) {
+          completedTopic = true;
+          break; // No more results for this topic
+        }
 
-      if (page === maxPages) {
-        completedAll = true;
-      }
+        for (const item of items) {
+          const key = `${item.owner.login}/${item.name}`;
+          discoveredMap.set(key, {
+            owner: item.owner.login,
+            repo: item.name,
+            stars: item.stargazers_count,
+          });
+        }
 
-      // Safe delay (2.5 seconds) to avoid hitting 30 req/min rate limit (which is 1 req every 2s)
-      if (page < maxPages) {
-        await setTimeout(2500);
-      }
+        // Save checkpoint page to Redis
+        try {
+          await redisConnection.set(checkpointKey, page);
+        } catch (err) {
+          console.warn(`[Discovery] Failed to save page ${page} checkpoint in Redis`, err);
+        }
 
-    } catch (error) {
-      console.error("[Discovery] Error during GitHub Search:", error);
-      break; // Safe exit on error
+        if (page === maxPages) {
+          completedTopic = true;
+        }
+
+        // Safe delay (2.5 seconds) to avoid hitting 30 req/min rate limit (which is 1 req every 2s)
+        if (page < maxPages) {
+          await setTimeout(2500);
+        }
+
+      } catch (error) {
+        console.error(`[Discovery] Error during GitHub Search for topic:${topic} page:${page}:`, error);
+        break; // Safe exit on error for this topic
+      }
+    }
+    if (!completedTopic) {
+      completedAll = false;
     }
   }
 
-  // Clear checkpoint only on complete success or when all results have been processed
+  // Clear checkpoint only on complete success
   if (completedAll) {
     try {
       await redisConnection.del(checkpointKey);
@@ -174,5 +180,5 @@ export async function discoverNewRepos(maxPages: number = 3): Promise<Discovered
     } catch {}
   }
 
-  return discovered;
+  return Array.from(discoveredMap.values());
 }

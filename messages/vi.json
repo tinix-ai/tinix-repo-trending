@@ -60,7 +60,9 @@
     "sortTrendDesc": "Thịnh hành nhất",
     "sortStarsDesc": "Nhiều Sao nhất",
     "sortStarsAsc": "Ít Sao nhất",
-    "sortUpdatedDesc": "Mới cập nhật"
+    "sortUpdatedDesc": "Mới cập nhật",
+    "githubTab": "GitHub",
+    "huggingfaceTab": "Hugging Face"
   },
   "Navigation": {
     "trending": "Thịnh hành",
@@ -127,7 +129,9 @@
     "discoveryJobs": "Tìm mới",
     "discoveryDesc": "Crawl dự án mới",
     "updateJobs": "Cập nhật hàng ngày",
-    "updateDesc": "Cập nhật chỉ số hàng ngày"
+    "updateDesc": "Cập nhật chỉ số hàng ngày",
+    "activeCrawlers": "Crawler đang hoạt động: {count} dự án đang được xử lý trong hàng đợi nền.",
+    "runningSchedulerJobs": "Các tác vụ hệ thống đang chạy: {jobs}"
   },
   "ProjectDetail": {
     "backBtn": "Quay lại Trending",

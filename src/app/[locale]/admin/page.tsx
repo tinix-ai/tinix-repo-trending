@@ -17,7 +17,8 @@ interface AdminPageProps {
 
 export default async function AdminPage(props: AdminPageProps) {
   const searchParams = await props.searchParams;
-  const currentTab = searchParams.tab || 'overview';
+  const tab = searchParams.tab || 'overview';
+  const currentTab = ['overview', 'queues'].includes(tab) ? tab : 'overview';
   
   const [{ count: totalProjects }] = await db.select({ count: sql`count(*)` }).from(projects);
   const [{ count: totalModels }] = await db.select({ count: sql`count(*)` }).from(projects).where(sql`${projects.projectType} = 'model'`);
@@ -45,12 +46,6 @@ export default async function AdminPage(props: AdminPageProps) {
           className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${currentTab === 'queues' ? 'bg-[var(--color-canvas)] text-[var(--color-ink)] shadow-sm' : 'text-[var(--color-ink-muted-48)] hover:text-[var(--color-ink)]'}`}
         >
           {t("tabQueues")}
-        </Link>
-        <Link
-          href="/admin?tab=scheduled"
-          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${currentTab === 'scheduled' ? 'bg-[var(--color-canvas)] text-[var(--color-ink)] shadow-sm' : 'text-[var(--color-ink-muted-48)] hover:text-[var(--color-ink)]'}`}
-        >
-          {t("tabScheduled")}
         </Link>
       </div>
 
@@ -110,17 +105,13 @@ export default async function AdminPage(props: AdminPageProps) {
             </section>
 
             <section>
-              <h2 className="text-apple-body-strong text-[var(--color-ink)] mb-4">{t("recentJobs")}</h2>
-              <RecentJobsTable />
-            </section>
-          </div>
-        )}
-
-        {currentTab === 'scheduled' && (
-          <div className="space-y-12 animate-fade-in-up">
-            <section>
               <h2 className="text-apple-body-strong text-[var(--color-ink)] mb-4">{t("scheduledTasks")}</h2>
               <ScheduledJobsTable />
+            </section>
+
+            <section>
+              <h2 className="text-apple-body-strong text-[var(--color-ink)] mb-4">{t("recentJobs")}</h2>
+              <RecentJobsTable />
             </section>
           </div>
         )}

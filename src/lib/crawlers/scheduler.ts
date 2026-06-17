@@ -36,20 +36,29 @@ export async function updateProjectCrawlSchedule(
       const latest = snapshots[0];
       const previous = snapshots[1];
 
+      // Calculate the difference in days between snapshots
+      const latestDate = new Date(latest.snapshotDate);
+      const previousDate = new Date(previous.snapshotDate);
+      const diffTime = Math.abs(latestDate.getTime() - previousDate.getTime());
+      const diffDays = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
+
       if (source === "github") {
         const deltaStars = (latest.stars || 0) - (previous.stars || 0);
-        console.log(`[Scheduler] GitHub project ${projectId} star delta: ${deltaStars}`);
+        const dailyStarsRate = deltaStars / diffDays;
+        console.log(
+          `[Scheduler] GitHub project ${projectId}: delta stars = ${deltaStars}, diff days = ${diffDays}, daily growth rate = ${dailyStarsRate.toFixed(2)}`
+        );
         
-        if (deltaStars >= 100) {
+        if (dailyStarsRate >= 100) {
           crawlInterval = 1; // High growth: crawl daily
-        } else if (deltaStars >= 50) {
+        } else if (dailyStarsRate >= 50) {
           crawlInterval = 2; // Moderate growth: crawl every 2 days
-        } else if (deltaStars >= 10) {
+        } else if (dailyStarsRate >= 10) {
           crawlInterval = 4; // Slow growth: crawl every 4 days
-        } else if (deltaStars > 0) {
+        } else if (dailyStarsRate > 0) {
           crawlInterval = 7; // Low growth: crawl weekly
         } else {
-          // No growth (deltaStars <= 0)
+          // No growth (dailyStarsRate <= 0)
           if (currentInterval < 7) {
             crawlInterval = 7; // 1 week
           } else if (currentInterval === 7) {
@@ -61,20 +70,22 @@ export async function updateProjectCrawlSchedule(
       } else if (source === "huggingface") {
         const deltaLikes = (latest.likes || 0) - (previous.likes || 0);
         const deltaDownloads = (latest.downloads || 0) - (previous.downloads || 0);
+        const dailyLikesRate = deltaLikes / diffDays;
+        const dailyDownloadsRate = deltaDownloads / diffDays;
         console.log(
-          `[Scheduler] HF project ${projectId} delta likes: ${deltaLikes}, downloads: ${deltaDownloads}`
+          `[Scheduler] HF project ${projectId}: delta likes = ${deltaLikes}, downloads = ${deltaDownloads}, diff days = ${diffDays}, daily likes rate = ${dailyLikesRate.toFixed(2)}, daily downloads rate = ${dailyDownloadsRate.toFixed(2)}`
         );
 
-        if (deltaLikes >= 50 || deltaDownloads >= 5000) {
+        if (dailyLikesRate >= 50 || dailyDownloadsRate >= 5000) {
           crawlInterval = 1; // High growth
-        } else if (deltaLikes >= 20 || deltaDownloads >= 1000) {
+        } else if (dailyLikesRate >= 20 || dailyDownloadsRate >= 1000) {
           crawlInterval = 2; // Moderate growth
-        } else if (deltaLikes >= 5 || deltaDownloads >= 200) {
+        } else if (dailyLikesRate >= 5 || dailyDownloadsRate >= 200) {
           crawlInterval = 4; // Slow growth
-        } else if (deltaLikes > 0 || deltaDownloads > 0) {
+        } else if (dailyLikesRate > 0 || dailyDownloadsRate > 0) {
           crawlInterval = 7; // Low growth
         } else {
-          // No growth (deltaLikes <= 0 and deltaDownloads <= 0)
+          // No growth (dailyLikesRate <= 0 and dailyDownloadsRate <= 0)
           if (currentInterval < 7) {
             crawlInterval = 7; // 1 week
           } else if (currentInterval === 7) {

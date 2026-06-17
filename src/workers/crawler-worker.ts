@@ -6,6 +6,7 @@ import { projects, projectSnapshots } from '../lib/db/schema';
 import { sql } from 'drizzle-orm';
 import { categorizeProject } from '../lib/categorizer';
 import { updateProjectCrawlSchedule } from '../lib/crawlers/scheduler';
+import { calculateProjectTrendInline } from './cron';
 import { githubPool } from '../lib/crawlers/github-pool';
 import { proxyManager } from '../lib/crawlers/proxy';
 import { setTimeout } from 'timers/promises';
@@ -218,6 +219,9 @@ export const crawlerWorker = new Worker<CrawlJobData>(
 
       // Recalculate and update the next crawl schedule
       await updateProjectCrawlSchedule(project.id, 'github');
+
+      // Calculate project trends inline immediately
+      await calculateProjectTrendInline(project.id);
 
       console.log(`[Crawler] Successfully fetched & saved ${owner}/${repo}: ${data.stargazers_count} stars`);
 

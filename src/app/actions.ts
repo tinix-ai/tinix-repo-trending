@@ -1,5 +1,6 @@
 "use server";
 
+import { Queue } from "bullmq";
 import { getDynamicTrendingProjects, ProjectQueryParams, getGlobalStats, getProjectBySlug, getProjectHistory, getProjectById, getCategoryStats, getPopularLanguagesAndHashtags } from "@/lib/db/queries";
 import type { RankedProject } from "@/types";
 import { redisConnection, crawlerQueue, hfQueue, schedulerQueue } from "@/workers/queue";
@@ -117,7 +118,7 @@ export async function fetchQueueStats() {
 
 export async function fetchDetailedQueueStats() {
   try {
-    const getQueueDetails = async (queue: typeof crawlerQueue, queueName: string) => {
+    const getQueueDetails = async (queue: Queue, queueName: string) => {
       const [waiting, active, completed, failed, delayed, paused] = await Promise.all([
         queue.getWaitingCount(),
         queue.getActiveCount(),
@@ -145,10 +146,11 @@ export async function fetchDetailedQueueStats() {
             id.startsWith('hf-model-') || 
             id.startsWith('hf-dataset-') ||
             id.startsWith('hf-') ||
-            id.includes('manual-submit-')
+            id.includes('manual-submit-') ||
+            id.includes('discovery')
           ) {
             discovery++;
-          } else if (id.startsWith('update-')) {
+          } else if (id.startsWith('update-') || id.includes('update')) {
             update++;
           } else {
             // Default to discovery if unknown prefix
@@ -175,55 +177,68 @@ export async function fetchDetailedQueueStats() {
       };
     };
 
-    const [github, huggingface] = await Promise.all([
+    const [github, huggingface, scheduler, activeSchedulerJobs] = await Promise.all([
       getQueueDetails(crawlerQueue, 'github-crawler'),
       getQueueDetails(hfQueue, 'hf-crawler'),
+      schedulerQueue 
+        ? getQueueDetails(schedulerQueue, 'scheduler-queue')
+        : Promise.resolve({ waiting: 0, active: 0, completed: 0, failed: 0, delayed: 0, isPaused: false, total: 0, discovery: 0, update: 0 }),
+      schedulerQueue ? schedulerQueue.getActive() : Promise.resolve([]),
     ]);
 
-    return { github, huggingface };
+    const activeJobNames = activeSchedulerJobs.map(j => j.name);
+
+    return { github, huggingface, scheduler, activeSchedulerJobs: activeJobNames };
   } catch (error) {
     console.error("Failed to fetch detailed queue stats:", error);
     const empty = { waiting: 0, active: 0, completed: 0, failed: 0, delayed: 0, isPaused: false, total: 0, discovery: 0, update: 0 };
-    return { github: empty, huggingface: empty };
+    return { github: empty, huggingface: empty, scheduler: empty, activeSchedulerJobs: [] };
   }
 }
 
-export async function pauseQueue(source: 'github' | 'huggingface') {
+export async function pauseQueue(source: 'github' | 'huggingface' | 'scheduler') {
   try {
-    const queue = source === 'github' ? crawlerQueue : hfQueue;
+    const queue = source === 'github' ? crawlerQueue : source === 'huggingface' ? hfQueue : schedulerQueue;
+    if (!queue) throw new Error(`Queue ${source} not initialized`);
     await queue.pause();
     return { success: true, message: `${source} queue paused.` };
-  } catch (error) {
+  } catch (error: unknown) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
     console.error(`Failed to pause ${source} queue:`, error);
-    return { success: false, message: `Failed to pause ${source} queue.` };
+    return { success: false, message: `Failed to pause ${source} queue: ${errorMsg}` };
   }
 }
 
-export async function resumeQueue(source: 'github' | 'huggingface') {
+export async function resumeQueue(source: 'github' | 'huggingface' | 'scheduler') {
   try {
-    const queue = source === 'github' ? crawlerQueue : hfQueue;
+    const queue = source === 'github' ? crawlerQueue : source === 'huggingface' ? hfQueue : schedulerQueue;
+    if (!queue) throw new Error(`Queue ${source} not initialized`);
     await queue.resume();
     return { success: true, message: `${source} queue resumed.` };
-  } catch (error) {
+  } catch (error: unknown) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
     console.error(`Failed to resume ${source} queue:`, error);
-    return { success: false, message: `Failed to resume ${source} queue.` };
+    return { success: false, message: `Failed to resume ${source} queue: ${errorMsg}` };
   }
 }
 
-export async function drainQueue(source: 'github' | 'huggingface') {
+export async function drainQueue(source: 'github' | 'huggingface' | 'scheduler') {
   try {
-    const queue = source === 'github' ? crawlerQueue : hfQueue;
+    const queue = source === 'github' ? crawlerQueue : source === 'huggingface' ? hfQueue : schedulerQueue;
+    if (!queue) throw new Error(`Queue ${source} not initialized`);
     await queue.drain();
     return { success: true, message: `${source} queue drained. All waiting jobs removed.` };
-  } catch (error) {
+  } catch (error: unknown) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
     console.error(`Failed to drain ${source} queue:`, error);
-    return { success: false, message: `Failed to drain ${source} queue.` };
+    return { success: false, message: `Failed to drain ${source} queue: ${errorMsg}` };
   }
 }
 
-export async function retryFailedJobs(source: 'github' | 'huggingface') {
+export async function retryFailedJobs(source: 'github' | 'huggingface' | 'scheduler') {
   try {
-    const queue = source === 'github' ? crawlerQueue : hfQueue;
+    const queue = source === 'github' ? crawlerQueue : source === 'huggingface' ? hfQueue : schedulerQueue;
+    if (!queue) throw new Error(`Queue ${source} not initialized`);
     const failedJobs = await queue.getFailed(0, 100);
     let retried = 0;
     for (const job of failedJobs) {
@@ -231,9 +246,10 @@ export async function retryFailedJobs(source: 'github' | 'huggingface') {
       retried++;
     }
     return { success: true, message: `Retried ${retried} failed jobs in ${source} queue.` };
-  } catch (error) {
+  } catch (error: unknown) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
     console.error(`Failed to retry jobs in ${source} queue:`, error);
-    return { success: false, message: `Failed to retry failed jobs.` };
+    return { success: false, message: `Failed to retry failed jobs: ${errorMsg}` };
   }
 }
 
@@ -241,27 +257,39 @@ export interface RecentJob {
   id: string;
   name: string;
   data: string;
+  rawData: unknown;
+  queueName: 'github' | 'huggingface' | 'scheduler';
   status: 'active' | 'completed' | 'failed' | 'waiting' | 'delayed';
   timestamp: number;
   processedOn: number | null;
   finishedOn: number | null;
   failedReason: string | null;
+  stacktrace: string[] | null;
 }
 
 export async function fetchRecentJobs(
-  source: 'github' | 'huggingface' | 'all',
+  source: 'github' | 'huggingface' | 'scheduler' | 'all',
   status: 'active' | 'completed' | 'failed' | 'waiting' | 'all',
   page: number = 0,
   limit: number = 10
 ): Promise<{ jobs: RecentJob[]; total: number }> {
   try {
     const queues = source === 'all'
-      ? [{ queue: crawlerQueue, label: 'github' }, { queue: hfQueue, label: 'huggingface' }]
-      : [{ queue: source === 'github' ? crawlerQueue : hfQueue, label: source }];
+      ? [
+          { queue: crawlerQueue, label: 'github' as const },
+          { queue: hfQueue, label: 'huggingface' as const },
+          { queue: schedulerQueue, label: 'scheduler' as const }
+        ]
+      : source === 'github'
+        ? [{ queue: crawlerQueue, label: 'github' as const }]
+        : source === 'huggingface'
+          ? [{ queue: hfQueue, label: 'huggingface' as const }]
+          : [{ queue: schedulerQueue, label: 'scheduler' as const }];
 
     const allJobs: RecentJob[] = [];
 
     for (const { queue, label } of queues) {
+      if (!queue) continue;
       const statuses: ('active' | 'completed' | 'failed' | 'waiting')[] =
         status === 'all' ? ['active', 'completed', 'failed', 'waiting'] : [status];
 
@@ -276,16 +304,21 @@ export async function fetchRecentJobs(
         for (const job of jobs) {
           const dataStr = label === 'github'
             ? `${job.data?.owner || ''}/${job.data?.repo || ''}`
-            : `${job.data?.id || ''}`;
+            : label === 'huggingface'
+              ? `${job.data?.id || ''}`
+              : 'System Task Execution';
           allJobs.push({
             id: job.id || '',
             name: job.name,
             data: dataStr,
+            rawData: job.data,
+            queueName: label,
             status: s,
             timestamp: job.timestamp || 0,
             processedOn: job.processedOn || null,
             finishedOn: job.finishedOn || null,
             failedReason: job.failedReason || null,
+            stacktrace: job.stacktrace || null,
           });
         }
       }
@@ -298,6 +331,36 @@ export async function fetchRecentJobs(
   } catch (error) {
     console.error("Failed to fetch recent jobs:", error);
     return { jobs: [], total: 0 };
+  }
+}
+
+export async function retryJob(queueName: 'github' | 'huggingface' | 'scheduler', jobId: string) {
+  try {
+    const queue = queueName === 'github' ? crawlerQueue : queueName === 'huggingface' ? hfQueue : schedulerQueue;
+    if (!queue) throw new Error(`Queue ${queueName} not initialized`);
+    const job = await queue.getJob(jobId);
+    if (!job) throw new Error(`Job ${jobId} not found in ${queueName} queue`);
+    await job.retry();
+    return { success: true, message: `Successfully retried job ${jobId}` };
+  } catch (error: unknown) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    console.error(`Failed to retry job ${jobId}:`, error);
+    return { success: false, message: errorMsg };
+  }
+}
+
+export async function removeJob(queueName: 'github' | 'huggingface' | 'scheduler', jobId: string) {
+  try {
+    const queue = queueName === 'github' ? crawlerQueue : queueName === 'huggingface' ? hfQueue : schedulerQueue;
+    if (!queue) throw new Error(`Queue ${queueName} not initialized`);
+    const job = await queue.getJob(jobId);
+    if (!job) throw new Error(`Job ${jobId} not found in ${queueName} queue`);
+    await job.remove();
+    return { success: true, message: `Successfully removed job ${jobId}` };
+  } catch (error: unknown) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    console.error(`Failed to remove job ${jobId}:`, error);
+    return { success: false, message: errorMsg };
   }
 }
 
@@ -529,12 +592,18 @@ export interface ScheduledJob {
   tz: string | null;
   pattern: string;
   next: number;
+  isActive?: boolean;
 }
 
 export async function getScheduledJobs(): Promise<ScheduledJob[]> {
   if (!schedulerQueue) return [];
   try {
-    const jobs = await schedulerQueue.getRepeatableJobs();
+    const [jobs, activeJobs] = await Promise.all([
+      schedulerQueue.getRepeatableJobs(),
+      schedulerQueue.getActive(),
+    ]);
+    const activeNames = new Set(activeJobs.map(j => j.name));
+    
     return jobs.map(job => ({
       key: job.key,
       name: job.name,
@@ -543,6 +612,7 @@ export async function getScheduledJobs(): Promise<ScheduledJob[]> {
       tz: job.tz || null,
       pattern: job.pattern || '',
       next: job.next || 0,
+      isActive: activeNames.has(job.name),
     }));
   } catch (error) {
     console.error('Failed to fetch scheduled jobs:', error);
