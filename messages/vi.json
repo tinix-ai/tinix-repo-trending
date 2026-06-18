@@ -131,7 +131,9 @@
     "updateJobs": "Cập nhật hàng ngày",
     "updateDesc": "Cập nhật chỉ số hàng ngày",
     "activeCrawlers": "Crawler đang hoạt động: {count} dự án đang được xử lý trong hàng đợi nền.",
-    "runningSchedulerJobs": "Các tác vụ hệ thống đang chạy: {jobs}"
+    "runningSchedulerJobs": "Các tác vụ hệ thống đang chạy: {jobs}",
+    "updatingProgress": "Đang cập nhật: còn lại {count} dự án đang chờ cập nhật chỉ số...",
+    "discoveryProgress": "Đang tìm mới: còn lại {count} dự án đang được quét tìm mới..."
   },
   "ProjectDetail": {
     "backBtn": "Quay lại Trending",

@@ -2,8 +2,8 @@ import 'dotenv/config';
 import { Worker, Job } from 'bullmq';
 import Redis from 'ioredis';
 import { db } from '../lib/db';
-import { projects, projectSnapshots } from '../lib/db/schema';
-import { sql } from 'drizzle-orm';
+import { projects, projectSnapshots, projectTrends } from '../lib/db/schema';
+import { sql, eq } from 'drizzle-orm';
 import { categorizeProject } from '../lib/categorizer';
 import { updateProjectCrawlSchedule } from '../lib/crawlers/scheduler';
 import { calculateProjectTrendInline } from './cron';
@@ -30,6 +30,18 @@ interface CrawlJobData {
   projectId?: string;
 }
 
+const getGithubMaxLimit = () => {
+  const tokensStr = process.env.GITHUB_TOKENS;
+  const singleToken = process.env.GITHUB_TOKEN;
+  let count = 0;
+  if (tokensStr) {
+    count = tokensStr.split(',').map(t => t.trim()).filter(Boolean).length;
+  } else if (singleToken) {
+    count = 1;
+  }
+  return count > 0 ? count * 4000 : 30;
+};
+
 export const crawlerWorker = new Worker<CrawlJobData>(
   'github-crawler',
   async (job: Job<CrawlJobData>) => {
@@ -45,7 +57,7 @@ export const crawlerWorker = new Worker<CrawlJobData>(
           let tokenExhaustedError = false;
 
           try {
-            currentToken = githubPool.getAvailableToken();
+            currentToken = await githubPool.getAvailableToken();
           } catch (err: unknown) {
             const error = err as Error;
             if (error.message.includes('ALL tokens are currently exhausted')) {
@@ -58,13 +70,11 @@ export const crawlerWorker = new Worker<CrawlJobData>(
           // Case: All tokens exhausted, but we have proxies to fall back on for unauthenticated requests
           const hasProxies = (process.env.PROXY_URLS || '').split(',').map(p => p.trim()).filter(Boolean).length > 0;
           if (tokenExhaustedError && !hasProxies) {
-            // No proxies configured, so we must sleep until the next token availability
-            const nextTime = githubPool.getNextAvailableTime();
+            const nextTime = await githubPool.getNextAvailableTime();
             const sleepMs = Math.max(5000, nextTime - Date.now() + 5000);
             const resetMinutes = Math.ceil(sleepMs / 60000);
-            console.warn(`[Crawler] All tokens exhausted and no proxies configured. Sleeping for ${resetMinutes} minute(s) before retry...`);
-            await setTimeout(sleepMs);
-            continue; // retry
+            console.warn(`[Crawler] All tokens exhausted and no proxies configured. Throwing RateLimitError...`);
+            throw new Error(`[RateLimitError] All GitHub tokens exhausted. Next available in ${resetMinutes} minute(s).`);
           }
 
           const headers: Record<string, string> = {
@@ -89,7 +99,7 @@ export const crawlerWorker = new Worker<CrawlJobData>(
             if (response.status === 403 || response.status === 429) {
               if (currentToken) {
                 // Token-based limit
-                githubPool.markTokenExhausted(currentToken, reset);
+                await githubPool.markTokenExhausted(currentToken, reset);
                 console.warn(`[Crawler] 403/429 caught. Rotated token. Retries left: ${maxRetries - 1}`);
                 maxRetries--;
                 continue; // Retry with next token
@@ -100,14 +110,9 @@ export const crawlerWorker = new Worker<CrawlJobData>(
                 await setTimeout(2000); // 2 seconds delay
                 continue; // Retry with next random proxy
               } else {
-                // No token and no proxies -> We hit IP rate limit on host. Must wait for reset.
-                const sleepMs = reset 
-                  ? Math.max(5000, (parseInt(reset) * 1000) - Date.now() + 5000)
-                  : 60000; // Default to 60s sleep
-                console.warn(`[Crawler] IP rate limited. No tokens or proxies available. Sleeping for ${Math.ceil(sleepMs / 1000)}s...`);
-                await setTimeout(sleepMs);
-                maxRetries--;
-                continue;
+                // No token and no proxies -> We hit IP rate limit on host.
+                console.warn(`[Crawler] IP rate limited on host with no tokens/proxies. Throwing RateLimitError...`);
+                throw new Error(`[RateLimitError] IP rate limited on host. No tokens or proxies configured.`);
               }
             }
             if (response.status === 404) {
@@ -125,8 +130,12 @@ export const crawlerWorker = new Worker<CrawlJobData>(
       const result = await fetchWithTokenRotation(`https://api.github.com/repos/${owner}/${repo}`);
       
       if (result.status === 404) {
-        console.warn(`[Crawler] Project ${owner}/${repo} not found on GitHub. Marking as deleted/invalid.`);
-        await updateProjectCrawlSchedule(job.data.projectId || owner+'/'+repo, 'github');
+        console.warn(`[Crawler] Project ${owner}/${repo} not found on GitHub. Removing from database.`);
+        if (job.data.projectId) {
+          await db.delete(projectTrends).where(eq(projectTrends.projectId, job.data.projectId));
+          await db.delete(projectSnapshots).where(eq(projectSnapshots.projectId, job.data.projectId));
+          await db.delete(projects).where(eq(projects.id, job.data.projectId));
+        }
         return;
       }
 
@@ -153,7 +162,7 @@ export const crawlerWorker = new Worker<CrawlJobData>(
             finalDescription = clean.substring(0, 250).trim() + '...';
           }
         }
-      } catch (e) {
+      } catch {
         console.warn(`[Crawler] Failed to fetch README for ${owner}/${repo}`);
       }
 
@@ -199,14 +208,23 @@ export const crawlerWorker = new Worker<CrawlJobData>(
         })
         .returning({ id: projects.id });
 
-      // Insert snapshot (deduplicate: skip if same project+date already exists today)
+      // Insert snapshot (deduplicate: update if same project+date already exists today, else insert)
       const snapshotDate = new Date().toISOString().split('T')[0];
       const existing = await db.select({ id: projectSnapshots.id })
         .from(projectSnapshots)
         .where(sql`${projectSnapshots.projectId} = ${project.id} AND ${projectSnapshots.snapshotDate} = ${snapshotDate}`)
         .limit(1);
       
-      if (existing.length === 0) {
+      if (existing.length > 0) {
+        await db.update(projectSnapshots)
+          .set({
+            stars: data.stargazers_count,
+            forks: data.forks_count,
+            openIssues: data.open_issues_count,
+            watchers: data.subscribers_count,
+          })
+          .where(eq(projectSnapshots.id, existing[0].id));
+      } else {
         await db.insert(projectSnapshots).values({
           projectId: project.id,
           stars: data.stargazers_count,
@@ -239,11 +257,9 @@ export const crawlerWorker = new Worker<CrawlJobData>(
   },
   {
     connection: redisConnection as unknown as Worker['opts']['connection'],
-    concurrency: 2, 
+    concurrency: 5, 
     limiter: {
-      // Scale limit based on available tokens. Each token gives ~5000 req/hr.
-      // With Token Pool, multiply by number of tokens for fair throughput.
-      max: (process.env.GITHUB_TOKENS || process.env.GITHUB_TOKEN) ? 2000 : 30,
+      max: getGithubMaxLimit(),
       duration: 3600000,
     },
     stalledInterval: 15000,
@@ -251,12 +267,22 @@ export const crawlerWorker = new Worker<CrawlJobData>(
   }
 );
 
-crawlerWorker.on('completed', (job) => {
+crawlerWorker.on('completed', async (job) => {
   console.log(`[Crawler] Job ${job.id} completed with result`, job.returnvalue);
+  try {
+    await redisConnection.incr('crawler:stats:github-crawler:completed');
+  } catch (err) {
+    console.error('[Crawler] Failed to increment completed stats in Redis:', err);
+  }
 });
 
-crawlerWorker.on('failed', (job, err) => {
+crawlerWorker.on('failed', async (job, err) => {
   console.error(`[Crawler] Job ${job?.id} failed with error`, err.message);
+  try {
+    await redisConnection.incr('crawler:stats:github-crawler:failed');
+  } catch (err) {
+    console.error('[Crawler] Failed to increment failed stats in Redis:', err);
+  }
 });
 
 console.log('[Crawler] Worker started and waiting for jobs...');

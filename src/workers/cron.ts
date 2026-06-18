@@ -64,33 +64,45 @@ export async function runDailyDiscovery() {
  * Job 2: Daily Update
  * Pulls ALL tracked projects from the DB and adds them to the respective queues for metric updates.
  */
-export async function runDailyUpdate() {
-  console.log('[Cron] Running Daily Update for tracked repos...');
+export async function runDailyUpdate(force = false) {
+  console.log(`[Cron] Running Daily Update for tracked repos (force: ${force})...`);
 
-  const trackedProjects = await db.select({ 
+  const queryBuilder = db.select({ 
     id: projects.id,
     sourceId: projects.sourceId,
     source: projects.source,
     sourceUrl: projects.sourceUrl
-  }).from(projects)
-    .where(or(
-      isNull(projects.nextCrawlAt),
-      lte(projects.nextCrawlAt, new Date())
-    ));
+  }).from(projects);
+
+  const trackedProjects = force
+    ? await queryBuilder
+    : await queryBuilder.where(or(
+        isNull(projects.nextCrawlAt),
+        lte(projects.nextCrawlAt, new Date())
+      ));
 
   let ghCount = 0;
   let hfCount = 0;
+
+  const ghJobs: { name: string; data: Record<string, unknown>; opts: { jobId?: string; priority?: number } }[] = [];
+  const hfJobs: { name: string; data: Record<string, unknown>; opts: { jobId?: string; priority?: number } }[] = [];
 
   for (const project of trackedProjects) {
     if (project.source === 'github') {
       const [owner, repo] = project.sourceId.split('/');
       if (owner && repo) {
-        await crawlerQueue.add('crawl-repo', {
-          owner,
-          repo,
-          projectId: project.id,
-        }, {
-          jobId: `update-gh-${project.id}-${new Date().toISOString().split('T')[0]}`, 
+        const dateSuffix = force ? `force-${Date.now()}` : new Date().toISOString().split('T')[0];
+        ghJobs.push({
+          name: 'crawl-repo',
+          data: {
+            owner,
+            repo,
+            projectId: project.id,
+          },
+          opts: {
+            jobId: `update-gh-${project.id}-${dateSuffix}`,
+            priority: force ? 1 : undefined,
+          }
         });
         ghCount++;
       }
@@ -99,17 +111,42 @@ export async function runDailyUpdate() {
       const type = isDataset ? 'datasets' : 'models';
       const jobName = isDataset ? 'crawl-hf-dataset' : 'crawl-hf-model';
       
-      await hfQueue.add(jobName, {
-        id: project.sourceId,
-        type
-      }, {
-        jobId: `update-hf-${project.id}-${new Date().toISOString().split('T')[0]}`,
+      const dateSuffix = force ? `force-${Date.now()}` : new Date().toISOString().split('T')[0];
+      hfJobs.push({
+        name: jobName,
+        data: {
+          id: project.sourceId,
+          type
+        },
+        opts: {
+          jobId: `update-hf-${project.id}-${dateSuffix}`,
+          priority: force ? 1 : undefined,
+        }
       });
       hfCount++;
     }
   }
 
-  console.log(`[Cron] Queued ${ghCount} GitHub repos and ${hfCount} HuggingFace models for daily update.`);
+  // Enqueue in chunks of 500 using addBulk
+  const CHUNK_SIZE = 500;
+
+  if (ghJobs.length > 0) {
+    console.log(`[Cron] Enqueuing ${ghJobs.length} GitHub crawler jobs in bulk...`);
+    for (let i = 0; i < ghJobs.length; i += CHUNK_SIZE) {
+      const chunk = ghJobs.slice(i, i + CHUNK_SIZE);
+      await crawlerQueue.addBulk(chunk);
+    }
+  }
+
+  if (hfJobs.length > 0) {
+    console.log(`[Cron] Enqueuing ${hfJobs.length} HuggingFace crawler jobs in bulk...`);
+    for (let i = 0; i < hfJobs.length; i += CHUNK_SIZE) {
+      const chunk = hfJobs.slice(i, i + CHUNK_SIZE);
+      await hfQueue.addBulk(chunk);
+    }
+  }
+
+  console.log(`[Cron] Bulk enqueued ${ghCount} GitHub repos and ${hfCount} HuggingFace models for daily update (force: ${force}).`);
 }
 
 /**

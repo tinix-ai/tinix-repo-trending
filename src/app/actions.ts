@@ -6,6 +6,7 @@ import type { RankedProject } from "@/types";
 import { redisConnection, crawlerQueue, hfQueue, schedulerQueue } from "@/workers/queue";
 import { discoverNewRepos } from "@/lib/crawlers/github-discovery";
 import { discoverHFTrending } from "@/lib/crawlers/hf-discovery";
+import { githubPool } from "@/lib/crawlers/github-pool";
 import { db } from "@/lib/db";
 import { projects } from "@/lib/db/schema";
 import { eq, sql, ilike, or } from "drizzle-orm";
@@ -46,14 +47,16 @@ export async function triggerCrawlerSync(source: 'github' | 'huggingface') {
       // Run GitHub discovery as a background promise so we respond fast
       (async () => {
         try {
+          await redisConnection.set('crawler:sync:github:running', 'true');
           const newRepos = await discoverNewRepos(2); // Keep it to 2 pages for quick discovery
-          const existingGitHub = await db.select({ sourceId: projects.sourceId }).from(projects).where(eq(projects.source, 'github'));
-          const existingGHSet = new Set(existingGitHub.map(p => p.sourceId));
+          const existingGitHub = await db.select({ id: projects.id, sourceId: projects.sourceId }).from(projects).where(eq(projects.source, 'github'));
+          const existingGHMap = new Map(existingGitHub.map(p => [p.sourceId, p.id]));
 
           let queuedCount = 0;
           for (const repo of newRepos) {
             const sourceId = `${repo.owner}/${repo.repo}`;
-            if (!existingGHSet.has(sourceId)) {
+            const existingId = existingGHMap.get(sourceId);
+            if (!existingId) {
               await crawlerQueue.add('crawl-repo', {
                 owner: repo.owner,
                 repo: repo.repo,
@@ -61,21 +64,43 @@ export async function triggerCrawlerSync(source: 'github' | 'huggingface') {
                 jobId: `discovery-${sourceId}-${Date.now()}`,
               });
               queuedCount++;
+            } else {
+              // Existing repo: reset crawl schedule to daily and queue update NOW
+              await db.update(projects)
+                .set({
+                  crawlInterval: 1,
+                  nextCrawlAt: new Date(),
+                })
+                .where(eq(projects.id, existingId));
+
+              await crawlerQueue.add('crawl-repo', {
+                owner: repo.owner,
+                repo: repo.repo,
+                projectId: existingId,
+              }, {
+                jobId: `manual-sync-gh-${existingId}-${Date.now()}`,
+              });
+              queuedCount++;
             }
           }
-          console.log(`[Admin] Finished GitHub sync trigger. Queued ${queuedCount} NEW GitHub repos.`);
+          console.log(`[Admin] Finished GitHub sync trigger. Queued ${queuedCount} GitHub repos for crawl/update.`);
         } catch (err) {
           console.error("[Admin] Error during async GitHub discovery:", err);
+        } finally {
+          await redisConnection.del('crawler:sync:github:running');
         }
       })();
     } else if (source === 'huggingface') {
       // Run HuggingFace discovery asynchronously
       (async () => {
         try {
+          await redisConnection.set('crawler:sync:huggingface:running', 'true');
           await discoverHFTrending();
           console.log("[Admin] Finished HuggingFace sync trigger.");
         } catch (err) {
           console.error("[Admin] Error during async HuggingFace discovery:", err);
+        } finally {
+          await redisConnection.del('crawler:sync:huggingface:running');
         }
       })();
     }
@@ -133,8 +158,9 @@ export async function fetchDetailedQueueStats() {
       let update = 0;
 
       try {
-        const [waitingIds, activeJobs] = await Promise.all([
+        const [waitingIds, prioritizedIds, activeJobs] = await Promise.all([
           redisConnection.lrange(`bull:${queueName}:wait`, 0, -1),
+          redisConnection.zrange(`bull:${queueName}:prioritized`, 0, -1),
           queue.getActive(),
         ]);
         const activeIds = activeJobs.map(j => j.id).filter((id): id is string => typeof id === 'string');
@@ -159,19 +185,33 @@ export async function fetchDetailedQueueStats() {
         };
 
         waitingIds.forEach(classify);
+        prioritizedIds.forEach(classify);
         activeIds.forEach(classify);
       } catch (redisError) {
         console.error(`Failed to scan job IDs for ${queueName}:`, redisError);
       }
 
+      let completedCount = completed;
+      let failedCount = failed;
+      try {
+        const [redisCompleted, redisFailed] = await Promise.all([
+          redisConnection.get(`crawler:stats:${queueName}:completed`),
+          redisConnection.get(`crawler:stats:${queueName}:failed`),
+        ]);
+        if (redisCompleted !== null) completedCount = parseInt(redisCompleted, 10);
+        if (redisFailed !== null) failedCount = parseInt(redisFailed, 10);
+      } catch (err) {
+        console.warn(`[Actions] Failed to fetch all-time stats for ${queueName}:`, err);
+      }
+
       return { 
         waiting, 
         active, 
-        completed, 
-        failed, 
+        completed: completedCount, 
+        failed: failedCount, 
         delayed, 
         isPaused: paused, 
-        total: completed + failed,
+        total: completedCount + failedCount,
         discovery,
         update
       };
@@ -186,9 +226,19 @@ export async function fetchDetailedQueueStats() {
       schedulerQueue ? schedulerQueue.getActive() : Promise.resolve([]),
     ]);
 
+    const [githubSyncRunning, hfSyncRunning] = await Promise.all([
+      redisConnection.get('crawler:sync:github:running'),
+      redisConnection.get('crawler:sync:huggingface:running'),
+    ]);
+
     const activeJobNames = activeSchedulerJobs.map(j => j.name);
 
-    return { github, huggingface, scheduler, activeSchedulerJobs: activeJobNames };
+    return { 
+      github: { ...github, isSyncRunning: githubSyncRunning === 'true' }, 
+      huggingface: { ...huggingface, isSyncRunning: hfSyncRunning === 'true' }, 
+      scheduler, 
+      activeSchedulerJobs: activeJobNames 
+    };
   } catch (error) {
     console.error("Failed to fetch detailed queue stats:", error);
     const empty = { waiting: 0, active: 0, completed: 0, failed: 0, delayed: 0, isPaused: false, total: 0, discovery: 0, update: 0 };
@@ -227,7 +277,19 @@ export async function drainQueue(source: 'github' | 'huggingface' | 'scheduler')
     const queue = source === 'github' ? crawlerQueue : source === 'huggingface' ? hfQueue : schedulerQueue;
     if (!queue) throw new Error(`Queue ${source} not initialized`);
     await queue.drain();
-    return { success: true, message: `${source} queue drained. All waiting jobs removed.` };
+
+    // Reset Redis counters for all-time stats
+    const queueName = source === 'github' ? 'github-crawler' : source === 'huggingface' ? 'hf-crawler' : 'scheduler-queue';
+    try {
+      await Promise.all([
+        redisConnection.del(`crawler:stats:${queueName}:completed`),
+        redisConnection.del(`crawler:stats:${queueName}:failed`),
+      ]);
+    } catch (redisErr) {
+      console.warn(`[Actions] Failed to reset Redis stats on drain for ${queueName}:`, redisErr);
+    }
+
+    return { success: true, message: `${source} queue drained. All waiting jobs removed and counters reset.` };
   } catch (error: unknown) {
     const errorMsg = error instanceof Error ? error.message : String(error);
     console.error(`Failed to drain ${source} queue:`, error);
@@ -624,7 +686,7 @@ export async function triggerJobNow(name: string) {
   try {
     if (!schedulerQueue) throw new Error('Scheduler queue not initialized');
     // Add the job directly to the queue for immediate execution
-    await schedulerQueue.add(name, {}, { jobId: `manual-${name}-${Date.now()}` });
+    await schedulerQueue.add(name, { force: true }, { jobId: `manual-${name}-${Date.now()}` });
     return { success: true, message: `Triggered ${name} manually` };
   } catch (error) {
     console.error('Failed to trigger job:', error);
@@ -640,5 +702,14 @@ export async function removeScheduledJob(key: string) {
   } catch (error) {
     console.error('Failed to remove scheduled job:', error);
     return { success: false, message: 'Failed to remove job' };
+  }
+}
+
+export async function fetchGithubTokensHealth() {
+  try {
+    return await githubPool.getTokenHealth();
+  } catch (error) {
+    console.error('Failed to fetch github tokens health:', error);
+    return [];
   }
 }

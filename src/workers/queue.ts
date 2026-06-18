@@ -32,10 +32,10 @@ if (process.env.NODE_ENV !== 'production') {
 export const crawlerQueue = globalForRedis.crawlerQueue ?? new Queue('github-crawler', {
   connection: redisConnection as unknown as ConnectionOptions,
   defaultJobOptions: {
-    attempts: 3,
+    attempts: 8,
     backoff: {
       type: 'exponential',
-      delay: 5000,
+      delay: 30000,
     },
     removeOnComplete: { count: 200 }, // Keep 200 recent completed jobs for admin UI
     removeOnFail: 5000,
@@ -45,10 +45,10 @@ export const crawlerQueue = globalForRedis.crawlerQueue ?? new Queue('github-cra
 export const hfQueue = globalForRedis.hfQueue ?? new Queue('hf-crawler', {
   connection: redisConnection as unknown as ConnectionOptions,
   defaultJobOptions: {
-    attempts: 3,
+    attempts: 8,
     backoff: {
       type: 'exponential',
-      delay: 5000,
+      delay: 30000,
     },
     removeOnComplete: { count: 200 }, // Keep 200 recent completed jobs for admin UI
   },

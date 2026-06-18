@@ -12,33 +12,40 @@ interface DiscoveredRepo {
 /**
  * Discovers new AI/ML repositories using GitHub Search API.
  * Uses a cautious delay to respect the 30 req/min limit of the Search API.
+ * Tracks checkpoint in Redis via { topicIndex, page } to support multi-process resume.
  */
 export async function discoverNewRepos(maxPages: number = 3): Promise<DiscoveredRepo[]> {
   const checkpointKey = "crawler:checkpoint:github-discovery";
   const sort = "updated"; // Get most recently active
   const order = "desc";
   
+  let startTopicIndex = 0;
   let startPage = 1;
+  
   try {
-    const lastSavedPage = await redisConnection.get(checkpointKey);
-    if (lastSavedPage) {
-      startPage = parseInt(lastSavedPage) + 1;
-      console.log(`[Discovery] Resuming GitHub Discovery from checkpoint. Start page: ${startPage}`);
+    const lastSavedCheckpoint = await redisConnection.get(checkpointKey);
+    if (lastSavedCheckpoint) {
+      const parsed = JSON.parse(lastSavedCheckpoint);
+      startTopicIndex = parsed.topicIndex || 0;
+      startPage = (parsed.page || 0) + 1; // Resume from the next page
+      console.log(`[Discovery] Resuming GitHub Discovery from checkpoint. TopicIndex: ${startTopicIndex}, Start page: ${startPage}`);
     }
   } catch (err) {
-    console.warn("[Discovery] Failed to read Redis checkpoint, starting from page 1.", err);
+    console.warn("[Discovery] Failed to read Redis checkpoint, starting from beginning.", err);
   }
 
-  // If startPage has already exceeded maxPages, reset to page 1 to allow running a new session
-  if (startPage > maxPages) {
-    console.log(`[Discovery] Start page ${startPage} exceeds max pages ${maxPages}. Resetting checkpoint.`);
+  const topics = ['ai', 'machine-learning', 'llm', 'deep-learning'];
+
+  // If startPage has already exceeded maxPages, or topicIndex is out of bounds, reset checkpoint
+  if (startTopicIndex >= topics.length || startPage > maxPages) {
+    console.log(`[Discovery] Checkpoint state exceeds max bounds (Topic: ${startTopicIndex}/${topics.length}, Page: ${startPage}/${maxPages}). Resetting.`);
+    startTopicIndex = 0;
     startPage = 1;
     try {
       await redisConnection.del(checkpointKey);
     } catch {}
   }
 
-  const topics = ['ai', 'machine-learning', 'llm', 'deep-learning'];
   const discoveredMap = new Map<string, DiscoveredRepo>();
   let completedAll = true;
 
@@ -50,7 +57,7 @@ export async function discoverNewRepos(maxPages: number = 3): Promise<Discovered
       let tokenExhaustedError = false;
 
       try {
-        currentToken = githubPool.getAvailableToken();
+        currentToken = await githubPool.getAvailableToken();
       } catch (err: unknown) {
         const error = err as Error;
         if (error.message.includes('ALL tokens are currently exhausted')) {
@@ -62,7 +69,7 @@ export async function discoverNewRepos(maxPages: number = 3): Promise<Discovered
 
       const hasProxies = (process.env.PROXY_URLS || '').split(',').map(p => p.trim()).filter(Boolean).length > 0;
       if (tokenExhaustedError && !hasProxies) {
-        const nextTime = githubPool.getNextAvailableTime();
+        const nextTime = await githubPool.getNextAvailableTime();
         const sleepMs = Math.max(5000, nextTime - Date.now() + 5000);
         const resetMinutes = Math.ceil(sleepMs / 60000);
         console.warn(`[Discovery] All tokens exhausted and no proxies configured. Sleeping for ${resetMinutes} minute(s) before retry...`);
@@ -87,7 +94,7 @@ export async function discoverNewRepos(maxPages: number = 3): Promise<Discovered
       if (!response.ok) {
         if (response.status === 403 || response.status === 429) {
           if (currentToken) {
-            githubPool.markTokenExhausted(currentToken, reset);
+            await githubPool.markTokenExhausted(currentToken, reset);
             console.warn(`[Discovery] Rate limit hit. Rotated token. Retries left: ${maxRetries - 1}`);
             maxRetries--;
             continue;
@@ -113,9 +120,14 @@ export async function discoverNewRepos(maxPages: number = 3): Promise<Discovered
     throw new Error('Failed to fetch after max retries due to rate limiting.');
   };
 
-  for (const topic of topics) {
+  for (let t = startTopicIndex; t < topics.length; t++) {
+    const topic = topics[t];
     let completedTopic = false;
-    for (let page = startPage; page <= maxPages; page++) {
+    
+    // Determine page to start for this specific topic
+    const pageStart = (t === startTopicIndex) ? startPage : 1;
+
+    for (let page = pageStart; page <= maxPages; page++) {
       console.log(`[Discovery] Fetching page ${page} of GitHub Search for topic:${topic}...`);
       
       try {
@@ -139,11 +151,11 @@ export async function discoverNewRepos(maxPages: number = 3): Promise<Discovered
           });
         }
 
-        // Save checkpoint page to Redis
+        // Save checkpoint page and topicIndex to Redis
         try {
-          await redisConnection.set(checkpointKey, page);
+          await redisConnection.set(checkpointKey, JSON.stringify({ topicIndex: t, page }));
         } catch (err) {
-          console.warn(`[Discovery] Failed to save page ${page} checkpoint in Redis`, err);
+          console.warn(`[Discovery] Failed to save checkpoint {topicIndex:${t}, page:${page}} in Redis`, err);
         }
 
         if (page === maxPages) {
@@ -162,6 +174,7 @@ export async function discoverNewRepos(maxPages: number = 3): Promise<Discovered
     }
     if (!completedTopic) {
       completedAll = false;
+      break; // Stop loop and preserve checkpoint
     }
   }
 
@@ -176,7 +189,7 @@ export async function discoverNewRepos(maxPages: number = 3): Promise<Discovered
   } else {
     try {
       const currentVal = await redisConnection.get(checkpointKey);
-      console.log(`[Discovery] GitHub discovery interrupted. Checkpoint preserved at page ${currentVal || "unknown"}.`);
+      console.log(`[Discovery] GitHub discovery interrupted. Checkpoint preserved: ${currentVal || "unknown"}.`);
     } catch {}
   }
 

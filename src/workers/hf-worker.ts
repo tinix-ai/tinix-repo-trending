@@ -2,8 +2,8 @@ import 'dotenv/config';
 import { Worker, Job } from 'bullmq';
 import Redis from 'ioredis';
 import { db } from '../lib/db';
-import { projects, projectSnapshots } from '../lib/db/schema';
-import { sql } from 'drizzle-orm';
+import { projects, projectSnapshots, projectTrends } from '../lib/db/schema';
+import { sql, eq, and } from 'drizzle-orm';
 import { categorizeProject } from '../lib/categorizer';
 import { updateProjectCrawlSchedule } from '../lib/crawlers/scheduler';
 import { calculateProjectTrendInline } from './cron';
@@ -71,14 +71,9 @@ export const hfWorker = new Worker<HFCrawlJobData>(
                 await setTimeout(2000); // Wait 2s before retry
                 continue;
               } else {
-                // No proxies -> sleep until reset time or default to 60s
-                const sleepMs = reset 
-                  ? Math.max(5000, parseInt(reset) * 1000)
-                  : 60000;
-                console.warn(`[HF Crawler] Rate limited by HuggingFace API. Sleeping for ${Math.ceil(sleepMs / 1000)}s before retry...`);
-                await setTimeout(sleepMs);
-                maxRetries--;
-                continue;
+                // No proxies -> throw error to let BullMQ handle exponential backoff retry
+                console.warn(`[HF Crawler] Rate limited by HuggingFace API with no proxies. Throwing RateLimitError...`);
+                throw new Error(`[RateLimitError] Rate limited by HuggingFace API. No proxies configured.`);
               }
             }
             if (response.status === 404) {
@@ -96,7 +91,15 @@ export const hfWorker = new Worker<HFCrawlJobData>(
       const result = await fetchHFWithRetry(`https://huggingface.co/api/${type}/${id}`);
 
       if (result.status === 404) {
-        console.warn(`[HF Crawler] Not found: ${id}`);
+        console.warn(`[HF Crawler] Not found: ${id}. Removing from database.`);
+        const [existing] = await db.select({ id: projects.id })
+          .from(projects)
+          .where(and(eq(projects.sourceId, id), eq(projects.source, 'huggingface')));
+        if (existing) {
+          await db.delete(projectTrends).where(eq(projectTrends.projectId, existing.id));
+          await db.delete(projectSnapshots).where(eq(projectSnapshots.projectId, existing.id));
+          await db.delete(projects).where(eq(projects.id, existing.id));
+        }
         return { status: 'not_found' };
       }
 
@@ -143,7 +146,7 @@ export const hfWorker = new Worker<HFCrawlJobData>(
             finalDescription = clean.substring(0, 250).trim() + '...';
           }
         }
-      } catch (e) {
+      } catch {
         console.warn(`[HF Crawler] Failed to fetch README for ${id}`);
       }
 
@@ -184,14 +187,21 @@ export const hfWorker = new Worker<HFCrawlJobData>(
         })
         .returning({ id: projects.id });
 
-      // Insert snapshot (deduplicate: skip if same project+date already exists today)
+      // Insert snapshot (deduplicate: update if same project+date already exists today, else insert)
       const snapshotDate = new Date().toISOString().split('T')[0];
       const existing = await db.select({ id: projectSnapshots.id })
         .from(projectSnapshots)
         .where(sql`${projectSnapshots.projectId} = ${project.id} AND ${projectSnapshots.snapshotDate} = ${snapshotDate}`)
         .limit(1);
       
-      if (existing.length === 0) {
+      if (existing.length > 0) {
+        await db.update(projectSnapshots)
+          .set({
+            likes: likes,
+            downloads: downloads,
+          })
+          .where(eq(projectSnapshots.id, existing[0].id));
+      } else {
         await db.insert(projectSnapshots).values({
           projectId: project.id,
           stars: 0,
@@ -229,8 +239,8 @@ export const hfWorker = new Worker<HFCrawlJobData>(
     concurrency: 5, 
     limiter: {
       // If HF_TOKEN or PROXY_URLS is present, allow up to 5000 requests per hour
-      // Otherwise, restrict to 120 requests per hour (2 requests per project, so 60 projects/hr)
-      max: (process.env.HF_TOKEN || process.env.PROXY_URLS) ? 5000 : 120,
+      // Otherwise, restrict to 1500 requests per hour (2 requests per project, so 750 projects/hr)
+      max: (process.env.HF_TOKEN || process.env.PROXY_URLS) ? 5000 : 1500,
       duration: 3600000,
     },
     stalledInterval: 15000,
@@ -238,12 +248,22 @@ export const hfWorker = new Worker<HFCrawlJobData>(
   }
 );
 
-hfWorker.on('completed', (job) => {
+hfWorker.on('completed', async (job) => {
   console.log(`[HF Crawler] Job ${job.id} completed`);
+  try {
+    await redisConnection.incr('crawler:stats:hf-crawler:completed');
+  } catch (err) {
+    console.error('[HF Crawler] Failed to increment completed stats in Redis:', err);
+  }
 });
 
-hfWorker.on('failed', (job, err) => {
+hfWorker.on('failed', async (job, err) => {
   console.error(`[HF Crawler] Job ${job?.id} failed with error`, err.message);
+  try {
+    await redisConnection.incr('crawler:stats:hf-crawler:failed');
+  } catch (err) {
+    console.error('[HF Crawler] Failed to increment failed stats in Redis:', err);
+  }
 });
 
 console.log('[HF Crawler] Worker started and waiting for jobs...');

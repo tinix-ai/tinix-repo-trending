@@ -131,7 +131,9 @@
     "updateJobs": "Daily Update",
     "updateDesc": "Update daily metrics",
     "activeCrawlers": "Active Crawlers: {count} projects are being processed in the background queue.",
-    "runningSchedulerJobs": "Running system tasks: {jobs}"
+    "runningSchedulerJobs": "Running system tasks: {jobs}",
+    "updatingProgress": "Updating: {count} projects waiting for metrics update...",
+    "discoveryProgress": "Discovery: {count} projects being scanned for new updates..."
   },
   "ProjectDetail": {
     "backBtn": "Back to Trending",

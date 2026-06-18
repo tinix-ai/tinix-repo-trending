@@ -23,7 +23,20 @@ import {
   retryFailedJobs,
   triggerCrawlerSync,
   triggerJobNow,
+  fetchGithubTokensHealth,
 } from "@/app/actions";
+
+interface TokenHealthInfo {
+  index: number;
+  maskedToken: string;
+  status: 'active' | 'exhausted' | 'invalid';
+  coreLimit: number;
+  coreRemaining: number;
+  coreResetTime: number;
+  searchLimit: number;
+  searchRemaining: number;
+  searchResetTime: number;
+}
 
 interface QueueDetails {
   waiting: number;
@@ -35,6 +48,7 @@ interface QueueDetails {
   total: number;
   discovery: number;
   update: number;
+  isSyncRunning?: boolean;
 }
 
 interface DetailedStats {
@@ -54,12 +68,41 @@ export function QueueControlPanel() {
   const [countdown, setCountdown] = useState(5);
   const [loadingActions, setLoadingActions] = useState<Set<string>>(new Set());
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [tokensHealth, setTokensHealth] = useState<TokenHealthInfo[] | null>(null);
+
+  const isSchedulerJobActive = (name: string) => {
+    return !!(stats?.activeSchedulerJobs && stats.activeSchedulerJobs.includes(name));
+  };
+
+  const totalUpdateJobs = stats 
+    ? (stats.github.update || 0) + (stats.huggingface.update || 0)
+    : 0;
+
+  const totalDiscoveryJobs = stats 
+    ? (stats.github.discovery || 0) + (stats.huggingface.discovery || 0)
+    : 0;
+
+  const isUpdateActive = isSchedulerJobActive('daily-update') || totalUpdateJobs > 0;
+  const isDiscoveryActive = isSchedulerJobActive('daily-discovery') || totalDiscoveryJobs > 0;
+
+  const isQueueActionLoading = (source: SourceType) => {
+    return Array.from(loadingActions).some(key => {
+      return key.endsWith(`-${source}`) || 
+             (source === 'scheduler' && (key === 'trigger-daily-discovery' || key === 'trigger-daily-update'));
+    });
+  };
 
   const loadStats = useCallback(async () => {
     setIsRefreshing(true);
     try {
-      const data = await fetchDetailedQueueStats();
-      setStats(data);
+      const [statsData, tokensData] = await Promise.all([
+        fetchDetailedQueueStats(),
+        fetchGithubTokensHealth(),
+      ]);
+      setStats(statsData);
+      setTokensHealth(tokensData);
+    } catch (err) {
+      console.error("Failed to load admin stats:", err);
     } finally {
       setIsRefreshing(false);
     }
@@ -148,6 +191,7 @@ export function QueueControlPanel() {
     loadingActions.has(`${action}-${source}`);
 
   const renderQueueCard = (source: SourceType, label: string, q: QueueDetails) => {
+    const isAnyActionLoading = isQueueActionLoading(source);
     const isActive = q.active > 0 || q.waiting > 0;
     const statusColor = q.isPaused
       ? 'bg-amber-500/10 text-amber-500'
@@ -249,6 +293,7 @@ export function QueueControlPanel() {
               label="Resume"
               onClick={() => handleAction('resume', source)}
               loading={isLoading('resume', source)}
+              disabled={isAnyActionLoading}
               variant="success"
             />
           ) : (
@@ -257,6 +302,7 @@ export function QueueControlPanel() {
               label="Pause"
               onClick={() => handleAction('pause', source)}
               loading={isLoading('pause', source)}
+              disabled={isAnyActionLoading}
               variant="warning"
             />
           )}
@@ -266,7 +312,7 @@ export function QueueControlPanel() {
             onClick={() => handleAction('drain', source)}
             loading={isLoading('drain', source)}
             variant="danger"
-            disabled={q.waiting === 0}
+            disabled={isAnyActionLoading || q.waiting === 0}
           />
           <ActionButton
             icon={RotateCcw}
@@ -274,30 +320,24 @@ export function QueueControlPanel() {
             onClick={() => handleAction('retry', source)}
             loading={isLoading('retry', source)}
             variant="default"
-            disabled={q.failed === 0}
+            disabled={isAnyActionLoading || q.failed === 0}
           />
-          {source !== 'scheduler' ? (
-            <ActionButton
-              icon={RefreshCw}
-              label="Run Sync"
-              onClick={() => handleAction('sync', source)}
-              loading={isLoading('sync', source)}
-              variant="primary"
-            />
-          ) : (
+          {source === 'scheduler' && (
             <>
               <ActionButton
                 icon={Play}
-                label="Run Discovery"
+                label={isSchedulerJobActive('daily-discovery') ? "Enqueuing..." : isDiscoveryActive ? "Running Discovery..." : "Run Discovery"}
                 onClick={() => handleTriggerJob('daily-discovery')}
-                loading={loadingActions.has('trigger-daily-discovery')}
+                loading={loadingActions.has('trigger-daily-discovery') || isDiscoveryActive}
+                disabled={isAnyActionLoading || isDiscoveryActive}
                 variant="primary"
               />
               <ActionButton
                 icon={Play}
-                label="Run Update"
+                label={isSchedulerJobActive('daily-update') ? "Enqueuing..." : isUpdateActive ? "Running Update..." : "Run Update"}
                 onClick={() => handleTriggerJob('daily-update')}
-                loading={loadingActions.has('trigger-daily-update')}
+                loading={loadingActions.has('trigger-daily-update') || isUpdateActive}
+                disabled={isAnyActionLoading || isUpdateActive}
                 variant="primary"
               />
             </>
@@ -307,9 +347,7 @@ export function QueueControlPanel() {
     );
   };
 
-  const totalPending = stats 
-    ? (stats.github.waiting + stats.github.active + stats.huggingface.waiting + stats.huggingface.active)
-    : 0;
+  const totalPending = totalUpdateJobs + totalDiscoveryJobs;
   const hasActiveScheduler = !!(stats?.activeSchedulerJobs && stats.activeSchedulerJobs.length > 0);
 
   return (
@@ -355,7 +393,29 @@ export function QueueControlPanel() {
               </div>
             </div>
           )}
-          {totalPending > 0 && (
+          {totalDiscoveryJobs > 0 && (
+            <div className="flex items-center gap-3 text-blue-600">
+              <div className="relative flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span>
+              </div>
+              <div className="text-[11px] font-medium">
+                {t("discoveryProgress", { count: totalDiscoveryJobs })}
+              </div>
+            </div>
+          )}
+          {totalUpdateJobs > 0 && (
+            <div className="flex items-center gap-3 text-amber-600">
+              <div className="relative flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span>
+              </div>
+              <div className="text-[11px] font-medium">
+                {t("updatingProgress", { count: totalUpdateJobs })}
+              </div>
+            </div>
+          )}
+          {totalPending > 0 && totalDiscoveryJobs === 0 && totalUpdateJobs === 0 && (
             <div className="flex items-center gap-3">
               <div className="relative flex h-3 w-3">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -380,6 +440,98 @@ export function QueueControlPanel() {
         <div className="apple-utility-card flex items-center justify-center py-12">
           <Loader2 className="w-5 h-5 animate-spin text-[var(--color-ink-muted-48)]" />
           <span className="ml-2 text-[var(--color-ink-muted-48)]">Loading queue stats...</span>
+        </div>
+      )}
+
+      {/* GitHub API Tokens Health Monitor */}
+      {tokensHealth && tokensHealth.length > 0 && (
+        <div className="apple-utility-card mt-6">
+          <div className="flex items-center gap-2 mb-4">
+            <h3 className="text-sm font-semibold text-[var(--color-ink)]">GitHub API Tokens Health</h3>
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-500">
+              {tokensHealth.filter(t => t.status === 'active').length} / {tokensHealth.length} Token(s) Active
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {tokensHealth.map((token) => {
+              const corePercent = token.coreLimit > 0 ? (token.coreRemaining / token.coreLimit) * 100 : 0;
+              const searchPercent = token.searchLimit > 0 ? (token.searchRemaining / token.searchLimit) * 100 : 0;
+              
+              // Status Styling
+              const statusColors = {
+                active: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
+                exhausted: 'bg-amber-500/10 text-amber-500 border-amber-500/20',
+                invalid: 'bg-red-500/10 text-red-500 border-red-500/20',
+              };
+
+              const getResetText = (resetMs: number) => {
+                if (!resetMs) return '';
+                const diffSecs = Math.max(0, Math.ceil((resetMs - Date.now()) / 1000));
+                if (diffSecs === 0) return 'Resets now';
+                if (diffSecs < 60) return `Resets in ${diffSecs}s`;
+                return `Resets in ${Math.ceil(diffSecs / 60)}m`;
+              };
+
+              return (
+                <div key={token.index} className="p-4 rounded-xl bg-[var(--color-bg-secondary)] border border-[var(--color-divider-soft)] space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-mono font-bold text-[var(--color-ink)]">
+                        {token.maskedToken}
+                      </span>
+                      <span className="text-[10px] text-[var(--color-ink-muted-48)] font-medium">
+                        Index {token.index}
+                      </span>
+                    </div>
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border ${statusColors[token.status]}`}>
+                      {token.status.toUpperCase()}
+                    </span>
+                  </div>
+
+                  <div className="space-y-3">
+                    {/* Core Rate Limit */}
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-[11px] text-[var(--color-ink-muted-80)]">
+                        <span>Core (Scraping Details)</span>
+                        <span className="font-mono tabular-nums">{token.coreRemaining.toLocaleString()} / {token.coreLimit.toLocaleString()}</span>
+                      </div>
+                      <div className="w-full h-2 bg-[var(--color-canvas)] rounded-full overflow-hidden border border-[var(--color-divider-soft)]">
+                        <div 
+                          className={`h-full transition-all duration-500 ${token.status === 'invalid' ? 'bg-red-500' : corePercent < 15 ? 'bg-amber-500' : 'bg-emerald-500'}`}
+                          style={{ width: `${corePercent}%` }}
+                        />
+                      </div>
+                      {token.status === 'exhausted' && (
+                        <div className="text-[9px] text-amber-500 text-right mt-0.5 font-medium">
+                          {getResetText(token.coreResetTime)}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Search Rate Limit */}
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-[11px] text-[var(--color-ink-muted-80)]">
+                        <span>Search (Daily Discovery)</span>
+                        <span className="font-mono tabular-nums">{token.searchRemaining.toLocaleString()} / {token.searchLimit.toLocaleString()}</span>
+                      </div>
+                      <div className="w-full h-2 bg-[var(--color-canvas)] rounded-full overflow-hidden border border-[var(--color-divider-soft)]">
+                        <div 
+                          className={`h-full transition-all duration-500 ${token.status === 'invalid' ? 'bg-red-500' : searchPercent < 15 ? 'bg-amber-500' : 'bg-blue-500'}`}
+                          style={{ width: `${searchPercent}%` }}
+                        />
+                      </div>
+                      {token.searchRemaining < token.searchLimit && (
+                        <div className="text-[9px] text-[var(--color-ink-muted-48)] text-right mt-0.5 font-medium">
+                          {getResetText(token.searchResetTime)}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 

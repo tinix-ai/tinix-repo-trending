@@ -16,9 +16,11 @@ export async function discoverHFTrending() {
       .where(eq(projects.source, 'huggingface'));
     const existingHFMap = new Map(existingHF.map(p => [p.sourceId, p.id]));
 
+    const todayStr = new Date().toISOString().split('T')[0];
+
     // 1. Fetch trending models
     console.log('[HF Discovery] Fetching top 100 trending models...');
-    const modelsResponse = await fetch('https://huggingface.co/api/trending?limit=100', {
+    const modelsResponse = await fetch('https://huggingface.co/api/models?sort=likes7d&limit=100&direction=-1', {
       headers: { 
         'Accept': 'application/json',
         'User-Agent': 'TiniX-Repo-Trending/1.0'
@@ -39,12 +41,12 @@ export async function discoverHFTrending() {
             })
             .where(eq(projects.id, existingId));
         }
-
+ 
         await hfQueue.add('crawl-hf-model', {
           id: model.id,
           type: 'models'
         }, {
-          jobId: `hf-model-${model.id}`
+          jobId: `hf-model-${model.id}-${todayStr}`
         });
         queuedModels++;
       }
@@ -52,10 +54,10 @@ export async function discoverHFTrending() {
     } else {
       console.error(`[HF Discovery] Failed to fetch models: ${modelsResponse.statusText}`);
     }
-
+ 
     // 2. Fetch trending datasets
     console.log('[HF Discovery] Fetching top 100 trending datasets...');
-    const datasetsResponse = await fetch('https://huggingface.co/api/trending?type=dataset&limit=100', {
+    const datasetsResponse = await fetch('https://huggingface.co/api/datasets?sort=likes7d&limit=100&direction=-1', {
       headers: { 
         'Accept': 'application/json',
         'User-Agent': 'TiniX-Repo-Trending/1.0'
@@ -81,7 +83,7 @@ export async function discoverHFTrending() {
           id: dataset.id,
           type: 'datasets'
         }, {
-          jobId: `hf-dataset-${dataset.id}`
+          jobId: `hf-dataset-${dataset.id}-${todayStr}`
         });
         queuedDatasets++;
       }

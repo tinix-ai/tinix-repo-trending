@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { Worker, Job } from 'bullmq';
-import { redisConnection, schedulerQueue } from './queue';
+import { schedulerQueue, redisConnection } from './queue';
 import { runDailyDiscovery, runDailyUpdate } from './cron';
 
 console.log('[Scheduler Worker] Starting...');
@@ -12,7 +12,7 @@ const schedulerWorker = new Worker('scheduler-queue', async (job: Job) => {
     if (job.name === 'daily-discovery') {
       await runDailyDiscovery();
     } else if (job.name === 'daily-update') {
-      await runDailyUpdate();
+      await runDailyUpdate(!!job.data?.force);
     } else {
       console.warn(`[Scheduler Worker] Unknown job name: ${job.name}`);
     }
@@ -26,15 +26,25 @@ const schedulerWorker = new Worker('scheduler-queue', async (job: Job) => {
     port: parseInt(process.env.REDIS_PORT || '6379'),
     password: process.env.REDIS_PASSWORD || undefined,
   },
-  concurrency: 1, // Process one scheduled task at a time
+  concurrency: 5, // Process up to 5 scheduled tasks at a time
 });
 
-schedulerWorker.on('completed', (job) => {
+schedulerWorker.on('completed', async (job) => {
   console.log(`[Scheduler Worker] Job ${job.name} completed successfully.`);
+  try {
+    await redisConnection.incr('crawler:stats:scheduler-queue:completed');
+  } catch (err) {
+    console.error('[Scheduler Worker] Failed to increment completed stats in Redis:', err);
+  }
 });
 
-schedulerWorker.on('failed', (job, err) => {
+schedulerWorker.on('failed', async (job, err) => {
   console.error(`[Scheduler Worker] Job ${job?.name} failed with error:`, err);
+  try {
+    await redisConnection.incr('crawler:stats:scheduler-queue:failed');
+  } catch (err) {
+    console.error('[Scheduler Worker] Failed to increment failed stats in Redis:', err);
+  }
 });
 
 async function setupRepeatableJobs() {
