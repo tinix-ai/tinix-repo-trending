@@ -254,4 +254,12 @@ export interface TokenHealthInfo {
   searchResetTime: number;
 }
 
-export const githubPool = new GithubTokenPool();
+const globalForGithubPool = globalThis as unknown as {
+  githubPool: GithubTokenPool | undefined;
+};
+
+export const githubPool = globalForGithubPool.githubPool ?? new GithubTokenPool();
+
+if (process.env.NODE_ENV !== 'production') {
+  globalForGithubPool.githubPool = githubPool;
+}

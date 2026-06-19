@@ -1,4 +1,23 @@
-import { pgTable, text, timestamp, integer, uuid, jsonb, date, index } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, integer, uuid, jsonb, date, index, customType } from "drizzle-orm/pg-core";
+import * as zlib from "zlib";
+
+export const bytea = customType<{ data: Buffer | string; driverData: Buffer }>({
+  dataType() {
+    return "bytea";
+  },
+  toDriver(value: Buffer | string) {
+    if (typeof value === "string") {
+      return zlib.gzipSync(Buffer.from(value, "utf-8"));
+    }
+    return value;
+  },
+  fromDriver(value: unknown) {
+    if (Buffer.isBuffer(value)) {
+      return value;
+    }
+    return Buffer.from(value as string);
+  },
+});
 
 export const projects = pgTable("projects", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -9,7 +28,7 @@ export const projects = pgTable("projects", {
   name: text("name").notNull(),
   fullName: text("full_name").notNull(),
   description: text("description"),
-  readme: text("readme"), // new column for raw markdown
+  readme: bytea("readme"), // stored as compressed gzip bytea binary
   aiSummary: text("ai_summary"),
   homepageUrl: text("homepage_url"),
   sourceUrl: text("source_url").notNull(),

@@ -41,6 +41,24 @@ module.exports = {
       exec_mode: "fork",
       autorestart: true,
       watch: false,
+    },
+    {
+      name: "tinix-github-updater",
+      script: "npx",
+      args: "tsx src/workers/github-updater-worker.ts",
+      instances: 2,
+      exec_mode: "fork",
+      autorestart: true,
+      watch: false,
+    },
+    {
+      name: "tinix-hf-updater",
+      script: "npx",
+      args: "tsx src/workers/hf-updater-worker.ts",
+      instances: 1,
+      exec_mode: "fork",
+      autorestart: true,
+      watch: false,
     }
   ]
 };

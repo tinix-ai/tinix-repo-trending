@@ -133,7 +133,9 @@
     "activeCrawlers": "Active Crawlers: {count} projects are being processed in the background queue.",
     "runningSchedulerJobs": "Running system tasks: {jobs}",
     "updatingProgress": "Updating: {count} projects waiting for metrics update...",
-    "discoveryProgress": "Discovery: {count} projects being scanned for new updates..."
+    "discoveryProgress": "Discovery: {count} projects being scanned for new updates...",
+    "discoveryGroup": "Discovery Crawlers",
+    "updaterGroup": "Metrics Updaters & Scheduler"
   },
   "ProjectDetail": {
     "backBtn": "Back to Trending",

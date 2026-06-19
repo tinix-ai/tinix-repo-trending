@@ -133,7 +133,9 @@
     "activeCrawlers": "Crawler đang hoạt động: {count} dự án đang được xử lý trong hàng đợi nền.",
     "runningSchedulerJobs": "Các tác vụ hệ thống đang chạy: {jobs}",
     "updatingProgress": "Đang cập nhật: còn lại {count} dự án đang chờ cập nhật chỉ số...",
-    "discoveryProgress": "Đang tìm mới: còn lại {count} dự án đang được quét tìm mới..."
+    "discoveryProgress": "Đang tìm mới: còn lại {count} dự án đang được quét tìm mới...",
+    "discoveryGroup": "Trình thu thập tìm mới (Discovery Crawlers)",
+    "updaterGroup": "Trình cập nhật & Bộ lập lịch (Metrics Updaters & Scheduler)"
   },
   "ProjectDetail": {
     "backBtn": "Quay lại Trending",

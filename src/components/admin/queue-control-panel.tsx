@@ -14,7 +14,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import {
   fetchDetailedQueueStats,
   pauseQueue,
@@ -43,6 +43,7 @@ interface QueueDetails {
   active: number;
   completed: number;
   failed: number;
+  currentFailed: number;
   delayed: number;
   isPaused: boolean;
   total: number;
@@ -54,18 +55,29 @@ interface QueueDetails {
 interface DetailedStats {
   github: QueueDetails;
   huggingface: QueueDetails;
+  githubUpdater: QueueDetails;
+  hfUpdater: QueueDetails;
   scheduler: QueueDetails;
   activeSchedulerJobs?: string[];
 }
 
 type ActionType = 'pause' | 'resume' | 'drain' | 'retry' | 'sync';
-type SourceType = 'github' | 'huggingface' | 'scheduler';
+type SourceType = 'github' | 'huggingface' | 'github-updater' | 'hf-updater' | 'scheduler';
 
 export function QueueControlPanel() {
   const t = useTranslations("Admin");
+  const locale = useLocale();
+
+  const discoveryGroupText = locale === 'vi'
+    ? 'Trình thu thập tìm mới (Discovery Crawlers)'
+    : 'Discovery Crawlers';
+    
+  const updaterGroupText = locale === 'vi'
+    ? 'Trình cập nhật & Bộ lập lịch (Metrics Updaters & Scheduler)'
+    : 'Metrics Updaters & Scheduler';
   const [stats, setStats] = useState<DetailedStats | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
-  const [countdown, setCountdown] = useState(5);
+  const [countdown, setCountdown] = useState(15);
   const [loadingActions, setLoadingActions] = useState<Set<string>>(new Set());
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [tokensHealth, setTokensHealth] = useState<TokenHealthInfo[] | null>(null);
@@ -75,15 +87,18 @@ export function QueueControlPanel() {
   };
 
   const totalUpdateJobs = stats 
-    ? (stats.github.update || 0) + (stats.huggingface.update || 0)
+    ? (stats.github.update || 0) + (stats.huggingface.update || 0) + 
+      (stats.githubUpdater.waiting || 0) + (stats.githubUpdater.active || 0) +
+      (stats.hfUpdater.waiting || 0) + (stats.hfUpdater.active || 0)
     : 0;
 
   const totalDiscoveryJobs = stats 
     ? (stats.github.discovery || 0) + (stats.huggingface.discovery || 0)
     : 0;
 
-  const isUpdateActive = isSchedulerJobActive('daily-update') || totalUpdateJobs > 0;
-  const isDiscoveryActive = isSchedulerJobActive('daily-discovery') || totalDiscoveryJobs > 0;
+  // We check if the scheduler job is actively enqueuing
+  const isUpdateEnqueuing = isSchedulerJobActive('daily-update');
+  const isDiscoveryEnqueuing = isSchedulerJobActive('daily-discovery');
 
   const isQueueActionLoading = (source: SourceType) => {
     return Array.from(loadingActions).some(key => {
@@ -115,13 +130,13 @@ export function QueueControlPanel() {
 
   useEffect(() => {
     if (!autoRefresh) return;
-    const initTimer = setTimeout(() => { setCountdown(5); }, 0);
+    const initTimer = setTimeout(() => { setCountdown(15); }, 0);
 
     const interval = setInterval(() => {
       setCountdown(prev => {
         if (prev <= 1) {
           setTimeout(() => { loadStats(); }, 0);
-          return 5;
+          return 15;
         }
         return prev - 1;
       });
@@ -193,101 +208,144 @@ export function QueueControlPanel() {
   const renderQueueCard = (source: SourceType, label: string, q: QueueDetails) => {
     const isAnyActionLoading = isQueueActionLoading(source);
     const isActive = q.active > 0 || q.waiting > 0;
-    const statusColor = q.isPaused
-      ? 'bg-amber-500/10 text-amber-500'
-      : isActive
-        ? 'bg-emerald-500/10 text-emerald-500'
-        : 'bg-[var(--color-ink-muted-48)]/10 text-[var(--color-ink-muted-48)]';
+    const isPaused = q.isPaused;
 
-    const statusLabel = q.isPaused ? 'Paused' : isActive ? 'Processing' : 'Idle';
-    const statusDot = q.isPaused
+    const statusColor = isPaused
+      ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
+      : isActive
+        ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
+        : 'bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-500/20';
+
+    const statusLabel = isPaused ? 'Paused' : isActive ? 'Processing' : 'Idle';
+    const statusDot = isPaused
       ? 'bg-amber-500'
       : isActive
-        ? 'bg-emerald-500 animate-pulse'
-        : 'bg-[var(--color-ink-muted-48)]';
+        ? 'bg-emerald-500'
+        : 'bg-slate-400 dark:bg-slate-600';
 
     return (
-      <div key={source} className="apple-utility-card">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <div className={`w-2 h-2 rounded-full ${statusDot}`} />
-            <h3 className="text-sm font-semibold text-[var(--color-ink)]">{label}</h3>
-            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ${statusColor}`}>
+      <div key={source} className="flex flex-col justify-between h-full bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-850 rounded-2xl shadow-sm hover:shadow-md hover:border-slate-200 dark:hover:border-slate-700 transition-all duration-300 p-5">
+        <div>
+          {/* Header */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <span className="relative flex h-2 w-2">
+                {isActive && !isPaused && (
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                )}
+                <span className={`relative inline-flex rounded-full h-2 w-2 ${statusDot}`}></span>
+              </span>
+              <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200 tracking-tight">{label}</h3>
+            </div>
+            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border ${statusColor}`}>
               {statusLabel}
             </span>
           </div>
-        </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-5 gap-1.5 mb-4">
-          {[
-            { label: 'Active', value: q.active, icon: Zap, color: 'text-emerald-500' },
-            { label: 'Waiting', value: q.waiting, icon: Clock, color: 'text-blue-500' },
-            { label: 'Delayed', value: q.delayed, icon: Loader2, color: 'text-amber-500' },
-            { label: 'Completed', value: q.completed, icon: CheckCircle2, color: 'text-emerald-400' },
-            { label: 'Failed', value: q.failed, icon: AlertTriangle, color: 'text-red-500' },
-          ].map(stat => (
-            <div key={stat.label} className="text-center p-2 rounded-lg bg-[var(--color-canvas-parchment)] border border-[var(--color-divider-soft)]">
-              <stat.icon className={`w-3.5 h-3.5 mx-auto mb-1 ${stat.color}`} />
-              <div className="text-sm font-bold text-[var(--color-ink)] tabular-nums">{stat.value.toLocaleString()}</div>
-              <div className="text-[9px] text-[var(--color-ink-muted-48)] uppercase tracking-wider mt-0.5">{stat.label}</div>
-            </div>
-          ))}
-        </div>
-
-        {/* Job Type Breakdown (Tìm mới & Cập nhật hàng ngày) */}
-        {q.discovery !== undefined && q.update !== undefined && (
-          <div className="mb-4 p-3 rounded-lg bg-[var(--color-bg-secondary)] border border-[var(--color-divider-soft)] space-y-2">
-            <div className="flex justify-between items-center text-[11px]">
-              <span className="font-semibold text-[var(--color-ink-muted-80)]">{t("queueBreakdown")}</span>
-              <span className="text-[var(--color-ink-muted-48)] tabular-nums">
-                {t("totalJobs", { count: (q.discovery + q.update) })}
-              </span>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-2">
-              <div className="p-2.5 rounded-lg bg-[var(--color-canvas)] border border-[var(--color-divider-soft)]">
-                <div className="text-[9px] uppercase tracking-wider text-blue-500 font-bold mb-0.5">{t("discoveryJobs")}</div>
-                <div className="text-sm font-bold text-[var(--color-ink)] tabular-nums">{q.discovery.toLocaleString()}</div>
-                <div className="text-[9px] text-[var(--color-ink-muted-48)] mt-0.5">{t("discoveryDesc")}</div>
+          {/* Stats Grid */}
+          <div className="grid grid-cols-2 gap-2 mb-3">
+            {/* Active Box */}
+            <div className="p-3 rounded-xl bg-emerald-500/[0.03] dark:bg-emerald-500/[0.02] border border-emerald-500/10 flex items-center justify-between transition-colors hover:bg-emerald-500/[0.06] dark:hover:bg-emerald-500/[0.04]">
+              <div>
+                <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold uppercase tracking-wider">Active</div>
+                <div className="text-xl font-bold text-slate-800 dark:text-slate-100 tabular-nums mt-0.5">{q.active.toLocaleString()}</div>
               </div>
-              <div className="p-2.5 rounded-lg bg-[var(--color-canvas)] border border-[var(--color-divider-soft)]">
-                <div className="text-[9px] uppercase tracking-wider text-amber-500 font-bold mb-0.5">{t("updateJobs")}</div>
-                <div className="text-sm font-bold text-[var(--color-ink)] tabular-nums">{q.update.toLocaleString()}</div>
-                <div className="text-[9px] text-[var(--color-ink-muted-48)] mt-0.5">{t("updateDesc")}</div>
+              <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-500">
+                <Zap className="w-4 h-4" />
               </div>
             </div>
-
-            {/* Split Progress Bar */}
-            {q.discovery + q.update > 0 && (
-              <div className="w-full h-1.5 bg-[var(--color-canvas)] rounded-full overflow-hidden flex border border-[var(--color-divider-soft)]">
-                <div 
-                  className="h-full bg-blue-500 transition-all duration-500" 
-                  style={{ width: `${(q.discovery / (q.discovery + q.update)) * 100}%` }}
-                  title={`${t("discoveryJobs")}: ${((q.discovery / (q.discovery + q.update)) * 100).toFixed(0)}%`}
-                />
-                <div 
-                  className="h-full bg-amber-500 transition-all duration-500" 
-                  style={{ width: `${(q.update / (q.discovery + q.update)) * 100}%` }}
-                  title={`${t("updateJobs")}: ${((q.update / (q.discovery + q.update)) * 100).toFixed(0)}%`}
-                />
+            {/* Waiting Box */}
+            <div className="p-3 rounded-xl bg-blue-500/[0.03] dark:bg-blue-500/[0.02] border border-blue-500/10 flex items-center justify-between transition-colors hover:bg-blue-500/[0.06] dark:hover:bg-blue-500/[0.04]">
+              <div>
+                <div className="text-[10px] text-blue-600 dark:text-blue-400 font-semibold uppercase tracking-wider">Waiting</div>
+                <div className="text-xl font-bold text-slate-800 dark:text-slate-100 tabular-nums mt-0.5">{q.waiting.toLocaleString()}</div>
               </div>
-            )}
+              <div className="p-1.5 rounded-lg bg-blue-500/10 text-blue-500">
+                <Clock className="w-4 h-4" />
+              </div>
+            </div>
           </div>
-        )}
 
-        {/* Total processed */}
-        <div className="flex items-center justify-between text-[11px] text-[var(--color-ink-muted-80)] mb-3 px-1">
-          <span>Total Processed: <strong className="text-[var(--color-ink)]">{q.total.toLocaleString()}</strong></span>
-          <span>Success Rate: <strong className="text-[var(--color-ink)]">
-            {q.total > 0 ? `${((q.completed / q.total) * 100).toFixed(1)}%` : 'N/A'}
-          </strong></span>
+          {/* Secondary Stats */}
+          <div className="grid grid-cols-3 gap-1.5 mb-4 text-center">
+            <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 transition-colors hover:bg-slate-100/50 dark:hover:bg-slate-800/60">
+              <div className="text-[9px] text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">Delayed</div>
+              <div className="text-xs font-bold text-amber-500 dark:text-amber-400 tabular-nums mt-0.5">{q.delayed.toLocaleString()}</div>
+            </div>
+            <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 transition-colors hover:bg-slate-100/50 dark:hover:bg-slate-800/60">
+              <div className="text-[9px] text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">Completed</div>
+              <div className="text-xs font-bold text-emerald-600 dark:text-emerald-400 tabular-nums mt-0.5">{q.completed.toLocaleString()}</div>
+            </div>
+            <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 transition-colors hover:bg-slate-100/50 dark:hover:bg-slate-800/60">
+              <div className="text-[9px] text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">Failed</div>
+              <div className="text-xs font-bold text-red-500 dark:text-red-400 tabular-nums mt-0.5">{q.failed.toLocaleString()}</div>
+            </div>
+          </div>
+
+          {/* Job Type Breakdown (Tìm mới & Cập nhật hàng ngày) */}
+          {source !== 'scheduler' ? (
+            (source === 'github' || source === 'huggingface') ? (
+              <div className="mb-4 p-3 rounded-xl bg-blue-500/[0.02] dark:bg-blue-500/[0.01] border border-blue-500/5 space-y-2">
+                <div className="flex justify-between items-center text-[10px] text-slate-500 dark:text-slate-400">
+                  <span className="font-semibold uppercase tracking-wider">{t("queueBreakdown")}</span>
+                  <span className="font-bold tabular-nums text-blue-500">{t("totalJobs", { count: q.discovery })}</span>
+                </div>
+                
+                <div className="p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                  <div>
+                    <div className="text-[9px] uppercase tracking-wider text-blue-500 font-bold">{t("discoveryJobs")}</div>
+                    <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">{t("discoveryDesc")}</div>
+                  </div>
+                  <div className="text-sm font-bold text-slate-800 dark:text-slate-200 tabular-nums">{q.discovery.toLocaleString()}</div>
+                </div>
+
+                {/* Split Progress Bar */}
+                <div className="w-full h-1 bg-blue-500/10 rounded-full overflow-hidden">
+                  <div className="h-full bg-blue-500 transition-all duration-500" style={{ width: q.discovery > 0 ? '100%' : '0%' }} />
+                </div>
+              </div>
+            ) : (
+              <div className="mb-4 p-3 rounded-xl bg-amber-500/[0.02] dark:bg-amber-500/[0.01] border border-amber-500/5 space-y-2">
+                <div className="flex justify-between items-center text-[10px] text-slate-500 dark:text-slate-400">
+                  <span className="font-semibold uppercase tracking-wider">{t("queueBreakdown")}</span>
+                  <span className="font-bold tabular-nums text-amber-500">{t("totalJobs", { count: q.update })}</span>
+                </div>
+                
+                <div className="p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                  <div>
+                    <div className="text-[9px] uppercase tracking-wider text-amber-500 font-bold">{t("updateJobs")}</div>
+                    <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">{t("updateDesc")}</div>
+                  </div>
+                  <div className="text-sm font-bold text-slate-800 dark:text-slate-200 tabular-nums">{q.update.toLocaleString()}</div>
+                </div>
+
+                {/* Split Progress Bar */}
+                <div className="w-full h-1 bg-amber-500/10 rounded-full overflow-hidden">
+                  <div className="h-full bg-amber-500 transition-all duration-500" style={{ width: q.update > 0 ? '100%' : '0%' }} />
+                </div>
+              </div>
+            )
+          ) : (
+            <div className="mb-4 p-3 rounded-xl bg-slate-500/[0.02] dark:bg-slate-500/[0.01] border border-slate-500/5 space-y-2 flex flex-col justify-center min-h-[96px]">
+              <div className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold text-center">Scheduler Controller</div>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed text-center">
+                Kích hoạt và quản lý tiến trình lập lịch chạy các công việc tự động định kỳ.
+              </p>
+            </div>
+          )}
+
+          {/* Total processed */}
+          <div className="flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400 mb-3 px-1 border-t border-slate-100 dark:border-slate-800/80 pt-3">
+            <span>Processed: <strong className="text-slate-700 dark:text-slate-300 font-semibold">{q.total.toLocaleString()}</strong></span>
+            <span>Success: <strong className="text-slate-700 dark:text-slate-300 font-semibold">
+              {q.total > 0 ? `${((q.completed / q.total) * 100).toFixed(1)}%` : 'N/A'}
+            </strong></span>
+          </div>
         </div>
 
         {/* Action Buttons */}
-        <div className="flex flex-wrap gap-1.5 pt-3 border-t border-[var(--color-divider-soft)]">
-          {q.isPaused ? (
+        <div className="flex flex-wrap gap-1.5 pt-3 border-t border-slate-100 dark:border-slate-800/80 mt-auto">
+          {isPaused ? (
             <ActionButton
               icon={Play}
               label="Resume"
@@ -312,35 +370,35 @@ export function QueueControlPanel() {
             onClick={() => handleAction('drain', source)}
             loading={isLoading('drain', source)}
             variant="danger"
-            disabled={isAnyActionLoading || q.waiting === 0}
+            disabled={isAnyActionLoading || (q.waiting === 0 && q.delayed === 0)}
           />
           <ActionButton
             icon={RotateCcw}
-            label="Retry Failed"
+            label="Retry"
             onClick={() => handleAction('retry', source)}
             loading={isLoading('retry', source)}
             variant="default"
-            disabled={isAnyActionLoading || q.failed === 0}
+            disabled={isAnyActionLoading || q.currentFailed === 0}
           />
           {source === 'scheduler' && (
-            <>
+            <div className="grid grid-cols-2 gap-1.5 w-full mt-2 pt-2 border-t border-dashed border-slate-100 dark:border-slate-800/80">
               <ActionButton
                 icon={Play}
-                label={isSchedulerJobActive('daily-discovery') ? "Enqueuing..." : isDiscoveryActive ? "Running Discovery..." : "Run Discovery"}
+                label={isDiscoveryEnqueuing ? "Discovery..." : "Discovery"}
                 onClick={() => handleTriggerJob('daily-discovery')}
-                loading={loadingActions.has('trigger-daily-discovery') || isDiscoveryActive}
-                disabled={isAnyActionLoading || isDiscoveryActive}
+                loading={loadingActions.has('trigger-daily-discovery') || isDiscoveryEnqueuing}
+                disabled={isAnyActionLoading || isDiscoveryEnqueuing}
                 variant="primary"
               />
               <ActionButton
                 icon={Play}
-                label={isSchedulerJobActive('daily-update') ? "Enqueuing..." : isUpdateActive ? "Running Update..." : "Run Update"}
+                label={isUpdateEnqueuing ? "Update..." : "Update"}
                 onClick={() => handleTriggerJob('daily-update')}
-                loading={loadingActions.has('trigger-daily-update') || isUpdateActive}
-                disabled={isAnyActionLoading || isUpdateActive}
+                loading={loadingActions.has('trigger-daily-update') || isUpdateEnqueuing}
+                disabled={isAnyActionLoading || isUpdateEnqueuing}
                 variant="primary"
               />
-            </>
+            </div>
           )}
         </div>
       </div>
@@ -378,10 +436,12 @@ export function QueueControlPanel() {
 
       {/* Active System Tasks & Crawlers Banner */}
       {stats && (hasActiveScheduler || totalPending > 0) && (
-        <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 flex flex-col gap-3">
+        <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800/80 shadow-sm flex flex-col gap-3">
           {hasActiveScheduler && (
-            <div className="flex items-center gap-3">
-              <Loader2 className="w-4 h-4 animate-spin text-emerald-500" />
+            <div className="flex items-center gap-3 text-emerald-600 dark:text-emerald-400">
+              <div className="p-1.5 rounded-lg bg-emerald-500/10 dark:bg-emerald-500/[0.05] flex items-center justify-center">
+                <Loader2 className="w-4 h-4 animate-spin text-emerald-500" />
+              </div>
               <div className="text-[11px] font-semibold">
                 {t("runningSchedulerJobs", {
                   jobs: stats.activeSchedulerJobs!.map(name => {
@@ -394,35 +454,28 @@ export function QueueControlPanel() {
             </div>
           )}
           {totalDiscoveryJobs > 0 && (
-            <div className="flex items-center gap-3 text-blue-600">
-              <div className="relative flex h-3 w-3">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span>
+            <div className="flex items-center gap-3 text-blue-600 dark:text-blue-400">
+              <div className="p-1.5 rounded-lg bg-blue-500/10 dark:bg-blue-500/[0.05] flex items-center justify-center">
+                <span className="relative flex h-2.5 w-2.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-blue-500"></span>
+                </span>
               </div>
-              <div className="text-[11px] font-medium">
+              <div className="text-[11px] font-semibold">
                 {t("discoveryProgress", { count: totalDiscoveryJobs })}
               </div>
             </div>
           )}
           {totalUpdateJobs > 0 && (
-            <div className="flex items-center gap-3 text-amber-600">
-              <div className="relative flex h-3 w-3">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span>
+            <div className="flex items-center gap-3 text-amber-600 dark:text-amber-400">
+              <div className="p-1.5 rounded-lg bg-amber-500/10 dark:bg-amber-500/[0.05] flex items-center justify-center">
+                <span className="relative flex h-2.5 w-2.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
+                </span>
               </div>
-              <div className="text-[11px] font-medium">
+              <div className="text-[11px] font-semibold">
                 {t("updatingProgress", { count: totalUpdateJobs })}
-              </div>
-            </div>
-          )}
-          {totalPending > 0 && totalDiscoveryJobs === 0 && totalUpdateJobs === 0 && (
-            <div className="flex items-center gap-3">
-              <div className="relative flex h-3 w-3">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
-              </div>
-              <div className="text-[11px] font-medium">
-                {t("activeCrawlers", { count: totalPending })}
               </div>
             </div>
           )}
@@ -431,10 +484,35 @@ export function QueueControlPanel() {
 
       {/* Queue cards */}
       {stats ? (
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-          {renderQueueCard('github', 'GitHub Crawler', stats.github)}
-          {renderQueueCard('huggingface', 'HuggingFace Crawler', stats.huggingface)}
-          {renderQueueCard('scheduler', 'System Scheduler', stats.scheduler)}
+        <div className="space-y-6">
+          {/* Discovery Crawlers Group */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 px-1">
+              <span className="w-1.5 h-4 bg-blue-500 rounded-full"></span>
+              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                {discoveryGroupText}
+              </h4>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {renderQueueCard('github', 'GitHub Crawler', stats.github)}
+              {renderQueueCard('huggingface', 'HF Crawler', stats.huggingface)}
+            </div>
+          </div>
+
+          {/* Metrics Updaters & Scheduler Group */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 px-1">
+              <span className="w-1.5 h-4 bg-amber-500 rounded-full"></span>
+              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                {updaterGroupText}
+              </h4>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {renderQueueCard('github-updater', 'GH Updater', stats.githubUpdater)}
+              {renderQueueCard('hf-updater', 'HF Updater', stats.hfUpdater)}
+              {renderQueueCard('scheduler', 'Scheduler', stats.scheduler)}
+            </div>
+          </div>
         </div>
       ) : (
         <div className="apple-utility-card flex items-center justify-center py-12">
@@ -556,24 +634,24 @@ function ActionButton({
   disabled?: boolean;
 }) {
   const variantStyles: Record<string, string> = {
-    default: 'border-[var(--color-hairline)] text-[var(--color-ink)] hover:bg-[var(--color-canvas-parchment)]',
-    primary: 'border-[var(--color-action-blue)]/30 text-[var(--color-action-blue)] hover:bg-[var(--color-action-blue)]/5',
-    success: 'border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/5',
-    warning: 'border-amber-500/30 text-amber-600 hover:bg-amber-500/5',
-    danger: 'border-red-500/30 text-red-600 hover:bg-red-500/5',
+    default: 'border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60 bg-white dark:bg-slate-900',
+    primary: 'border-blue-200/50 dark:border-blue-800/30 text-blue-600 dark:text-blue-400 hover:bg-blue-50/50 dark:hover:bg-blue-950/20 bg-white dark:bg-slate-900',
+    success: 'border-emerald-200/50 dark:border-emerald-800/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50/50 dark:hover:bg-emerald-950/20 bg-white dark:bg-slate-900',
+    warning: 'border-amber-200/50 dark:border-amber-800/30 text-amber-600 dark:text-amber-400 hover:bg-amber-50/50 dark:hover:bg-amber-950/20 bg-white dark:bg-slate-900',
+    danger: 'border-red-200/50 dark:border-red-800/30 text-red-600 dark:text-red-400 hover:bg-red-50/50 dark:hover:bg-red-950/20 bg-white dark:bg-slate-900',
   };
 
   return (
     <button
       onClick={onClick}
       disabled={loading || disabled}
-      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md border text-[11px] font-semibold transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed ${variantStyles[variant]}`}
+      className={`inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg border text-[11px] font-medium transition-all duration-200 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer ${variantStyles[variant]}`}
       aria-label={label}
     >
       {loading ? (
-        <Loader2 className="w-3 h-3 animate-spin" />
+        <Loader2 className="w-3.5 h-3.5 animate-spin" />
       ) : (
-        <Icon className="w-3 h-3" />
+        <Icon className="w-3.5 h-3.5" />
       )}
       {label}
     </button>

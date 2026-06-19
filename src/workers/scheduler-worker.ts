@@ -10,7 +10,27 @@ const schedulerWorker = new Worker('scheduler-queue', async (job: Job) => {
   
   try {
     if (job.name === 'daily-discovery') {
-      await runDailyDiscovery();
+      const source = job.data?.source as 'github' | 'huggingface' | undefined;
+      
+      // Set sync-running flags for admin UI status
+      if (source === 'github' || !source) {
+        await redisConnection.set('crawler:sync:github:running', 'true');
+      }
+      if (source === 'huggingface' || !source) {
+        await redisConnection.set('crawler:sync:huggingface:running', 'true');
+      }
+
+      try {
+        await runDailyDiscovery(source);
+      } finally {
+        // Always clear sync-running flags
+        if (source === 'github' || !source) {
+          await redisConnection.del('crawler:sync:github:running');
+        }
+        if (source === 'huggingface' || !source) {
+          await redisConnection.del('crawler:sync:huggingface:running');
+        }
+      }
     } else if (job.name === 'daily-update') {
       await runDailyUpdate(!!job.data?.force);
     } else {

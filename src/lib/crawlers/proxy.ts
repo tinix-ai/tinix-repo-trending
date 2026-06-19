@@ -36,4 +36,12 @@ class ProxyManager {
   }
 }
 
-export const proxyManager = new ProxyManager();
+const globalForProxy = globalThis as unknown as {
+  proxyManager: ProxyManager | undefined;
+};
+
+export const proxyManager = globalForProxy.proxyManager ?? new ProxyManager();
+
+if (process.env.NODE_ENV !== 'production') {
+  globalForProxy.proxyManager = proxyManager;
+}

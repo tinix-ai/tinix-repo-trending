@@ -1,0 +1,1 @@
+ALTER TABLE "projects" ALTER COLUMN "readme" SET DATA TYPE bytea USING readme::bytea;

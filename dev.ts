@@ -36,6 +36,18 @@ const processes: ProcessInfo[] = [
     args: ['tsx', 'src/workers/scheduler-worker.ts'],
     color: '\x1b[34m', // Blue
   },
+  {
+    name: 'GH Updater',
+    command: 'npx',
+    args: ['tsx', 'src/workers/github-updater-worker.ts'],
+    color: '\x1b[95m', // Bright Magenta
+  },
+  {
+    name: 'HF Updater',
+    command: 'npx',
+    args: ['tsx', 'src/workers/hf-updater-worker.ts'],
+    color: '\x1b[96m', // Bright Cyan
+  },
 ];
 
 let isExiting = false;
@@ -50,6 +62,9 @@ function startProcess(proc: ProcessInfo) {
   const child = spawn(proc.command, proc.args, {
     stdio: ['ignore', 'pipe', 'pipe'],
     shell: true,
+    env: proc.name === 'Next.js'
+      ? { ...process.env, NODE_OPTIONS: '--max-old-space-size=8192' }
+      : process.env,
   });
 
   proc.instance = child;

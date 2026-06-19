@@ -1,85 +1,112 @@
 import 'dotenv/config';
-import { crawlerQueue, hfQueue } from './queue';
+import { crawlerQueue, githubUpdaterQueue, hfUpdaterQueue } from './queue';
 import { db } from '../lib/db';
 import { projects } from '../lib/db/schema';
 import { discoverNewRepos } from '../lib/crawlers/github-discovery';
 import { discoverHFTrending } from '../lib/crawlers/hf-discovery';
-import { eq, lte, or, isNull, sql } from 'drizzle-orm';
+import { eq, lte, or, isNull, sql, asc } from 'drizzle-orm';
 
 /**
  * Job 1: Daily Discovery
  * Scans GitHub and HuggingFace for new AI/ML repos/models and adds them to the crawler queue.
  */
-export async function runDailyDiscovery() {
-  console.log('[Cron] Running Daily Discovery...');
+export async function runDailyDiscovery(source?: 'github' | 'huggingface') {
+  console.log(`[Cron] Running Daily Discovery${source ? ` for ${source}` : ''}...`);
   
   // 1. GitHub Discovery
-  const newRepos = await discoverNewRepos();
-  console.log(`[Cron] Discovered ${newRepos.length} trending repos from Search.`);
+  if (!source || source === 'github') {
+    const newRepos = await discoverNewRepos();
+    console.log(`[Cron] Discovered ${newRepos.length} trending repos from Search.`);
 
-  const existingGitHub = await db.select({ id: projects.id, sourceId: projects.sourceId }).from(projects).where(eq(projects.source, 'github'));
-  const existingGHMap = new Map(existingGitHub.map(p => [p.sourceId, p.id]));
+    const existingGitHub = await db.select({ id: projects.id, sourceId: projects.sourceId }).from(projects).where(eq(projects.source, 'github'));
+    const existingGHMap = new Map(existingGitHub.map(p => [p.sourceId, p.id]));
 
-  let queuedCount = 0;
-  for (const repo of newRepos) {
-    const sourceId = `${repo.owner}/${repo.repo}`;
-    const existingId = existingGHMap.get(sourceId);
-    
-    if (!existingId) {
-      // New repo: crawl immediately
-      await crawlerQueue.add('crawl-repo', {
-        owner: repo.owner,
-        repo: repo.repo,
-      }, {
-        jobId: `discovery-${sourceId}`,
-      });
-      queuedCount++;
-    } else {
-      // Existing repo but discovered as trending: reset crawl interval to daily and schedule NOW
-      await db.update(projects)
-        .set({
-          crawlInterval: 1,
-          nextCrawlAt: new Date(),
-        })
-        .where(eq(projects.id, existingId));
+    let queuedCount = 0;
+    for (const repo of newRepos) {
+      const sourceId = `${repo.owner}/${repo.repo}`;
+      const existingId = existingGHMap.get(sourceId);
+      
+      if (!existingId) {
+        // New repo: crawl immediately
+        await crawlerQueue.add('crawl-repo', {
+          owner: repo.owner,
+          repo: repo.repo,
+        }, {
+          jobId: `discovery-${sourceId}`,
+        });
+        queuedCount++;
+      } else {
+        // Existing repo but discovered as trending: reset crawl interval to daily and schedule NOW
+        await db.update(projects)
+          .set({
+            crawlInterval: 1,
+            nextCrawlAt: new Date(),
+          })
+          .where(eq(projects.id, existingId));
 
-      await crawlerQueue.add('crawl-repo', {
-        owner: repo.owner,
-        repo: repo.repo,
-        projectId: existingId,
-      }, {
-        jobId: `discovery-update-gh-${existingId}-${new Date().toISOString().split('T')[0]}`,
-      });
-      queuedCount++;
+        await crawlerQueue.add('crawl-repo', {
+          owner: repo.owner,
+          repo: repo.repo,
+          projectId: existingId,
+        }, {
+          jobId: `discovery-update-gh-${existingId}-${new Date().toISOString().split('T')[0]}`,
+        });
+        queuedCount++;
+      }
     }
+    console.log(`[Cron] Queued ${queuedCount} GitHub repos for crawling/update (new/trending reset).`);
   }
-  console.log(`[Cron] Queued ${queuedCount} GitHub repos for crawling/update (new/trending reset).`);
-
 
   // 2. HuggingFace Discovery
-  await discoverHFTrending();
+  if (!source || source === 'huggingface') {
+    await discoverHFTrending();
+  }
 }
 
 /**
  * Job 2: Daily Update
- * Pulls ALL tracked projects from the DB and adds them to the respective queues for metric updates.
+ * Pulls tracked projects from the DB and adds them to the respective updater queues.
+ * Projects are ordered and prioritized by crawlInterval (hot projects first).
  */
+/**
+ * Maps crawlInterval to BullMQ priority.
+ * Lower BullMQ priority number = higher urgency.
+ * Projects with shorter intervals (hot/trending) get processed first.
+ */
+function crawlIntervalToPriority(interval: number | null): number {
+  switch (interval) {
+    case 1:  return 1;   // Extremely hot — crawl daily
+    case 2:  return 2;   // Fast growth
+    case 4:  return 3;   // Moderate growth
+    case 7:  return 5;   // Slow growth
+    case 14: return 7;   // Stale
+    case 30: return 10;  // Cold
+    default: return 5;   // Unknown → medium
+  }
+}
+
 export async function runDailyUpdate(force = false) {
   console.log(`[Cron] Running Daily Update for tracked repos (force: ${force})...`);
 
-  const queryBuilder = db.select({ 
+  const selectFields = {
     id: projects.id,
     sourceId: projects.sourceId,
     source: projects.source,
-    sourceUrl: projects.sourceUrl
-  }).from(projects);
+    sourceUrl: projects.sourceUrl,
+    crawlInterval: projects.crawlInterval,
+  };
 
+  // Order by crawlInterval ASC so hot projects are enqueued first,
+  // then by nextCrawlAt ASC so the most overdue come before the just-due.
   const trackedProjects = force
-    ? await queryBuilder
-    : await queryBuilder.where(or(
-        isNull(projects.nextCrawlAt),
-        lte(projects.nextCrawlAt, new Date())
-      ));
+    ? await db.select(selectFields).from(projects)
+        .orderBy(asc(projects.crawlInterval), asc(projects.nextCrawlAt))
+    : await db.select(selectFields).from(projects)
+        .where(or(
+          isNull(projects.nextCrawlAt),
+          lte(projects.nextCrawlAt, new Date())
+        ))
+        .orderBy(asc(projects.crawlInterval), asc(projects.nextCrawlAt));
 
   let ghCount = 0;
   let hfCount = 0;
@@ -101,7 +128,7 @@ export async function runDailyUpdate(force = false) {
           },
           opts: {
             jobId: `update-gh-${project.id}-${dateSuffix}`,
-            priority: force ? 1 : undefined,
+            priority: force ? 1 : crawlIntervalToPriority(project.crawlInterval),
           }
         });
         ghCount++;
@@ -120,7 +147,7 @@ export async function runDailyUpdate(force = false) {
         },
         opts: {
           jobId: `update-hf-${project.id}-${dateSuffix}`,
-          priority: force ? 1 : undefined,
+          priority: force ? 1 : crawlIntervalToPriority(project.crawlInterval),
         }
       });
       hfCount++;
@@ -131,18 +158,18 @@ export async function runDailyUpdate(force = false) {
   const CHUNK_SIZE = 500;
 
   if (ghJobs.length > 0) {
-    console.log(`[Cron] Enqueuing ${ghJobs.length} GitHub crawler jobs in bulk...`);
+    console.log(`[Cron] Enqueuing ${ghJobs.length} GitHub updater jobs in bulk...`);
     for (let i = 0; i < ghJobs.length; i += CHUNK_SIZE) {
       const chunk = ghJobs.slice(i, i + CHUNK_SIZE);
-      await crawlerQueue.addBulk(chunk);
+      await githubUpdaterQueue.addBulk(chunk);
     }
   }
 
   if (hfJobs.length > 0) {
-    console.log(`[Cron] Enqueuing ${hfJobs.length} HuggingFace crawler jobs in bulk...`);
+    console.log(`[Cron] Enqueuing ${hfJobs.length} HuggingFace updater jobs in bulk...`);
     for (let i = 0; i < hfJobs.length; i += CHUNK_SIZE) {
       const chunk = hfJobs.slice(i, i + CHUNK_SIZE);
-      await hfQueue.addBulk(chunk);
+      await hfUpdaterQueue.addBulk(chunk);
     }
   }
 

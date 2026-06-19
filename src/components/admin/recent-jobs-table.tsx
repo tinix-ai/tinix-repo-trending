@@ -18,7 +18,7 @@ import { fetchRecentJobs, retryJob, removeJob, type RecentJob } from "@/app/acti
 import { toast } from "sonner";
 
 type StatusFilter = 'all' | 'active' | 'completed' | 'failed' | 'waiting';
-type SourceFilter = 'all' | 'github' | 'huggingface' | 'scheduler';
+type SourceFilter = 'all' | 'github' | 'huggingface' | 'github-updater' | 'hf-updater' | 'scheduler';
 
 function timeAgo(ts: number | null): string {
   if (!ts) return '—';
@@ -163,9 +163,11 @@ export function RecentJobsTable() {
             aria-label="Filter by source"
           >
             <option value="all">All Sources</option>
-            <option value="github">GitHub</option>
-            <option value="huggingface">HuggingFace</option>
-            <option value="scheduler">System Scheduler</option>
+            <option value="github">GitHub Crawler</option>
+            <option value="huggingface">HF Crawler</option>
+            <option value="github-updater">GH Updater</option>
+            <option value="hf-updater">HF Updater</option>
+            <option value="scheduler">Scheduler</option>
           </select>
         </div>
       </div>

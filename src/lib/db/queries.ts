@@ -2,6 +2,27 @@ import { db } from './index';
 import { sql } from 'drizzle-orm';
 import type { RankedProject } from '@/types';
 import { CATEGORY_METADATA } from '../categorizer';
+import * as zlib from 'zlib';
+
+function decompressReadme(value: unknown): string | null {
+  if (!value) return null;
+  if (Buffer.isBuffer(value)) {
+    try {
+      if (value.length >= 2 && value[0] === 0x1f && value[1] === 0x8b) {
+        return zlib.gunzipSync(value).toString('utf-8');
+      }
+      return value.toString('utf-8');
+    } catch (err) {
+      console.error('[Queries] Failed to decompress readme buffer:', err);
+      return value.toString('utf-8');
+    }
+  }
+  if (typeof value === 'string') {
+    return value;
+  }
+  return null;
+}
+
 
 export interface ProjectQueryParams {
   days?: number;
@@ -32,6 +53,9 @@ export async function getDynamicTrendingProjects(params: ProjectQueryParams): Pr
   if (filterType === "trending") {
     filters.push(sql`momentum_score >= 0`);
     filters.push(sql`((source = 'github' AND stars >= ${minStars}) OR (source = 'huggingface' AND downloads >= ${minDownloads}) OR (source NOT IN ('github', 'huggingface')))`);
+    // Exclude newly discovered projects (less than 24 hours in the system) from trending
+    // to ensure they have at least one overnight snapshot for accurate momentum calculation.
+    filters.push(sql`created_at <= NOW() - INTERVAL '24 hours'`);
   }
 
   if (params.category) {
@@ -457,7 +481,7 @@ export async function getProjectById(id: string) {
       name: r.name as string,
       fullName: r.full_name as string,
       description: r.description as string,
-      readme: r.readme as string,
+      readme: decompressReadme(r.readme),
       aiSummary: r.ai_summary as string,
       homepageUrl: r.homepage_url as string,
       sourceUrl: r.source_url as string,
@@ -518,7 +542,7 @@ export async function getProjectBySlug(slug: string) {
       name: r.name as string,
       fullName: r.full_name as string,
       description: r.description as string,
-      readme: r.readme as string,
+      readme: decompressReadme(r.readme),
       aiSummary: r.ai_summary as string,
       homepageUrl: r.homepage_url as string,
       sourceUrl: r.source_url as string,

@@ -8,6 +8,7 @@ const connectionString = process.env.DATABASE_URL || 'postgres://postgres:postgr
 // Prevent multiple connections in development (Next.js hot reloads)
 const globalForDb = globalThis as unknown as {
   conn: postgres.Sql | undefined;
+  db: ReturnType<typeof drizzle<typeof schema>> | undefined;
 };
 
 // Limit connection pool in development to prevent Postgres connection exhaustion
@@ -20,5 +21,9 @@ if (process.env.NODE_ENV !== 'production') {
   globalForDb.conn = client;
 }
 
-export const db = drizzle(client, { schema });
+export const db = globalForDb.db ?? drizzle(client, { schema });
+
+if (process.env.NODE_ENV !== 'production') {
+  globalForDb.db = db;
+}
 
