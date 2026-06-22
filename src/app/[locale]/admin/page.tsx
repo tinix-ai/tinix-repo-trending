@@ -2,12 +2,13 @@ import { db } from "@/lib/db";
 import { projects } from "@/lib/db/schema";
 import { sql } from "drizzle-orm";
 import { Server, Database, Layers } from "lucide-react";
-import { fetchCrawlerReport } from "@/app/actions";
+import { fetchCrawlerReport, fetchAnalyticsData } from "@/app/actions";
 import { QueueControlPanel } from "@/components/admin/queue-control-panel";
 import { RecentJobsTable } from "@/components/admin/recent-jobs-table";
 import { CrawlerReport } from "@/components/admin/crawler-report";
 import { CrawlerStatusTable } from "@/components/admin/crawler-status-table";
 import { ScheduledJobsTable } from "@/components/admin/scheduled-jobs-table";
+import { AnalyticsDashboard } from "@/components/admin/analytics-dashboard";
 import { Link } from "@/i18n/routing";
 import { getTranslations } from "next-intl/server";
 
@@ -18,13 +19,18 @@ interface AdminPageProps {
 export default async function AdminPage(props: AdminPageProps) {
   const searchParams = await props.searchParams;
   const tab = searchParams.tab || 'overview';
-  const currentTab = ['overview', 'queues'].includes(tab) ? tab : 'overview';
+  const currentTab = ['overview', 'queues', 'analytics'].includes(tab) ? tab : 'overview';
   
   const [{ count: totalProjects }] = await db.select({ count: sql`count(*)` }).from(projects);
   const [{ count: totalModels }] = await db.select({ count: sql`count(*)` }).from(projects).where(sql`${projects.projectType} = 'model'`);
   const [{ count: totalRepos }] = await db.select({ count: sql`count(*)` }).from(projects).where(sql`${projects.projectType} = 'repository'`);
   const report = await fetchCrawlerReport();
   const t = await getTranslations("Admin");
+  
+  let analyticsData = null;
+  if (currentTab === 'analytics') {
+    analyticsData = await fetchAnalyticsData();
+  }
   
   return (
     <div className="space-y-12">
@@ -40,6 +46,12 @@ export default async function AdminPage(props: AdminPageProps) {
           className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${currentTab === 'overview' ? 'bg-[var(--color-canvas)] text-[var(--color-ink)] shadow-sm' : 'text-[var(--color-ink-muted-48)] hover:text-[var(--color-ink)]'}`}
         >
           {t("tabOverview")}
+        </Link>
+        <Link
+          href="/admin?tab=analytics"
+          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${currentTab === 'analytics' ? 'bg-[var(--color-canvas)] text-[var(--color-ink)] shadow-sm' : 'text-[var(--color-ink-muted-48)] hover:text-[var(--color-ink)]'}`}
+        >
+          {t("tabAnalytics")}
         </Link>
         <Link
           href="/admin?tab=queues"
@@ -114,6 +126,10 @@ export default async function AdminPage(props: AdminPageProps) {
               <RecentJobsTable />
             </section>
           </div>
+        )}
+
+        {currentTab === 'analytics' && analyticsData && (
+          <AnalyticsDashboard analyticsData={analyticsData} report={report} />
         )}
       </div>
     </div>

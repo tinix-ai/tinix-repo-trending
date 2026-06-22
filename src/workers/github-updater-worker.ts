@@ -1,7 +1,8 @@
 import 'dotenv/config';
 import { Worker } from 'bullmq';
 import { handleGithubCrawlJob } from './crawler-worker';
-import { redisConnection } from './queue';
+import { redisConnection, githubUpdaterQueue } from './queue';
+import { setupQueueAutoRecovery } from './recovery';
 
 console.log('[GitHub Updater Worker] Starting...');
 
@@ -39,6 +40,20 @@ githubUpdaterWorker.on('failed', async (job, err) => {
 });
 
 console.log('[GitHub Updater] Worker started and waiting for jobs...');
+
+// On worker startup, run auto-recovery checks
+setupQueueAutoRecovery('github-updater', githubUpdaterQueue, redisConnection);
+
+// Graceful shutdown
+const gracefulShutdown = async () => {
+  console.log('[GitHub Updater Worker] Gracefully shutting down...');
+  await githubUpdaterWorker.close();
+  await redisConnection.quit();
+  process.exit(0);
+};
+
+process.on('SIGTERM', gracefulShutdown);
+process.on('SIGINT', gracefulShutdown);
 
 // Global error handling for unhandled exceptions
 process.on('unhandledRejection', (reason, promise) => {

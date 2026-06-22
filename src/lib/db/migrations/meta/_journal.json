@@ -43,6 +43,13 @@
       "when": 1781844051311,
       "tag": "0005_lean_jamie_braddock",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1782057529982,
+      "tag": "0006_uneven_strong_guy",
+      "breakpoints": true
     }
   ]
 }

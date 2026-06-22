@@ -11,6 +11,7 @@ interface ProcessInfo {
   instance?: ChildProcess;
 }
 
+// MEMORY BUDGET: ~4GB total (Next.js 2048 + 3 workers × 512 = 3584MB)
 const processes: ProcessInfo[] = [
   {
     name: 'Next.js',
@@ -36,18 +37,8 @@ const processes: ProcessInfo[] = [
     args: ['tsx', 'src/workers/scheduler-worker.ts'],
     color: '\x1b[34m', // Blue
   },
-  {
-    name: 'GH Updater',
-    command: 'npx',
-    args: ['tsx', 'src/workers/github-updater-worker.ts'],
-    color: '\x1b[95m', // Bright Magenta
-  },
-  {
-    name: 'HF Updater',
-    command: 'npx',
-    args: ['tsx', 'src/workers/hf-updater-worker.ts'],
-    color: '\x1b[96m', // Bright Cyan
-  },
+  // NOTE: GH Updater and HF Updater workers are now handled by
+  // crawler-worker.ts and hf-worker.ts respectively (merged)
 ];
 
 let isExiting = false;
@@ -56,15 +47,25 @@ function logSystem(msg: string) {
   console.log(`\x1b[35m[Runner] ${msg}\x1b[0m`);
 }
 
+function getProcessEnv(procName: string): NodeJS.ProcessEnv {
+  if (procName === 'Next.js') {
+    return { ...process.env, NODE_OPTIONS: '--max-old-space-size=2048' };
+  }
+  // Workers: limit heap to 512MB + limit DB connections
+  return {
+    ...process.env,
+    NODE_OPTIONS: '--max-old-space-size=512',
+    DB_MAX_CONNECTIONS: '2',
+  };
+}
+
 function startProcess(proc: ProcessInfo) {
   logSystem(`Starting ${proc.name}: ${proc.command} ${proc.args.join(' ')}`);
 
   const child = spawn(proc.command, proc.args, {
     stdio: ['ignore', 'pipe', 'pipe'],
     shell: true,
-    env: proc.name === 'Next.js'
-      ? { ...process.env, NODE_OPTIONS: '--max-old-space-size=8192' }
-      : process.env,
+    env: getProcessEnv(proc.name),
   });
 
   proc.instance = child;
@@ -138,10 +139,18 @@ function cleanupAndExit(exitCode = 0) {
   process.exit(exitCode);
 }
 
-// Start all processes
-for (const proc of processes) {
-  startProcess(proc);
+// Staggered startup: start processes with delays to avoid boot-time memory spike
+async function startAllProcesses() {
+  for (let i = 0; i < processes.length; i++) {
+    startProcess(processes[i]);
+    if (i < processes.length - 1) {
+      // Wait 3 seconds between each process to let them settle
+      await new Promise(resolve => global.setTimeout(resolve, 3000));
+    }
+  }
+  logSystem('All processes started.');
 }
+startAllProcesses();
 
 // Handle termination signals
 process.on('SIGINT', () => {

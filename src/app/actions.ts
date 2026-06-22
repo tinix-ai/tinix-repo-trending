@@ -1,7 +1,7 @@
 "use server";
 
 import { Queue } from "bullmq";
-import { getDynamicTrendingProjects, ProjectQueryParams, getGlobalStats, getProjectBySlug, getProjectHistory, getProjectById, getCategoryStats, getPopularLanguagesAndHashtags } from "@/lib/db/queries";
+import { getDynamicTrendingProjects, ProjectQueryParams, getGlobalStats, getProjectBySlug, getProjectHistory, getProjectById, getCategoryStats, getPopularLanguagesAndHashtags, getDatabaseStorageStats, getLanguageStats } from "@/lib/db/queries";
 import type { RankedProject } from "@/types";
 import { redisConnection, crawlerQueue, hfQueue, githubUpdaterQueue, hfUpdaterQueue, schedulerQueue } from "@/workers/queue";
 import { githubPool } from "@/lib/crawlers/github-pool";
@@ -711,3 +711,33 @@ export async function fetchGithubTokensHealth() {
     return [];
   }
 }
+
+export async function fetchAnalyticsData() {
+  try {
+    const stats = await getDatabaseStorageStats();
+    const categories = await getCategoryStats();
+    const languages = await getLanguageStats();
+    
+    return {
+      success: true,
+      stats,
+      categories: categories.slice(0, 10), // Top 10 categories
+      languages: languages.slice(0, 10),   // Top 10 languages
+    };
+  } catch (error) {
+    console.error("Failed to fetch analytics data:", error);
+    return {
+      success: false,
+      stats: {
+        totalProjects: 0,
+        projectsWithReadme: 0,
+        compressedSize: 0,
+        estimatedRawSize: 0,
+        savedSize: 0
+      },
+      categories: [],
+      languages: []
+    };
+  }
+}
+

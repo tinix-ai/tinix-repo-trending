@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { Worker, Job } from 'bullmq';
 import { schedulerQueue, redisConnection } from './queue';
-import { runDailyDiscovery, runDailyUpdate } from './cron';
+import { runDailyDiscovery, runDailyUpdate, runTrendCalculation } from './cron';
 
 console.log('[Scheduler Worker] Starting...');
 
@@ -33,6 +33,8 @@ const schedulerWorker = new Worker('scheduler-queue', async (job: Job) => {
       }
     } else if (job.name === 'daily-update') {
       await runDailyUpdate(!!job.data?.force);
+    } else if (job.name === 'trend-calculation') {
+      await runTrendCalculation();
     } else {
       console.warn(`[Scheduler Worker] Unknown job name: ${job.name}`);
     }
@@ -46,7 +48,7 @@ const schedulerWorker = new Worker('scheduler-queue', async (job: Job) => {
     port: parseInt(process.env.REDIS_PORT || '6379'),
     password: process.env.REDIS_PASSWORD || undefined,
   },
-  concurrency: 5, // Process up to 5 scheduled tasks at a time
+  concurrency: 1, // Sequential: scheduled tasks are heavyweight batch operations
 });
 
 schedulerWorker.on('completed', async (job) => {
@@ -95,6 +97,12 @@ async function setupRepeatableJobs() {
   await schedulerQueue.add('daily-update', {}, {
     repeat: { pattern: '30 0 * * *' },
     jobId: 'repeat-daily-update'
+  });
+
+  // 3. Trend Calculation: Run every 30 minutes
+  await schedulerQueue.add('trend-calculation', {}, {
+    repeat: { pattern: '*/30 * * * *' },
+    jobId: 'repeat-trend-calculation'
   });
 
   console.log('[Scheduler Worker] Repeatable jobs synced successfully.');

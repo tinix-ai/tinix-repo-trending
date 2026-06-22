@@ -89,6 +89,7 @@
     "desc": "Tổng quan hệ thống, quản lý crawler và báo cáo thu thập.",
     "tabOverview": "Tổng quan",
     "tabQueues": "Hàng đợi & Nhật ký",
+    "tabAnalytics": "Phân tích",
     "tabScheduled": "Tác vụ định kỳ",
     "dbStats": "Thống kê Cơ sở Dữ liệu",
     "totalItems": "Tổng số lượng",

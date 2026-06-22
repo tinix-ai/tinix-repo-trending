@@ -68,7 +68,7 @@ export const githubUpdaterQueue = globalForRedis.githubUpdaterQueue ?? new Queue
       type: 'exponential',
       delay: 30000,
     },
-    removeOnComplete: { count: 200 },
+    removeOnComplete: { count: 20 },
     removeOnFail: { count: 500 },
   },
 });
@@ -81,7 +81,7 @@ export const hfUpdaterQueue = globalForRedis.hfUpdaterQueue ?? new Queue('hf-upd
       type: 'exponential',
       delay: 30000,
     },
-    removeOnComplete: { count: 200 },
+    removeOnComplete: { count: 20 },
     removeOnFail: { count: 500 },
   },
 });

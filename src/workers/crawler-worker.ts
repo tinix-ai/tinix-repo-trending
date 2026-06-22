@@ -7,11 +7,11 @@ import * as zlib from 'zlib';
 import { sql, eq } from 'drizzle-orm';
 import { categorizeProject } from '../lib/categorizer';
 import { updateProjectCrawlSchedule } from '../lib/crawlers/scheduler';
-import { calculateProjectTrendInline } from './cron';
 import { githubPool } from '../lib/crawlers/github-pool';
 import { proxyManager } from '../lib/crawlers/proxy';
 import { setTimeout } from 'timers/promises';
 import { crawlerQueue, githubUpdaterQueue } from './queue';
+import { setupQueueAutoRecovery } from './recovery';
 
 
 const redisConfig = {
@@ -70,6 +70,7 @@ export async function handleGithubCrawlJob(job: Job<CrawlJobData>) {
             pauseScheduledMap[job.queueName] = true;
             console.log(`${logPrefix} All GitHub tokens exhausted. Automatically pausing queue...`);
             try {
+              await redisConnection.set(`crawler:rate-limit-reset:${job.queueName}`, 'true', 'PX', sleepMs);
               await currentQueue.pause();
               console.log(`${logPrefix} Queue paused successfully. Will resume in ${resetMinutes} minute(s).`);
               
@@ -77,6 +78,7 @@ export async function handleGithubCrawlJob(job: Job<CrawlJobData>) {
                 await setTimeout(sleepMs);
                 try {
                   await currentQueue.resume();
+                  await redisConnection.del(`crawler:rate-limit-reset:${job.queueName}`);
                   pauseScheduledMap[job.queueName] = false;
                   console.log(`${logPrefix} Automatically resumed queue after rate limit reset.`);
                 } catch (resumeErr) {
@@ -255,9 +257,6 @@ export async function handleGithubCrawlJob(job: Job<CrawlJobData>) {
     // Recalculate and update the next crawl schedule
     await updateProjectCrawlSchedule(project.id, 'github');
 
-    // Calculate project trends inline immediately
-    await calculateProjectTrendInline(project.id);
-
     console.log(`${logPrefix} Successfully fetched & saved ${owner}/${repo}: ${data.stargazers_count} stars`);
 
     return { 
@@ -283,7 +282,19 @@ export const crawlerWorker = new Worker<CrawlJobData>(
   handleGithubCrawlJob,
   {
     connection: redisConnection as unknown as Worker['opts']['connection'],
-    concurrency: 5, 
+    concurrency: 2, // Reduced from 5 to prevent OOM
+    stalledInterval: 15000,
+    maxStalledCount: 2,
+  }
+);
+
+// Merged: GitHub Updater worker runs in the same process
+export const githubUpdaterWorker = new Worker<CrawlJobData>(
+  'github-updater',
+  handleGithubCrawlJob,
+  {
+    connection: redisConnection as unknown as Worker['opts']['connection'],
+    concurrency: 2,
     stalledInterval: 15000,
     maxStalledCount: 2,
   }
@@ -311,7 +322,44 @@ crawlerWorker.on('failed', async (job, err) => {
   }
 });
 
-console.log('[Crawler] Worker started and waiting for jobs...');
+githubUpdaterWorker.on('completed', async (job) => {
+  console.log(`[GitHub Updater] Job ${job.id} completed`);
+  try {
+    await redisConnection.incr('crawler:stats:github-updater:completed');
+  } catch (err) {
+    console.error('[GitHub Updater] Failed to increment completed stats in Redis:', err);
+  }
+});
+
+githubUpdaterWorker.on('failed', async (job, err) => {
+  if (err.message.includes('[RateLimitError]')) {
+    console.log(`[GitHub Updater] Job ${job?.id} paused/delayed due to rate limit (will retry later).`);
+  } else {
+    console.error(`[GitHub Updater] Job ${job?.id} failed with error:`, err.message);
+    try {
+      await redisConnection.incr('crawler:stats:github-updater:failed');
+    } catch (redisErr) {
+      console.error('[GitHub Updater] Failed to increment failed stats in Redis:', redisErr);
+    }
+  }
+});
+
+console.log('[Crawler] Worker started (github-crawler + github-updater merged).');
+
+// On worker startup, run auto-recovery checks
+setupQueueAutoRecovery('github-crawler', crawlerQueue, redisConnection);
+setupQueueAutoRecovery('github-updater', githubUpdaterQueue, redisConnection);
+
+// Graceful shutdown
+const gracefulShutdown = async () => {
+  console.log('[Crawler Worker] Gracefully shutting down...');
+  await Promise.allSettled([crawlerWorker.close(), githubUpdaterWorker.close()]);
+  await redisConnection.quit();
+  process.exit(0);
+};
+
+process.on('SIGTERM', gracefulShutdown);
+process.on('SIGINT', gracefulShutdown);
 
 // Global error handling for unhandled exceptions
 process.on('unhandledRejection', (reason, promise) => {

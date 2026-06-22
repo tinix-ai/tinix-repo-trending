@@ -1,0 +1,1 @@
+CREATE INDEX "projects_next_crawl_idx" ON "projects" USING btree ("next_crawl_at");

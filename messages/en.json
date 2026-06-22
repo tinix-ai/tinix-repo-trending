@@ -89,6 +89,7 @@
     "desc": "System overview, crawler management and collection reporting.",
     "tabOverview": "Overview",
     "tabQueues": "Queues & Logs",
+    "tabAnalytics": "Analytics",
     "tabScheduled": "Scheduled Tasks",
     "dbStats": "Database Statistics",
     "totalItems": "Total Items",

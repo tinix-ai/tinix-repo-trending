@@ -47,7 +47,9 @@ export const projects = pgTable("projects", {
   lastCrawledAt: timestamp("last_crawled_at"),
   crawlInterval: integer("crawl_interval").default(1),
   nextCrawlAt: timestamp("next_crawl_at").defaultNow(),
-});
+}, (table) => [
+  index("projects_next_crawl_idx").on(table.nextCrawlAt)
+]);
 
 export const projectSnapshots = pgTable("project_snapshots", {
   id: uuid("id").primaryKey().defaultRandom(),

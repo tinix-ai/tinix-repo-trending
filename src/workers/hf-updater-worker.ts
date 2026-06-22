@@ -1,7 +1,8 @@
 import 'dotenv/config';
 import { Worker } from 'bullmq';
 import { handleHFCrawlJob } from './hf-worker';
-import { redisConnection } from './queue';
+import { redisConnection, hfUpdaterQueue } from './queue';
+import { setupQueueAutoRecovery } from './recovery';
 
 console.log('[HF Updater Worker] Starting...');
 
@@ -39,6 +40,20 @@ hfUpdaterWorker.on('failed', async (job, err) => {
 });
 
 console.log('[HF Updater] Worker started and waiting for jobs...');
+
+// On worker startup, run auto-recovery checks
+setupQueueAutoRecovery('hf-updater', hfUpdaterQueue, redisConnection);
+
+// Graceful shutdown
+const gracefulShutdown = async () => {
+  console.log('[HF Updater Worker] Gracefully shutting down...');
+  await hfUpdaterWorker.close();
+  await redisConnection.quit();
+  process.exit(0);
+};
+
+process.on('SIGTERM', gracefulShutdown);
+process.on('SIGINT', gracefulShutdown);
 
 // Global error handling for unhandled exceptions
 process.on('unhandledRejection', (reason, promise) => {

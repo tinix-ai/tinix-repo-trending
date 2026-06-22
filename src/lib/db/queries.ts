@@ -599,3 +599,69 @@ export async function getProjectHistory(projectId: string, days: number = 30) {
   }
 }
 
+export async function getDatabaseStorageStats() {
+  try {
+    const result = await db.execute(sql`
+      SELECT 
+        COUNT(*) as total_projects,
+        SUM(CASE WHEN readme IS NOT NULL THEN 1 ELSE 0 END) as projects_with_readme,
+        COALESCE(SUM(octet_length(readme)), 0) as compressed_readme_size
+      FROM projects;
+    `);
+    
+    const stats = result[0] as unknown as {
+      total_projects: string;
+      projects_with_readme: string;
+      compressed_readme_size: string;
+    };
+    
+    const compressedBytes = Number(stats.compressed_readme_size || 0);
+    // Average compression ratio for raw markdown in gzip is ~70-73% (meaning compressed is ~27-30% of original size)
+    // So original size is roughly compressed size / 0.3
+    const estimatedRawBytes = Math.round(compressedBytes / 0.3);
+    const savedBytes = estimatedRawBytes - compressedBytes;
+
+    return {
+      totalProjects: Number(stats.total_projects || 0),
+      projectsWithReadme: Number(stats.projects_with_readme || 0),
+      compressedSize: compressedBytes,
+      estimatedRawSize: estimatedRawBytes,
+      savedSize: savedBytes,
+    };
+  } catch (error) {
+    console.error("Error fetching database storage stats:", error);
+    return {
+      totalProjects: 0,
+      projectsWithReadme: 0,
+      compressedSize: 0,
+      estimatedRawSize: 0,
+      savedSize: 0
+    };
+  }
+}
+
+export async function getLanguageStats() {
+  try {
+    const result = await db.execute(sql`
+      SELECT primary_language as name, COUNT(*) as count
+      FROM projects
+      WHERE primary_language IS NOT NULL AND primary_language != ''
+      GROUP BY primary_language
+      ORDER BY count DESC
+      LIMIT 10;
+    `);
+    
+    return result.map(row => {
+      const r = row as Record<string, unknown>;
+      return {
+        name: String(r.name),
+        count: Number(r.count)
+      };
+    });
+  } catch (error) {
+    console.error("Error fetching language stats:", error);
+    return [];
+  }
+}
+
+

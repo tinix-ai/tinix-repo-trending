@@ -7,10 +7,10 @@ import * as zlib from 'zlib';
 import { sql, eq, and } from 'drizzle-orm';
 import { categorizeProject } from '../lib/categorizer';
 import { updateProjectCrawlSchedule } from '../lib/crawlers/scheduler';
-import { calculateProjectTrendInline } from './cron';
 import { proxyManager } from '../lib/crawlers/proxy';
 import { setTimeout } from 'timers/promises';
 import { hfQueue, hfUpdaterQueue } from './queue';
+import { setupQueueAutoRecovery } from './recovery';
 
 
 const redisConfig = {
@@ -83,6 +83,7 @@ export async function handleHFCrawlJob(job: Job<HFCrawlJobData>) {
                 pauseScheduledMap[job.queueName] = true;
                 console.log(`${logPrefix} HuggingFace API rate limited. Automatically pausing queue...`);
                 try {
+                  await redisConnection.set(`crawler:rate-limit-reset:${job.queueName}`, 'true', 'PX', sleepMs);
                   await currentQueue.pause();
                   console.log(`${logPrefix} Queue paused successfully. Will resume in ${resetSeconds} second(s).`);
                   
@@ -90,6 +91,7 @@ export async function handleHFCrawlJob(job: Job<HFCrawlJobData>) {
                     await setTimeout(sleepMs);
                     try {
                       await currentQueue.resume();
+                      await redisConnection.del(`crawler:rate-limit-reset:${job.queueName}`);
                       pauseScheduledMap[job.queueName] = false;
                       console.log(`${logPrefix} Automatically resumed queue after rate limit reset.`);
                     } catch (resumeErr) {
@@ -248,9 +250,6 @@ export async function handleHFCrawlJob(job: Job<HFCrawlJobData>) {
     // Recalculate and update the next crawl schedule
     await updateProjectCrawlSchedule(project.id, 'huggingface');
 
-    // Calculate project trends inline immediately
-    await calculateProjectTrendInline(project.id);
-
     console.log(`${logPrefix} Successfully fetched & saved ${id}: ${likes} likes, ${downloads} downloads`);
 
     return { 
@@ -276,7 +275,19 @@ export const hfWorker = new Worker<HFCrawlJobData>(
   handleHFCrawlJob,
   {
      connection: redisConnection as unknown as Worker['opts']['connection'],
-     concurrency: 5, 
+     concurrency: 2, // Reduced from 5 to prevent OOM
+     stalledInterval: 15000,
+     maxStalledCount: 2,
+  }
+);
+
+// Merged: HF Updater worker runs in the same process
+export const hfUpdaterWorker = new Worker<HFCrawlJobData>(
+  'hf-updater',
+  handleHFCrawlJob,
+  {
+     connection: redisConnection as unknown as Worker['opts']['connection'],
+     concurrency: 2,
      stalledInterval: 15000,
      maxStalledCount: 2,
   }
@@ -304,7 +315,44 @@ hfWorker.on('failed', async (job, err) => {
   }
 });
 
-console.log('[HF Crawler] Worker started and waiting for jobs...');
+hfUpdaterWorker.on('completed', async (job) => {
+  console.log(`[HF Updater] Job ${job.id} completed`);
+  try {
+    await redisConnection.incr('crawler:stats:hf-updater:completed');
+  } catch (err) {
+    console.error('[HF Updater] Failed to increment completed stats in Redis:', err);
+  }
+});
+
+hfUpdaterWorker.on('failed', async (job, err) => {
+  if (err.message.includes('[RateLimitError]')) {
+    console.log(`[HF Updater] Job ${job?.id} paused/delayed due to rate limit (will retry later).`);
+  } else {
+    console.error(`[HF Updater] Job ${job?.id} failed with error:`, err.message);
+    try {
+      await redisConnection.incr('crawler:stats:hf-updater:failed');
+    } catch (redisErr) {
+      console.error('[HF Updater] Failed to increment failed stats in Redis:', redisErr);
+    }
+  }
+});
+
+console.log('[HF Crawler] Worker started (hf-crawler + hf-updater merged).');
+
+// On worker startup, run auto-recovery checks
+setupQueueAutoRecovery('hf-crawler', hfQueue, redisConnection);
+setupQueueAutoRecovery('hf-updater', hfUpdaterQueue, redisConnection);
+
+// Graceful shutdown
+const gracefulShutdown = async () => {
+  console.log('[HF Worker] Gracefully shutting down...');
+  await Promise.allSettled([hfWorker.close(), hfUpdaterWorker.close()]);
+  await redisConnection.quit();
+  process.exit(0);
+};
+
+process.on('SIGTERM', gracefulShutdown);
+process.on('SIGINT', gracefulShutdown);
 
 // Global error handling for unhandled exceptions
 process.on('unhandledRejection', (reason, promise) => {

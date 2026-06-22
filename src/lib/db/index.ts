@@ -11,9 +11,13 @@ const globalForDb = globalThis as unknown as {
   db: ReturnType<typeof drizzle<typeof schema>> | undefined;
 };
 
-// Limit connection pool in development to prevent Postgres connection exhaustion
+// Limit connection pool to prevent Postgres connection exhaustion
+const maxConnections = process.env.DB_MAX_CONNECTIONS 
+  ? parseInt(process.env.DB_MAX_CONNECTIONS) 
+  : (process.env.NODE_ENV === 'production' ? 10 : 5);
+
 const client = globalForDb.conn ?? postgres(connectionString, {
-  max: process.env.NODE_ENV === 'production' ? undefined : 5,
+  max: maxConnections,
   idle_timeout: 20, // Automatically close idle connections after 20 seconds
 });
 
