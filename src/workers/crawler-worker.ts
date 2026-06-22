@@ -12,6 +12,8 @@ import { proxyManager } from '../lib/crawlers/proxy';
 import { setTimeout } from 'timers/promises';
 import { crawlerQueue, githubUpdaterQueue } from './queue';
 import { setupQueueAutoRecovery } from './recovery';
+import { startMemoryReporting } from './metrics';
+
 
 
 const redisConfig = {
@@ -346,13 +348,15 @@ githubUpdaterWorker.on('failed', async (job, err) => {
 
 console.log('[Crawler] Worker started (github-crawler + github-updater merged).');
 
-// On worker startup, run auto-recovery checks
+// On worker startup, run auto-recovery checks and start metrics reporting
 setupQueueAutoRecovery('github-crawler', crawlerQueue, redisConnection);
 setupQueueAutoRecovery('github-updater', githubUpdaterQueue, redisConnection);
+const stopReporting = startMemoryReporting('crawler-worker', redisConnection);
 
 // Graceful shutdown
 const gracefulShutdown = async () => {
   console.log('[Crawler Worker] Gracefully shutting down...');
+  stopReporting();
   await Promise.allSettled([crawlerWorker.close(), githubUpdaterWorker.close()]);
   await redisConnection.quit();
   process.exit(0);

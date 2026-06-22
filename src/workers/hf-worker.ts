@@ -11,6 +11,8 @@ import { proxyManager } from '../lib/crawlers/proxy';
 import { setTimeout } from 'timers/promises';
 import { hfQueue, hfUpdaterQueue } from './queue';
 import { setupQueueAutoRecovery } from './recovery';
+import { startMemoryReporting } from './metrics';
+
 
 
 const redisConfig = {
@@ -62,9 +64,26 @@ export async function handleHFCrawlJob(job: Job<HFCrawlJobData>) {
 
         const remaining = response.headers.get('x-rate-limit-remaining') || response.headers.get('ratelimit-remaining');
         const reset = response.headers.get('x-rate-limit-reset') || response.headers.get('ratelimit-reset');
+        const limitHeader = response.headers.get('x-rate-limit-limit') || response.headers.get('ratelimit-limit') || '1000';
 
-        if (remaining && parseInt(remaining) < 20) {
-          console.log(`${logPrefix} HF API rate limit is low: ${remaining} remaining. Resets in ${reset || 'unknown'}s`);
+        if (remaining) {
+          const remVal = parseInt(remaining, 10);
+          const limitVal = parseInt(limitHeader, 10);
+          const resetVal = reset ? parseInt(reset, 10) : 60;
+          
+          redisConnection.hset('system:hf:token', 'info', JSON.stringify({
+            remaining: remVal,
+            limit: limitVal,
+            resetTime: Date.now() + resetVal * 1000,
+            timestamp: Date.now(),
+            status: remVal === 0 ? 'exhausted' : 'active'
+          })).catch(err => {
+            console.error(`${logPrefix} Failed to write HF token status to Redis:`, err);
+          });
+
+          if (remVal < 20) {
+            console.log(`${logPrefix} HF API rate limit is low: ${remaining} remaining. Resets in ${reset || 'unknown'}s`);
+          }
         }
 
         if (!response.ok) {
@@ -339,13 +358,15 @@ hfUpdaterWorker.on('failed', async (job, err) => {
 
 console.log('[HF Crawler] Worker started (hf-crawler + hf-updater merged).');
 
-// On worker startup, run auto-recovery checks
+// On worker startup, run auto-recovery checks and start memory reporting
 setupQueueAutoRecovery('hf-crawler', hfQueue, redisConnection);
 setupQueueAutoRecovery('hf-updater', hfUpdaterQueue, redisConnection);
+const stopReporting = startMemoryReporting('hf-worker', redisConnection);
 
 // Graceful shutdown
 const gracefulShutdown = async () => {
   console.log('[HF Worker] Gracefully shutting down...');
+  stopReporting();
   await Promise.allSettled([hfWorker.close(), hfUpdaterWorker.close()]);
   await redisConnection.quit();
   process.exit(0);

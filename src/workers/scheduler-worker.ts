@@ -2,6 +2,8 @@ import 'dotenv/config';
 import { Worker, Job } from 'bullmq';
 import { schedulerQueue, redisConnection } from './queue';
 import { runDailyDiscovery, runDailyUpdate, runTrendCalculation } from './cron';
+import { startMemoryReporting } from './metrics';
+
 
 console.log('[Scheduler Worker] Starting...');
 
@@ -108,18 +110,21 @@ async function setupRepeatableJobs() {
   console.log('[Scheduler Worker] Repeatable jobs synced successfully.');
 }
 
-// Initialize repeatable jobs on startup
+// Initialize repeatable jobs on startup and start memory reporting
 setupRepeatableJobs().catch(console.error);
+const stopReporting = startMemoryReporting('scheduler-worker', redisConnection);
 
 // Graceful shutdown
 process.on('SIGTERM', async () => {
   console.log('[Scheduler Worker] Shutting down...');
+  stopReporting();
   await schedulerWorker.close();
   process.exit(0);
 });
 
 process.on('SIGINT', async () => {
   console.log('[Scheduler Worker] Shutting down...');
+  stopReporting();
   await schedulerWorker.close();
   process.exit(0);
 });

@@ -1,7 +1,9 @@
 "use server";
 
 import { Queue } from "bullmq";
-import { getDynamicTrendingProjects, ProjectQueryParams, getGlobalStats, getProjectBySlug, getProjectHistory, getProjectById, getCategoryStats, getPopularLanguagesAndHashtags, getDatabaseStorageStats, getLanguageStats } from "@/lib/db/queries";
+import { getDynamicTrendingProjects, ProjectQueryParams, getGlobalStats, getProjectBySlug, getProjectHistory, getProjectById, getCategoryStats, getPopularLanguagesAndHashtags, getDatabaseStorageStats, getLanguageStats, getDataStalenessStats } from "@/lib/db/queries";
+import os from "os";
+
 import type { RankedProject } from "@/types";
 import { redisConnection, crawlerQueue, hfQueue, githubUpdaterQueue, hfUpdaterQueue, schedulerQueue } from "@/workers/queue";
 import { githubPool } from "@/lib/crawlers/github-pool";
@@ -712,17 +714,119 @@ export async function fetchGithubTokensHealth() {
   }
 }
 
+export async function fetchHuggingFaceTokenHealth() {
+  try {
+    const infoStr = await redisConnection.hget('system:hf:token', 'info');
+    if (!infoStr) return null;
+    return JSON.parse(infoStr);
+  } catch (error) {
+    console.error('Failed to fetch HuggingFace token health from Redis:', error);
+    return null;
+  }
+}
+
+export async function getCommonCrawlErrors() {
+  const queues = [
+    { queue: crawlerQueue, name: 'github-crawler' },
+    { queue: hfQueue, name: 'hf-crawler' },
+    { queue: githubUpdaterQueue, name: 'github-updater' },
+    { queue: hfUpdaterQueue, name: 'hf-updater' }
+  ];
+  const errorCounts: Record<string, number> = {};
+  
+  for (const { queue } of queues) {
+    if (!queue) continue;
+    try {
+      const failedJobs = await queue.getFailed(0, 50);
+      for (const job of failedJobs) {
+        if (job.failedReason) {
+          let reason = job.failedReason;
+          if (reason.includes('rate limit') || reason.includes('429') || reason.includes('exhausted')) {
+            reason = 'API Rate Limit Exceeded (429)';
+          } else if (reason.includes('404') || reason.includes('Not Found')) {
+            reason = 'Not Found (404)';
+          } else if (reason.includes('ECONNRESET') || reason.includes('ETIMEDOUT') || reason.includes('fetch failed')) {
+            reason = 'Network Timeout / Connection Reset';
+          } else if (reason.includes('invalid') || reason.includes('format')) {
+            reason = 'Invalid Data Format';
+          } else {
+            reason = reason.substring(0, 50) + (reason.length > 50 ? '...' : '');
+          }
+          errorCounts[reason] = (errorCounts[reason] || 0) + 1;
+        }
+      }
+    } catch (err) {
+      console.error('Failed to get failed jobs for stats:', err);
+    }
+  }
+
+  return Object.entries(errorCounts)
+    .map(([name, value]) => ({ name, value }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 5);
+}
+
 export async function fetchAnalyticsData() {
   try {
     const stats = await getDatabaseStorageStats();
     const categories = await getCategoryStats();
     const languages = await getLanguageStats();
+    const staleness = await getDataStalenessStats();
+    const commonErrors = await getCommonCrawlErrors();
     
+    interface WorkerStats {
+      rss: number;
+      heapUsed: number;
+      heapTotal: number;
+      timestamp: number;
+    }
+    const workersMemory: Record<string, WorkerStats> = {};
+    try {
+      const rawMem = await redisConnection.hgetall('system:worker:memory');
+      const now = Date.now();
+      for (const [workerName, dataStr] of Object.entries(rawMem)) {
+        const data = JSON.parse(dataStr);
+        // Mark stale if no update in 45 seconds (worker went offline)
+        if (now - data.timestamp < 45000) {
+          workersMemory[workerName] = data;
+        } else {
+          // Auto-clean stale data from Redis
+          await redisConnection.hdel('system:worker:memory', workerName);
+        }
+      }
+    } catch (err) {
+      console.warn("Failed to read worker memory stats:", err);
+    }
+
+    // Add Next.js server memory stats
+    const nextjsMemory = process.memoryUsage();
+    workersMemory['nextjs-server'] = {
+      rss: nextjsMemory.rss,
+      heapUsed: nextjsMemory.heapUsed,
+      heapTotal: nextjsMemory.heapTotal,
+      timestamp: Date.now()
+    };
+
+    // Basic OS stats
+    const osMetrics = {
+      platform: os.platform(),
+      uptime: os.uptime(),
+      totalMem: os.totalmem(),
+      freeMem: os.freemem(),
+      loadAvg: os.loadavg(),
+    };
+
     return {
       success: true,
       stats,
       categories: categories.slice(0, 10), // Top 10 categories
       languages: languages.slice(0, 10),   // Top 10 languages
+      staleness,
+      commonErrors,
+      systemMetrics: {
+        workers: workersMemory,
+        os: osMetrics
+      }
     };
   } catch (error) {
     console.error("Failed to fetch analytics data:", error);
@@ -733,11 +837,33 @@ export async function fetchAnalyticsData() {
         projectsWithReadme: 0,
         compressedSize: 0,
         estimatedRawSize: 0,
-        savedSize: 0
+        savedSize: 0,
+        postgresDbSize: 0,
       },
       categories: [],
-      languages: []
+      languages: [],
+      staleness: {
+        total: 0,
+        fresh24h: 0,
+        stale24h: 0,
+        stale48h: 0,
+        freshPercent: 0,
+        stale24hPercent: 0,
+        stale48hPercent: 0,
+      },
+      commonErrors: [],
+      systemMetrics: {
+        workers: {},
+        os: {
+          platform: 'unknown',
+          uptime: 0,
+          totalMem: 0,
+          freeMem: 0,
+          loadAvg: [0, 0, 0]
+        }
+      }
     };
   }
 }
+
 

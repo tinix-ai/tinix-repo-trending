@@ -605,7 +605,8 @@ export async function getDatabaseStorageStats() {
       SELECT 
         COUNT(*) as total_projects,
         SUM(CASE WHEN readme IS NOT NULL THEN 1 ELSE 0 END) as projects_with_readme,
-        COALESCE(SUM(octet_length(readme)), 0) as compressed_readme_size
+        COALESCE(SUM(octet_length(readme)), 0) as compressed_readme_size,
+        pg_database_size(current_database()) as db_size
       FROM projects;
     `);
     
@@ -613,6 +614,7 @@ export async function getDatabaseStorageStats() {
       total_projects: string;
       projects_with_readme: string;
       compressed_readme_size: string;
+      db_size: string;
     };
     
     const compressedBytes = Number(stats.compressed_readme_size || 0);
@@ -627,6 +629,7 @@ export async function getDatabaseStorageStats() {
       compressedSize: compressedBytes,
       estimatedRawSize: estimatedRawBytes,
       savedSize: savedBytes,
+      postgresDbSize: Number(stats.db_size || 0),
     };
   } catch (error) {
     console.error("Error fetching database storage stats:", error);
@@ -635,10 +638,58 @@ export async function getDatabaseStorageStats() {
       projectsWithReadme: 0,
       compressedSize: 0,
       estimatedRawSize: 0,
-      savedSize: 0
+      savedSize: 0,
+      postgresDbSize: 0,
     };
   }
 }
+
+export async function getDataStalenessStats() {
+  try {
+    const result = await db.execute(sql`
+      SELECT
+        COUNT(*) as total,
+        COUNT(*) FILTER (WHERE last_crawled_at >= NOW() - INTERVAL '24 hours') as fresh_24h,
+        COUNT(*) FILTER (WHERE last_crawled_at < NOW() - INTERVAL '24 hours' AND last_crawled_at >= NOW() - INTERVAL '48 hours') as stale_24h,
+        COUNT(*) FILTER (WHERE last_crawled_at < NOW() - INTERVAL '48 hours' OR last_crawled_at IS NULL) as stale_48h
+      FROM projects;
+    `);
+
+    const r = result[0] as unknown as {
+      total: string;
+      fresh_24h: string;
+      stale_24h: string;
+      stale_48h: string;
+    };
+
+    const total = Number(r.total || 0);
+    const fresh24h = Number(r.fresh_24h || 0);
+    const stale24h = Number(r.stale_24h || 0);
+    const stale48h = Number(r.stale_48h || 0);
+
+    return {
+      total,
+      fresh24h,
+      stale24h,
+      stale48h,
+      freshPercent: total > 0 ? Math.round((fresh24h / total) * 100) : 0,
+      stale24hPercent: total > 0 ? Math.round((stale24h / total) * 100) : 0,
+      stale48hPercent: total > 0 ? Math.round((stale48h / total) * 100) : 0,
+    };
+  } catch (error) {
+    console.error("Error fetching data staleness stats:", error);
+    return {
+      total: 0,
+      fresh24h: 0,
+      stale24h: 0,
+      stale48h: 0,
+      freshPercent: 0,
+      stale24hPercent: 0,
+      stale48hPercent: 0,
+    };
+  }
+}
+
 
 export async function getLanguageStats() {
   try {

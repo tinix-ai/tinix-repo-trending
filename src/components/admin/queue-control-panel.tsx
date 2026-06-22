@@ -9,10 +9,9 @@ import {
   RotateCcw,
   Zap,
   Clock,
-  AlertTriangle,
-  CheckCircle2,
   Loader2,
 } from "lucide-react";
+
 import { toast } from "sonner";
 import { useTranslations, useLocale } from "next-intl";
 import {
@@ -24,7 +23,17 @@ import {
   triggerCrawlerSync,
   triggerJobNow,
   fetchGithubTokensHealth,
+  fetchHuggingFaceTokenHealth,
 } from "@/app/actions";
+
+
+interface HFTokenHealthInfo {
+  remaining: number;
+  limit: number;
+  resetTime: number;
+  timestamp: number;
+  status: 'active' | 'exhausted';
+}
 
 interface TokenHealthInfo {
   index: number;
@@ -36,7 +45,9 @@ interface TokenHealthInfo {
   searchLimit: number;
   searchRemaining: number;
   searchResetTime: number;
+  searchResetTime_2?: number; // fallback type helper
 }
+
 
 interface QueueDetails {
   waiting: number;
@@ -81,6 +92,10 @@ export function QueueControlPanel() {
   const [loadingActions, setLoadingActions] = useState<Set<string>>(new Set());
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [tokensHealth, setTokensHealth] = useState<TokenHealthInfo[] | null>(null);
+  const [hfTokenHealth, setHfTokenHealth] = useState<HFTokenHealthInfo | null>(null);
+  const [hfResetSeconds, setHfResetSeconds] = useState<number>(0);
+
+
 
   const isSchedulerJobActive = (name: string) => {
     return !!(stats?.activeSchedulerJobs && stats.activeSchedulerJobs.includes(name));
@@ -110,12 +125,14 @@ export function QueueControlPanel() {
   const loadStats = useCallback(async () => {
     setIsRefreshing(true);
     try {
-      const [statsData, tokensData] = await Promise.all([
+      const [statsData, tokensData, hfTokenData] = await Promise.all([
         fetchDetailedQueueStats(),
         fetchGithubTokensHealth(),
+        fetchHuggingFaceTokenHealth(),
       ]);
       setStats(statsData);
       setTokensHealth(tokensData);
+      setHfTokenHealth(hfTokenData);
     } catch (err) {
       console.error("Failed to load admin stats:", err);
     } finally {
@@ -144,6 +161,18 @@ export function QueueControlPanel() {
 
     return () => { clearTimeout(initTimer); clearInterval(interval); };
   }, [autoRefresh, loadStats]);
+
+  useEffect(() => {
+    if (!hfTokenHealth || hfTokenHealth.status !== 'exhausted') return;
+    const updateTimer = () => {
+      const diff = Math.max(0, Math.ceil((hfTokenHealth.resetTime - Date.now()) / 1000));
+      setHfResetSeconds(diff);
+    };
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+  }, [hfTokenHealth]);
+
 
   const handleAction = async (action: ActionType, source: SourceType) => {
     const key = `${action}-${source}`;
@@ -521,94 +550,160 @@ export function QueueControlPanel() {
         </div>
       )}
 
-      {/* GitHub API Tokens Health Monitor */}
-      {tokensHealth && tokensHealth.length > 0 && (
-        <div className="apple-utility-card mt-6">
-          <div className="flex items-center gap-2 mb-4">
-            <h3 className="text-sm font-semibold text-[var(--color-ink)]">GitHub API Tokens Health</h3>
-            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-500">
-              {tokensHealth.filter(t => t.status === 'active').length} / {tokensHealth.length} Token(s) Active
-            </span>
-          </div>
+      {/* API Quota & Token Health Telemetry */}
+      {((tokensHealth && tokensHealth.length > 0) || hfTokenHealth) && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+          {/* GitHub API Tokens Health Monitor */}
+          {tokensHealth && tokensHealth.length > 0 && (
+            <div className="apple-utility-card lg:col-span-2">
+              <div className="flex items-center gap-2 mb-4">
+                <h3 className="text-sm font-semibold text-[var(--color-ink)]">GitHub API Tokens Health</h3>
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-500">
+                  {tokensHealth.filter(t => t.status === 'active').length} / {tokensHealth.length} Token(s) Active
+                </span>
+              </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {tokensHealth.map((token) => {
-              const corePercent = token.coreLimit > 0 ? (token.coreRemaining / token.coreLimit) * 100 : 0;
-              const searchPercent = token.searchLimit > 0 ? (token.searchRemaining / token.searchLimit) * 100 : 0;
-              
-              // Status Styling
-              const statusColors = {
-                active: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
-                exhausted: 'bg-amber-500/10 text-amber-500 border-amber-500/20',
-                invalid: 'bg-red-500/10 text-red-500 border-red-500/20',
-              };
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {tokensHealth.map((token) => {
+                  const corePercent = token.coreLimit > 0 ? (token.coreRemaining / token.coreLimit) * 100 : 0;
+                  const searchPercent = token.searchLimit > 0 ? (token.searchRemaining / token.searchLimit) * 100 : 0;
+                  
+                  // Status Styling
+                  const statusColors = {
+                    active: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
+                    exhausted: 'bg-amber-500/10 text-amber-500 border-amber-500/20',
+                    invalid: 'bg-red-500/10 text-red-500 border-red-500/20',
+                  };
 
-              const getResetText = (resetMs: number) => {
-                if (!resetMs) return '';
-                const diffSecs = Math.max(0, Math.ceil((resetMs - Date.now()) / 1000));
-                if (diffSecs === 0) return 'Resets now';
-                if (diffSecs < 60) return `Resets in ${diffSecs}s`;
-                return `Resets in ${Math.ceil(diffSecs / 60)}m`;
-              };
+                  const getResetText = (resetMs: number) => {
+                    if (!resetMs) return '';
+                    const diffSecs = Math.max(0, Math.ceil((resetMs - Date.now()) / 1000));
+                    if (diffSecs === 0) return 'Resets now';
+                    if (diffSecs < 60) return `Resets in ${diffSecs}s`;
+                    return `Resets in ${Math.ceil(diffSecs / 60)}m`;
+                  };
 
-              return (
-                <div key={token.index} className="p-4 rounded-xl bg-[var(--color-bg-secondary)] border border-[var(--color-divider-soft)] space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-mono font-bold text-[var(--color-ink)]">
-                        {token.maskedToken}
-                      </span>
-                      <span className="text-[10px] text-[var(--color-ink-muted-48)] font-medium">
-                        Index {token.index}
-                      </span>
+                  return (
+                    <div key={token.index} className="p-4 rounded-xl bg-[var(--color-bg-secondary)] border border-[var(--color-divider-soft)] space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-mono font-bold text-[var(--color-ink)]">
+                            {token.maskedToken}
+                          </span>
+                          <span className="text-[10px] text-[var(--color-ink-muted-48)] font-medium">
+                            Index {token.index}
+                          </span>
+                        </div>
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border ${statusColors[token.status]}`}>
+                          {token.status.toUpperCase()}
+                        </span>
+                      </div>
+
+                      <div className="space-y-3">
+                        {/* Core Rate Limit */}
+                        <div className="space-y-1">
+                          <div className="flex justify-between text-[11px] text-[var(--color-ink-muted-80)]">
+                            <span>Core (Scraping Details)</span>
+                            <span className="font-mono tabular-nums">{token.coreRemaining.toLocaleString()} / {token.coreLimit.toLocaleString()}</span>
+                          </div>
+                          <div className="w-full h-2 bg-[var(--color-canvas)] rounded-full overflow-hidden border border-[var(--color-divider-soft)]">
+                            <div 
+                              className={`h-full transition-all duration-500 ${token.status === 'invalid' ? 'bg-red-500' : corePercent < 15 ? 'bg-amber-500' : 'bg-emerald-500'}`}
+                              style={{ width: `${corePercent}%` }}
+                            />
+                          </div>
+                          {token.status === 'exhausted' && (
+                            <div className="text-[9px] text-amber-500 text-right mt-0.5 font-medium">
+                              {getResetText(token.coreResetTime)}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Search Rate Limit */}
+                        <div className="space-y-1">
+                          <div className="flex justify-between text-[11px] text-[var(--color-ink-muted-80)]">
+                            <span>Search (Daily Discovery)</span>
+                            <span className="font-mono tabular-nums">{token.searchRemaining.toLocaleString()} / {token.searchLimit.toLocaleString()}</span>
+                          </div>
+                          <div className="w-full h-2 bg-[var(--color-canvas)] rounded-full overflow-hidden border border-[var(--color-divider-soft)]">
+                            <div 
+                              className={`h-full transition-all duration-500 ${token.status === 'invalid' ? 'bg-red-500' : searchPercent < 15 ? 'bg-amber-500' : 'bg-blue-500'}`}
+                              style={{ width: `${searchPercent}%` }}
+                            />
+                          </div>
+                          {token.searchRemaining < token.searchLimit && (
+                            <div className="text-[9px] text-[var(--color-ink-muted-48)] text-right mt-0.5 font-medium">
+                              {getResetText(token.searchResetTime)}
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border ${statusColors[token.status]}`}>
-                      {token.status.toUpperCase()}
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* HuggingFace API Token Health Monitor */}
+          <div className="apple-utility-card lg:col-span-1 flex flex-col justify-between">
+            <div>
+              <div className="flex items-center gap-2 mb-4">
+                <h3 className="text-sm font-semibold text-[var(--color-ink)]">HuggingFace API Telemetry</h3>
+                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border ${hfTokenHealth ? hfTokenHealth.status === 'exhausted' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' : 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-slate-500/10 text-slate-500 border-slate-500/20'}`}>
+                  {hfTokenHealth ? hfTokenHealth.status.toUpperCase() : 'UNKNOWN'}
+                </span>
+              </div>
+
+              {hfTokenHealth ? (
+                <div className="p-4 rounded-xl bg-[var(--color-bg-secondary)] border border-[var(--color-divider-soft)] space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-mono font-bold text-[var(--color-ink)]">
+                      hf_•••••••• (Token Pool)
+                    </span>
+                    <span className="text-[10px] text-[var(--color-ink-muted-48)] font-medium">
+                      Last Crawl Status
                     </span>
                   </div>
 
                   <div className="space-y-3">
-                    {/* Core Rate Limit */}
                     <div className="space-y-1">
                       <div className="flex justify-between text-[11px] text-[var(--color-ink-muted-80)]">
-                        <span>Core (Scraping Details)</span>
-                        <span className="font-mono tabular-nums">{token.coreRemaining.toLocaleString()} / {token.coreLimit.toLocaleString()}</span>
+                        <span>Rate Limit Quota</span>
+                        <span className="font-mono tabular-nums">
+                          {hfTokenHealth.remaining.toLocaleString()} / {hfTokenHealth.limit.toLocaleString()}
+                        </span>
                       </div>
-                      <div className="w-full h-2 bg-[var(--color-canvas)] rounded-full overflow-hidden border border-[var(--color-divider-soft)]">
-                        <div 
-                          className={`h-full transition-all duration-500 ${token.status === 'invalid' ? 'bg-red-500' : corePercent < 15 ? 'bg-amber-500' : 'bg-emerald-500'}`}
-                          style={{ width: `${corePercent}%` }}
-                        />
-                      </div>
-                      {token.status === 'exhausted' && (
-                        <div className="text-[9px] text-amber-500 text-right mt-0.5 font-medium">
-                          {getResetText(token.coreResetTime)}
-                        </div>
-                      )}
+                      {(() => {
+                        const pct = hfTokenHealth.limit > 0 ? (hfTokenHealth.remaining / hfTokenHealth.limit) * 100 : 0;
+                        return (
+                          <div className="w-full h-2 bg-[var(--color-canvas)] rounded-full overflow-hidden border border-[var(--color-divider-soft)]">
+                            <div 
+                              className={`h-full transition-all duration-500 ${hfTokenHealth.status === 'exhausted' ? 'bg-amber-500' : pct < 15 ? 'bg-orange-500' : 'bg-emerald-500'}`}
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                        );
+                      })()}
                     </div>
 
-                    {/* Search Rate Limit */}
-                    <div className="space-y-1">
-                      <div className="flex justify-between text-[11px] text-[var(--color-ink-muted-80)]">
-                        <span>Search (Daily Discovery)</span>
-                        <span className="font-mono tabular-nums">{token.searchRemaining.toLocaleString()} / {token.searchLimit.toLocaleString()}</span>
+                    {hfTokenHealth.status === 'exhausted' && (
+                      <div className="text-[10px] text-amber-500 text-right mt-1 font-medium font-mono">
+                        Quota resets in {hfResetSeconds}s
                       </div>
-                      <div className="w-full h-2 bg-[var(--color-canvas)] rounded-full overflow-hidden border border-[var(--color-divider-soft)]">
-                        <div 
-                          className={`h-full transition-all duration-500 ${token.status === 'invalid' ? 'bg-red-500' : searchPercent < 15 ? 'bg-amber-500' : 'bg-blue-500'}`}
-                          style={{ width: `${searchPercent}%` }}
-                        />
-                      </div>
-                      {token.searchRemaining < token.searchLimit && (
-                        <div className="text-[9px] text-[var(--color-ink-muted-48)] text-right mt-0.5 font-medium">
-                          {getResetText(token.searchResetTime)}
-                        </div>
-                      )}
+                    )}
+                    
+                    <div className="text-[10px] text-[var(--color-ink-muted-48)] text-right font-mono">
+                      Updated: {new Date(hfTokenHealth.timestamp).toLocaleTimeString()}
                     </div>
                   </div>
                 </div>
-              );
-            })}
+              ) : (
+                <div className="p-4 rounded-xl bg-[var(--color-bg-secondary)] border border-[var(--color-divider-soft)] text-center text-xs text-[var(--color-ink-muted-48)] py-8 font-medium">
+                  No HuggingFace token telemetry recorded yet. Trigger a HF crawl task to capture headers.
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

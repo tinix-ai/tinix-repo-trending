@@ -136,7 +136,20 @@
     "updatingProgress": "Updating: {count} projects waiting for metrics update...",
     "discoveryProgress": "Discovery: {count} projects being scanned for new updates...",
     "discoveryGroup": "Discovery Crawlers",
-    "updaterGroup": "Metrics Updaters & Scheduler"
+    "updaterGroup": "Metrics Updaters & Scheduler",
+    "systemStatus": "System Status",
+    "process": "Process",
+    "memoryUsage": "Memory Usage",
+    "dataStaleness": "Data Freshness",
+    "fresh": "Fresh (< 24h)",
+    "stale24h": "Stale (24h - 48h)",
+    "stale48h": "Stale (> 48h)",
+    "crawlErrors": "Crawl Errors (BullMQ)",
+    "dbRealSize": "Postgres DB Disk Size",
+    "totalOSMemory": "Total OS Memory",
+    "freeOSMemory": "Free OS Memory",
+    "systemLoad": "System Load (Avg)",
+    "uptime": "System Uptime"
   },
   "ProjectDetail": {
     "backBtn": "Back to Trending",

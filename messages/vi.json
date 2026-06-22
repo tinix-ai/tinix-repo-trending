@@ -136,7 +136,20 @@
     "updatingProgress": "Đang cập nhật: còn lại {count} dự án đang chờ cập nhật chỉ số...",
     "discoveryProgress": "Đang tìm mới: còn lại {count} dự án đang được quét tìm mới...",
     "discoveryGroup": "Trình thu thập tìm mới (Discovery Crawlers)",
-    "updaterGroup": "Trình cập nhật & Bộ lập lịch (Metrics Updaters & Scheduler)"
+    "updaterGroup": "Trình cập nhật & Bộ lập lịch (Metrics Updaters & Scheduler)",
+    "systemStatus": "Sức khỏe Hệ thống",
+    "process": "Tiến trình",
+    "memoryUsage": "Bộ nhớ sử dụng",
+    "dataStaleness": "Độ tươi dữ liệu",
+    "fresh": "Mới (< 24h)",
+    "stale24h": "Cũ (24h - 48h)",
+    "stale48h": "Quá hạn (> 48h)",
+    "crawlErrors": "Thống kê lỗi crawl",
+    "dbRealSize": "Dung lượng DB thực",
+    "totalOSMemory": "Tổng RAM hệ thống",
+    "freeOSMemory": "RAM trống hệ thống",
+    "systemLoad": "Tải hệ thống",
+    "uptime": "Thời gian hoạt động"
   },
   "ProjectDetail": {
     "backBtn": "Quay lại Trending",
