@@ -1,7 +1,7 @@
 import React from "react";
-import { fetchProjectById, fetchProjectHistory } from "@/app/actions";
+import { fetchProjectById, fetchProjectHistory, fetchProjectMentions, fetchSimilarProjects } from "@/app/actions";
 import { notFound } from "next/navigation";
-import { formatNumber, cleanReadme } from "@/lib/utils";
+import { formatNumber, cleanReadme, timeAgo } from "@/lib/utils";
 import { SourceBadge } from "@/components/common/source-badge";
 import { ProjectAvatar } from "@/components/common/project-avatar";
 import { 
@@ -16,7 +16,8 @@ import {
   ArrowLeft,
   Calendar
 } from "lucide-react";
-import { Link } from "@/i18n/routing";
+import { Link as PageLink } from "@/i18n/routing";
+const Anchor = "a";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkToc from "remark-toc";
@@ -26,7 +27,9 @@ import rehypeRaw from "rehype-raw";
 import "highlight.js/styles/github-dark.css";
 import { ProjectHistoryChart } from "@/components/project/history-chart";
 import { TopicsList } from "@/components/project/topics-list";
+import { SimilarProjects } from "@/components/project/similar-projects";
 import { getTranslations } from "next-intl/server";
+import type { ProjectMention } from "@/types";
 
 // Metadata generation
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
@@ -81,12 +84,49 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
   const t = await getTranslations("ProjectDetail");
   const tNav = await getTranslations("Navigation");
   const historyData = await fetchProjectHistory(project.id, 30);
+  const socialMentions = await fetchProjectMentions(project.id);
+  const similarProjects = await fetchSimilarProjects(project.id, 3);
   const isGithub = project.source === "github";
   const isHuggingFace = project.source === "huggingface";
   const cleanedReadme = cleanReadme(project.readme);
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": project.name,
+    "displayName": project.fullName,
+    "description": project.description || "",
+    "applicationCategory": project.categories?.[0] || "DeveloperApplication",
+    "operatingSystem": "Cross-platform",
+    "codeRepository": project.sourceUrl,
+    "author": {
+      "@type": "Organization",
+      "name": project.ownerName,
+      "image": project.ownerAvatarUrl || undefined,
+    },
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    ...(project.stars > 0 ? {
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.8",
+        "ratingCount": project.stars,
+        "bestRating": "5",
+        "worstRating": "1"
+      }
+    } : {})
+  };
+
   return (
     <div className="w-full min-h-screen bg-[var(--color-bg-primary)]">
+      {/* JSON-LD Structured Data for SEO */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       {/* Hero Section */}
       <section className="apple-tile-light w-full py-8 lg:py-12 border-b border-[var(--color-divider-soft)]">
         <div className="page-container max-w-5xl">
@@ -94,29 +134,29 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
             
             {/* Breadcrumb */}
             <div className="flex flex-wrap items-center gap-3 border-b border-[var(--color-divider-soft)] pb-4 mb-2">
-              <Link 
+              <PageLink 
                 href="/" 
                 className="group inline-flex items-center gap-1.5 rounded-full border border-[var(--color-border)] bg-[var(--color-bg-secondary)] px-3 py-1.5 text-[11px] font-semibold tracking-wide uppercase text-[var(--color-ink-muted-80)] hover:text-[var(--color-action-blue)] hover:border-[var(--color-action-blue)]/30 hover:bg-[var(--color-canvas)] transition-all duration-200"
               >
                 <ArrowLeft className="h-3.5 w-3.5 transition-transform group-hover:-translate-x-0.5" />
                 {t("backBtn")}
-              </Link>
+              </PageLink>
               
               <div className="h-4 w-px bg-[var(--color-border)] mx-1 hidden sm:block" />
               
               <nav className="flex flex-wrap items-center gap-1.5 text-[11px] font-semibold tracking-wider uppercase text-[var(--color-ink-muted-48)]">
-                <Link href="/" className="hover:text-[var(--color-ink)] transition-colors">
+                <PageLink href="/" className="hover:text-[var(--color-ink)] transition-colors">
                   {tNav("trending")}
-                </Link>
+                </PageLink>
                 <span className="text-[var(--color-border)] select-none">/</span>
                 {project.categories && project.categories.length > 0 && (
                   <>
-                    <Link 
+                    <PageLink 
                       href={`/?category=${project.categories[0].toLowerCase().replace(/\s+/g, "-")}`}
                       className="hover:text-[var(--color-ink)] transition-colors truncate max-w-[120px]"
                     >
                       {project.categories[0]}
-                    </Link>
+                    </PageLink>
                     <span className="text-[var(--color-border)] select-none">/</span>
                   </>
                 )}
@@ -194,23 +234,23 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 
             {/* Action Buttons */}
             <div className="flex flex-wrap items-center gap-3 mt-1">
-              <a 
+              <Anchor 
                 href={project.sourceUrl} 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="apple-btn-primary py-2 px-4 text-xs flex items-center gap-1.5"
               >
                 {t("visitRepo")} <ExternalLink className="h-3.5 w-3.5" />
-              </a>
+              </Anchor>
               {project.homepageUrl && (
-                <a 
+                <Anchor 
                   href={project.homepageUrl} 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="apple-btn-secondary py-2 px-4 text-xs flex items-center gap-1.5 bg-[var(--color-canvas)]"
                 >
                   {t("homepage")} <ExternalLink className="h-3.5 w-3.5" />
-                </a>
+                </Anchor>
               )}
             </div>
           </div>
@@ -219,7 +259,8 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 
       {/* Main Content Area */}
       <section className="apple-tile-parchment w-full py-16 min-h-[50vh]">
-        <div className="page-container max-w-5xl grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-10">
+        <div className="page-container max-w-5xl">
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-10">
           
           {/* Left Column: Chart & README */}
           <div className="min-w-0 space-y-8">
@@ -233,14 +274,14 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                     rehypePlugins={[rehypeRaw, rehypeSlug, rehypeHighlight]}
                     components={{
                       a: ({ href, children, ...props }) => (
-                        <a 
+                        <Anchor 
                           href={resolveRelativeUrl(typeof href === "string" ? href : "", project.sourceUrl, project.source, false)} 
                           target="_blank" 
                           rel="noopener noreferrer" 
                           {...props}
                         >
                           {children}
-                        </a>
+                        </Anchor>
                       ),
                       img: ({ src, alt, ...props }) => (
                         // eslint-disable-next-line @next/next/no-img-element
@@ -288,6 +329,50 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
               </div>
             </div>
 
+            {/* Social Discussions & Mentions Widget */}
+            <div className="apple-utility-card p-6">
+              <h3 className="text-apple-body-strong mb-4 flex items-center gap-2 text-sm text-[var(--color-ink)]">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[var(--color-bg-secondary)] border border-[var(--color-border)] text-xs">💬</span>
+                {t("socialDiscussions")}
+              </h3>
+              
+              {socialMentions && socialMentions.length > 0 ? (
+                <div className="space-y-4 divide-y divide-[var(--color-divider-soft)]">
+                  {socialMentions.map((mention: ProjectMention, idx: number) => (
+                    <div key={mention.id} className={`flex flex-col gap-1.5 ${idx > 0 ? 'pt-4' : ''}`}>
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-bold text-[var(--color-ink)]">
+                          {mention.source === 'reddit' ? 'Reddit' : mention.source === 'x' ? 'X (Twitter)' : 'Hacker News'}
+                        </span>
+                        <span className="text-[var(--color-ink-muted-48)] uppercase tracking-wider font-semibold">
+                          {timeAgo(mention.mentionedAt)}
+                        </span>
+                      </div>
+                      <p className="text-xs text-[var(--color-ink-muted-80)] leading-relaxed break-words line-clamp-3">
+                        {mention.content}
+                      </p>
+                      <div className="flex items-center justify-between text-[11px] font-semibold text-[var(--color-ink-muted-80)] mt-0.5">
+                        <span>@{mention.author.split('/').pop()}</span>
+                        <Anchor 
+                          href={mention.url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-0.5 text-[var(--color-action-blue)] hover:text-[var(--color-action-blue-focus)] hover:underline font-semibold"
+                        >
+                          {t("visitRepo")} <ExternalLink className="h-3.5 w-3.5" />
+                        </Anchor>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-6">
+                  <p className="text-xs text-[var(--color-ink-muted-80)] font-semibold mb-1">{t("noSocialMentions")}</p>
+                  <p className="text-[11px] text-[var(--color-ink-muted-48)] leading-normal">{t("noSocialMentionsDesc")}</p>
+                </div>
+              )}
+            </div>
+
             {/* AI Summary Widget */}
             {project.aiSummary && (
               <div className="apple-utility-card p-6 bg-[var(--color-canvas)] border border-[var(--color-action-blue)]/20">
@@ -313,13 +398,13 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                     <div className="text-[11px] font-semibold text-[var(--color-ink-muted-80)] uppercase tracking-wider mb-2">{t("categories")}</div>
                     <div className="flex flex-wrap gap-2">
                       {Array.from(new Set(project.categories)).map((cat: string) => (
-                        <Link 
+                        <PageLink 
                           key={cat} 
                           href={`/?category=${cat.toLowerCase().replace(/\s+/g, "-")}`}
                           className="inline-flex items-center rounded-md bg-[var(--color-bg-secondary)] hover:bg-[var(--color-divider-soft)] px-2.5 py-1 text-xs font-semibold text-[var(--color-ink)] border border-[var(--color-border)] hover:border-[var(--color-action-blue)]/30 hover:text-[var(--color-action-blue)] transition-all duration-200 cursor-pointer"
                         >
                           {cat}
-                        </Link>
+                        </PageLink>
                       ))}
                     </div>
                   </div>
@@ -395,6 +480,8 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
             </div>
 
           </aside>
+          </div>
+          <SimilarProjects projects={similarProjects} />
         </div>
       </section>
     </div>

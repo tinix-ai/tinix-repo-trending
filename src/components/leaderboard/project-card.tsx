@@ -11,6 +11,7 @@ import { CategoryIcon } from "@/components/common/category-icon";
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { useComparison } from "@/hooks/use-comparison";
 
 interface ProjectCardProps {
   project: RankedProject;
@@ -38,12 +39,15 @@ function buildCategoryHref(slug: string, filter: string | null) {
   return `/?${params.toString()}`;
 }
 
-export function ProjectCard({ project, index, days }: ProjectCardProps) {
+export function ProjectCard({ project, index, days: _days }: ProjectCardProps) {
   const t = useTranslations("HomePage");
+  const tSocial = useTranslations("SocialListening");
   const searchParams = useSearchParams();
   const router = useRouter();
   const currentFilter = searchParams.get("filter");
   const [isNew, setIsNew] = useState(false);
+  const { selectedProjects, addProject, removeProject } = useComparison();
+  const isCompared = selectedProjects.some((p) => p.id === project.id);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -82,7 +86,7 @@ export function ProjectCard({ project, index, days }: ProjectCardProps) {
   return (
     <div
       onClick={handleCardClick}
-      className={`card group relative overflow-hidden cursor-pointer hover:-translate-y-0.5 hover:shadow-md transition-all duration-250 ease-in-out animate-fade-in-up animate-stagger-${Math.min(index + 1, 12)}`}
+      className={`card group relative overflow-hidden cursor-pointer hover:-translate-y-0.5 hover:shadow-md transition-all duration-255 ease-in-out animate-fade-in-up animate-stagger-${Math.min(index + 1, 12)}`}
     >
       <div className="p-5">
         <div className="flex items-start gap-4">
@@ -103,11 +107,39 @@ export function ProjectCard({ project, index, days }: ProjectCardProps) {
                 <ArrowUpRight className="h-3.5 w-3.5 text-[var(--color-text-muted)] opacity-0 group-hover/link:opacity-100 transition-all group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5 shrink-0" />
               </Link>
               <SourceBadge source={project.source} projectType={project.projectType} />
+              
+              {project.mentionsCount !== undefined && project.mentionsCount > 0 && (
+                <span className="text-[10px] font-bold tracking-wider uppercase bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 px-1.5 py-0.5 rounded shrink-0 flex items-center gap-1 select-none">
+                  <span className="relative flex h-1 w-1">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-1 w-1 bg-emerald-500"></span>
+                  </span>
+                  {tSocial("discussions", { count: project.mentionsCount })}
+                </span>
+              )}
+
               {isNew && (
                 <span className="text-[10px] font-semibold tracking-wider uppercase bg-[var(--color-accent-dim)] text-[var(--color-accent)] px-1.5 py-0.5 rounded shrink-0">
                   {t("newBadge")}
                 </span>
               )}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (isCompared) {
+                    removeProject(project.id);
+                  } else {
+                    addProject(project);
+                  }
+                }}
+                className={`text-[10px] font-bold tracking-wider px-2 py-0.5 rounded transition-all cursor-pointer select-none shrink-0 ${
+                  isCompared 
+                    ? "bg-[var(--color-action-blue)] text-white" 
+                    : "bg-[var(--color-surface-pearl)] text-[var(--color-ink-muted-80)] border border-[var(--color-border)] hover:bg-[var(--color-divider-soft)]"
+                }`}
+              >
+                {isCompared ? "✓ So sánh" : "+ So sánh"}
+              </button>
             </div>
 
             {/* Description */}

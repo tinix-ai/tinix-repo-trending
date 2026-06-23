@@ -14,11 +14,28 @@ interface DiscoveredRepo {
  * Uses a cautious delay to respect the 30 req/min limit of the Search API.
  * Tracks checkpoint in Redis via { topicIndex, page } to support multi-process resume.
  */
-export async function discoverNewRepos(maxPages: number = 3): Promise<DiscoveredRepo[]> {
+export async function discoverNewRepos(maxPages: number = 10): Promise<DiscoveredRepo[]> {
   const checkpointKey = "crawler:checkpoint:github-discovery";
   const sort = "updated"; // Get most recently active
   const order = "desc";
   
+  const topics = [
+    // Existing AI/ML topics
+    'ai', 'machine-learning', 'llm', 'deep-learning',
+    // Vibe Coding & AI Coding Tools
+    'vibe-coding', 'cursor-rules', 'mcp', 'mcp-server', 'ai-agent', 'ai-coding', 'copilot',
+    // Speech & Audio
+    'text-to-speech', 'speech-to-text', 'tts', 'asr', 'whisper', 'voice-clone',
+    // Data & Databases
+    'data-science', 'database', 'vector-database', 'data-engineering', 'data-analysis', 'analytics', 'vector-search',
+    // Developer Tools & Utilities
+    'developer-tools', 'self-hosted', 'productivity',
+    // General Tech, Web, Languages & Infrastructure (Expanded for 50k scaling)
+    'react', 'vue', 'nextjs', 'typescript', 'nodejs', 'deno', 'bun',
+    'rust', 'go', 'webassembly', 'docker', 'kubernetes', 'terraform',
+    'redis', 'postgresql', 'sqlite', 'security', 'linux'
+  ];
+
   let startTopicIndex = 0;
   let startPage = 1;
   
@@ -26,15 +43,20 @@ export async function discoverNewRepos(maxPages: number = 3): Promise<Discovered
     const lastSavedCheckpoint = await redisConnection.get(checkpointKey);
     if (lastSavedCheckpoint) {
       const parsed = JSON.parse(lastSavedCheckpoint);
-      startTopicIndex = parsed.topicIndex || 0;
-      startPage = (parsed.page || 0) + 1; // Resume from the next page
-      console.log(`[Discovery] Resuming GitHub Discovery from checkpoint. TopicIndex: ${startTopicIndex}, Start page: ${startPage}`);
+      const savedTopic = parsed.topic;
+      const savedTopicIndex = savedTopic ? topics.indexOf(savedTopic) : parsed.topicIndex;
+      
+      if (savedTopicIndex !== -1 && savedTopicIndex !== undefined) {
+        startTopicIndex = savedTopicIndex;
+        startPage = (parsed.page || 0) + 1; // Resume from the next page
+        console.log(`[Discovery] Resuming GitHub Discovery from checkpoint. TopicIndex: ${startTopicIndex} (${topics[startTopicIndex]}), Start page: ${startPage}`);
+      } else {
+        console.log(`[Discovery] Saved checkpoint topic "${savedTopic || parsed.topicIndex}" not found in current topics. Starting from beginning.`);
+      }
     }
   } catch (err) {
     console.warn("[Discovery] Failed to read Redis checkpoint, starting from beginning.", err);
   }
-
-  const topics = ['ai', 'machine-learning', 'llm', 'deep-learning'];
 
   // If startPage has already exceeded maxPages, or topicIndex is out of bounds, reset checkpoint
   if (startTopicIndex >= topics.length || startPage > maxPages) {
@@ -151,11 +173,11 @@ export async function discoverNewRepos(maxPages: number = 3): Promise<Discovered
           });
         }
 
-        // Save checkpoint page and topicIndex to Redis
+        // Save checkpoint page, topicIndex and topic to Redis
         try {
-          await redisConnection.set(checkpointKey, JSON.stringify({ topicIndex: t, page }));
+          await redisConnection.set(checkpointKey, JSON.stringify({ topicIndex: t, topic, page }));
         } catch (err) {
-          console.warn(`[Discovery] Failed to save checkpoint {topicIndex:${t}, page:${page}} in Redis`, err);
+          console.warn(`[Discovery] Failed to save checkpoint {topicIndex:${t}, topic:${topic}, page:${page}} in Redis`, err);
         }
 
         if (page === maxPages) {

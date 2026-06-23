@@ -1,7 +1,7 @@
 import { db } from './index';
 import { sql } from 'drizzle-orm';
-import type { RankedProject } from '@/types';
-import { CATEGORY_METADATA } from '../categorizer';
+import type { RankedProject, ProjectMention, RecentProjectMention, ProjectSource } from '@/types';
+import { CATEGORY_METADATA, ensureCategoriesLoaded } from '../categorizer';
 import * as zlib from 'zlib';
 
 function decompressReadme(value: unknown): string | null {
@@ -41,6 +41,7 @@ export interface ProjectQueryParams {
 }
 
 export async function getDynamicTrendingProjects(params: ProjectQueryParams): Promise<{ projects: RankedProject[], total: number }> {
+  await ensureCategoriesLoaded();
   const days = params.days ?? 7;
   const minStars = params.minStars ?? 100;
   const minDownloads = params.minDownloads ?? 1000;
@@ -169,11 +170,17 @@ export async function getDynamicTrendingProjects(params: ProjectQueryParams): Pr
           ), 0) as likes_gained,
           GREATEST(COALESCE(${downloadsGainedCol}, 0), 0) as downloads_gained,
           sh.sparkline_data,
+          COALESCE(pm.mentions_count, 0) as mentions_count,
           c.stars, c.forks, c.downloads, c.likes, c.open_issues, c.contributors_count as current_contributors_count
         FROM projects p
         JOIN current_snapshots c ON p.id = c.project_id
         LEFT JOIN project_trends t ON p.id = t.project_id
         LEFT JOIN sparkline_history sh ON p.id = sh.project_id
+        LEFT JOIN (
+          SELECT project_id, COUNT(*) as mentions_count
+          FROM project_mentions
+          GROUP BY project_id
+        ) pm ON p.id = pm.project_id
       ),
       scored AS (
         SELECT 
@@ -256,12 +263,18 @@ export async function getDynamicTrendingProjects(params: ProjectQueryParams): Pr
           GREATEST(c.likes - COALESCE(prev.likes, earliest.likes, c.likes), 0) as likes_gained,
           GREATEST(c.downloads - COALESCE(prev.downloads, earliest.downloads, c.downloads), 0) as downloads_gained,
           sh.sparkline_data,
+          COALESCE(pm.mentions_count, 0) as mentions_count,
           c.stars, c.forks, c.downloads, c.likes, c.open_issues, c.contributors_count as current_contributors_count
         FROM projects p
         JOIN current_snapshots c ON p.id = c.project_id
         LEFT JOIN previous_snapshots prev ON p.id = prev.project_id
         LEFT JOIN earliest_snapshots earliest ON p.id = earliest.project_id
         LEFT JOIN sparkline_history sh ON p.id = sh.project_id
+        LEFT JOIN (
+          SELECT project_id, COUNT(*) as mentions_count
+          FROM project_mentions
+          GROUP BY project_id
+        ) pm ON p.id = pm.project_id
       ),
       scored AS (
         SELECT 
@@ -320,6 +333,7 @@ export async function getDynamicTrendingProjects(params: ProjectQueryParams): Pr
       starsGained: Number(r.source === 'github' ? r.stars_gained : r.likes_gained),
       forksGained: Number(r.source === 'github' ? r.forks_gained : 0),
       downloadsGained: Number(r.downloads_gained || 0),
+      mentionsCount: Number(r.mentions_count || 0),
       velocityScore: Number(r.momentum_score),
       momentumScore: Number(r.momentum_score),
       
@@ -380,6 +394,7 @@ export async function getGlobalStats() {
 }
 
 export async function getCategoryStats() {
+  await ensureCategoriesLoaded();
   try {
     const result = await db.execute(sql`
       SELECT 
@@ -714,5 +729,250 @@ export async function getLanguageStats() {
     return [];
   }
 }
+
+export async function getDatabaseGrowthStats() {
+  try {
+    const result = await db.execute(sql`
+      SELECT 
+        TO_CHAR(d.day, 'YYYY-MM-DD') as date,
+        COALESCE(COUNT(p.id), 0) as count
+      FROM (
+        SELECT generate_series(
+          CURRENT_DATE - INTERVAL '6 days',
+          CURRENT_DATE,
+          '1 day'::interval
+        )::date as day
+      ) d
+      LEFT JOIN projects p ON DATE(p.created_at) <= d.day
+      GROUP BY d.day
+      ORDER BY d.day ASC;
+    `);
+    
+    return result.map(row => {
+      const r = row as Record<string, unknown>;
+      return {
+        date: new Date(r.date as string).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        count: Number(r.count)
+      };
+    });
+  } catch (error) {
+    console.error("Error fetching database growth stats:", error);
+    return [];
+  }
+}
+
+export async function getProjectMentions(projectId: string): Promise<ProjectMention[]> {
+  try {
+    const result = await db.execute(sql`
+      SELECT id, project_id as "projectId", source, author, author_avatar_url as "authorAvatarUrl", 
+             content, url, score, comments_count as "commentsCount", mentioned_at as "mentionedAt", created_at as "createdAt"
+      FROM project_mentions
+      WHERE project_id = ${projectId}::uuid
+      ORDER BY mentioned_at DESC;
+    `);
+    
+    return result.map(row => {
+      const r = row as Record<string, unknown>;
+      return {
+        id: String(r.id),
+        projectId: String(r.projectId),
+        source: String(r.source),
+        author: String(r.author),
+        authorAvatarUrl: r.authorAvatarUrl ? String(r.authorAvatarUrl) : undefined,
+        content: String(r.content),
+        url: String(r.url),
+        score: Number(r.score || 0),
+        commentsCount: Number(r.commentsCount || 0),
+        mentionedAt: new Date(r.mentionedAt as string),
+        createdAt: new Date(r.createdAt as string),
+      };
+    });
+  } catch (error) {
+    console.error("Error fetching project mentions:", error);
+    return [];
+  }
+}
+
+export async function getRecentSocialMentions(limit: number = 30): Promise<RecentProjectMention[]> {
+  try {
+    const result = await db.execute(sql`
+      SELECT m.id, m.project_id as "projectId", m.source, m.author, m.author_avatar_url as "authorAvatarUrl", 
+             m.content, m.url, m.score, m.comments_count as "commentsCount", m.mentioned_at as "mentionedAt",
+             p.slug as "projectSlug", p.full_name as "projectFullName", p.name as "projectName", p.source as "projectSource"
+      FROM project_mentions m
+      JOIN projects p ON m.project_id = p.id
+      ORDER BY m.mentioned_at DESC
+      LIMIT ${limit};
+    `);
+    
+    return result.map(row => {
+      const r = row as Record<string, unknown>;
+      return {
+        id: String(r.id),
+        projectId: String(r.projectId),
+        source: String(r.source),
+        author: String(r.author),
+        authorAvatarUrl: r.authorAvatarUrl ? String(r.authorAvatarUrl) : undefined,
+        content: String(r.content),
+        url: String(r.url),
+        score: Number(r.score || 0),
+        commentsCount: Number(r.commentsCount || 0),
+        mentionedAt: new Date(r.mentionedAt as string),
+        projectSlug: String(r.projectSlug),
+        projectFullName: String(r.projectFullName),
+        projectName: String(r.projectName),
+        projectSource: String(r.projectSource) as ProjectSource,
+      };
+    });
+  } catch (error) {
+    console.error("Error fetching recent social mentions:", error);
+    return [];
+  }
+}
+
+export async function getSimilarProjects(projectId: string, limit: number = 3): Promise<RankedProject[]> {
+  await ensureCategoriesLoaded();
+  try {
+    const targetProject = await getProjectById(projectId);
+    if (!targetProject) return [];
+
+    const targetCategories = targetProject.categories || [];
+    const categoriesArray = targetCategories.length > 0
+      ? sql`p.categories ?| array[${sql.join(targetCategories.map(c => sql`${c}`), sql`, `)}]::text[]`
+      : sql`false`;
+
+    const targetTopics = targetProject.topics || [];
+    const topicsArray = targetTopics.length > 0
+      ? sql`p.topics ?| array[${sql.join(targetTopics.map(t => sql`${t}`), sql`, `)}]::text[]`
+      : sql`false`;
+
+    const targetLang = targetProject.primaryLanguage;
+    const langMatch = targetLang
+      ? sql`p.primary_language = ${targetLang}`
+      : sql`false`;
+
+    const result = await db.execute(sql`
+      WITH current_snapshots AS (
+        SELECT DISTINCT ON (project_id) project_id, stars, forks, contributors_count, open_issues, likes, downloads, snapshot_date
+        FROM project_snapshots
+        ORDER BY project_id, snapshot_date DESC
+      ),
+      sparkline_history AS (
+        SELECT 
+          project_id,
+          json_agg(
+            COALESCE(stars, likes, 0) ORDER BY snapshot_date ASC
+          ) as sparkline_data
+        FROM project_snapshots
+        WHERE snapshot_date >= CURRENT_DATE - INTERVAL '14 days'
+        GROUP BY project_id
+      ),
+      similarity_scored AS (
+        SELECT 
+          p.id as project_id,
+          p.source,
+          p.project_type,
+          p.source_id,
+          p.slug,
+          p.name,
+          p.full_name,
+          p.description,
+          p.ai_summary,
+          p.homepage_url,
+          p.source_url,
+          p.primary_language,
+          p.license,
+          p.owner_name,
+          p.owner_avatar_url,
+          p.owner_type,
+          p.topics,
+          p.created_at,
+          p.updated_at,
+          p.last_crawled_at,
+          p.source_created_at,
+          p.source_updated_at,
+          p.categories,
+          sh.sparkline_data,
+          c.stars, c.forks, c.downloads, c.likes, c.open_issues, c.contributors_count as current_contributors_count,
+          (
+            CASE WHEN ${categoriesArray} THEN 10 ELSE 0 END +
+            CASE WHEN ${topicsArray} THEN 5 ELSE 0 END +
+            CASE WHEN ${langMatch} THEN 3 ELSE 0 END
+          ) as similarity_score
+        FROM projects p
+        JOIN current_snapshots c ON p.id = c.project_id
+        LEFT JOIN sparkline_history sh ON p.id = sh.project_id
+        WHERE p.id != ${projectId}::uuid
+          AND (${categoriesArray} OR ${topicsArray} OR ${langMatch})
+      )
+      SELECT *
+      FROM similarity_scored
+      ORDER BY similarity_score DESC, 
+               (CASE WHEN source = 'github' THEN COALESCE(stars, 0) ELSE COALESCE(likes, 0) * 5.0 + (COALESCE(downloads, 0) / 1000.0) END) DESC
+      LIMIT ${limit};
+    `);
+
+    return result.map(row => {
+      const r = row as Record<string, unknown>;
+      return {
+        id: r.project_id as string,
+        source: r.source as "github" | "huggingface" | "paperwithcode",
+        projectType: (r.project_type || 'repository') as "repository" | "model" | "dataset",
+        sourceId: r.source_id as string,
+        slug: r.slug as string,
+        name: r.name as string,
+        fullName: r.full_name as string,
+        description: (r.description as string) || '',
+        aiSummary: (r.ai_summary as string) || undefined,
+        homepageUrl: (r.homepage_url as string) || undefined,
+        sourceUrl: r.source_url as string,
+        primaryLanguage: (r.primary_language as string) || undefined,
+        license: (r.license as string) || undefined,
+        ownerName: r.owner_name as string,
+        ownerAvatarUrl: (r.owner_avatar_url as string) || '',
+        ownerType: ((r.owner_type as string) || 'user') as "user" | "org",
+        topics: Array.isArray(r.topics) ? (r.topics as string[]) : [],
+        createdAt: typeof r.created_at === 'string' ? r.created_at : ((r.created_at as Date)?.toISOString() || new Date().toISOString()),
+        updatedAt: typeof r.updated_at === 'string' ? r.updated_at : ((r.updated_at as Date)?.toISOString() || new Date().toISOString()),
+        sourceCreatedAt: typeof r.source_created_at === 'string' ? r.source_created_at : ((r.source_created_at as Date)?.toISOString() || new Date().toISOString()),
+        sourceUpdatedAt: r.source_updated_at ? (typeof r.source_updated_at === 'string' ? r.source_updated_at : (r.source_updated_at as Date).toISOString()) : undefined,
+        lastCrawledAt: typeof r.last_crawled_at === 'string' ? r.last_crawled_at : ((r.last_crawled_at as Date)?.toISOString() || new Date().toISOString()),
+        
+        rank: 0,
+        score: Number(r.similarity_score || 0),
+        starsGained: 0,
+        forksGained: 0,
+        downloadsGained: 0,
+        mentionsCount: 0,
+        velocityScore: 0,
+        momentumScore: 0,
+        
+        stars: Number(r.source === 'github' ? r.stars : r.likes),
+        forks: Number(r.forks || 0),
+        openIssues: Number(r.open_issues || 0),
+        downloads: Number(r.downloads || 0),
+        watchers: 0,
+        contributorsCount: Number(r.current_contributors_count || 0),
+        tags: [],
+        categories: (Array.isArray(r.categories) ? (r.categories as string[]) : []).map((catName: string, i: number) => {
+          const meta = CATEGORY_METADATA[catName] || { icon: "🏷️", color: "#6b7280" };
+          return {
+            id: `cat-${r.project_id}-${i}`,
+            name: catName,
+            slug: catName.toLowerCase().replace(/\s+/g, '-'),
+            icon: meta.icon,
+            color: meta.color,
+            sortOrder: i,
+          };
+        }),
+        sparklineData: Array.isArray(r.sparkline_data) ? (r.sparkline_data as number[]) : Array.from({ length: 14 }, () => 0),
+      };
+    });
+  } catch (error) {
+    console.error("Error fetching similar projects:", error);
+    return [];
+  }
+}
+
 
 

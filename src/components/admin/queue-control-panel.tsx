@@ -68,12 +68,13 @@ interface DetailedStats {
   huggingface: QueueDetails;
   githubUpdater: QueueDetails;
   hfUpdater: QueueDetails;
+  social: QueueDetails;
   scheduler: QueueDetails;
   activeSchedulerJobs?: string[];
 }
 
 type ActionType = 'pause' | 'resume' | 'drain' | 'retry' | 'sync';
-type SourceType = 'github' | 'huggingface' | 'github-updater' | 'hf-updater' | 'scheduler';
+type SourceType = 'github' | 'huggingface' | 'github-updater' | 'hf-updater' | 'scheduler' | 'social';
 
 export function QueueControlPanel() {
   const t = useTranslations("Admin");
@@ -104,7 +105,8 @@ export function QueueControlPanel() {
   const totalUpdateJobs = stats 
     ? (stats.github.update || 0) + (stats.huggingface.update || 0) + 
       (stats.githubUpdater.waiting || 0) + (stats.githubUpdater.active || 0) +
-      (stats.hfUpdater.waiting || 0) + (stats.hfUpdater.active || 0)
+      (stats.hfUpdater.waiting || 0) + (stats.hfUpdater.active || 0) +
+      (stats.social?.waiting || 0) + (stats.social?.active || 0)
     : 0;
 
   const totalDiscoveryJobs = stats 
@@ -114,11 +116,12 @@ export function QueueControlPanel() {
   // We check if the scheduler job is actively enqueuing
   const isUpdateEnqueuing = isSchedulerJobActive('daily-update');
   const isDiscoveryEnqueuing = isSchedulerJobActive('daily-discovery');
+  const isSocialEnqueuing = isSchedulerJobActive('social-mentions');
 
   const isQueueActionLoading = (source: SourceType) => {
     return Array.from(loadingActions).some(key => {
       return key.endsWith(`-${source}`) || 
-             (source === 'scheduler' && (key === 'trigger-daily-discovery' || key === 'trigger-daily-update'));
+             (source === 'scheduler' && (key === 'trigger-daily-discovery' || key === 'trigger-daily-update' || key === 'trigger-social-mentions'));
     });
   };
 
@@ -311,7 +314,7 @@ export function QueueControlPanel() {
             </div>
           </div>
 
-          {/* Job Type Breakdown (Tìm mới & Cập nhật hàng ngày) */}
+          {/* Job Type Breakdown */}
           {source !== 'scheduler' ? (
             (source === 'github' || source === 'huggingface') ? (
               <div className="mb-4 p-3 rounded-xl bg-blue-500/[0.02] dark:bg-blue-500/[0.01] border border-blue-500/5 space-y-2">
@@ -332,6 +335,13 @@ export function QueueControlPanel() {
                 <div className="w-full h-1 bg-blue-500/10 rounded-full overflow-hidden">
                   <div className="h-full bg-blue-500 transition-all duration-500" style={{ width: q.discovery > 0 ? '100%' : '0%' }} />
                 </div>
+              </div>
+            ) : source === 'social' ? (
+              <div className="mb-4 p-3 rounded-xl bg-indigo-500/[0.02] dark:bg-indigo-500/[0.01] border border-indigo-500/5 space-y-2 flex flex-col justify-center min-h-[96px]">
+                <div className="text-[10px] text-indigo-650 dark:text-indigo-400 font-bold uppercase tracking-wider text-center">Social Mentions Crawler</div>
+                <p className="text-[11px] text-slate-550 dark:text-slate-400 mt-1 leading-relaxed text-center font-medium">
+                  Quét định kỳ thảo luận trên Reddit &amp; Hacker News của dự án trên 100 stars.
+                </p>
               </div>
             ) : (
               <div className="mb-4 p-3 rounded-xl bg-amber-500/[0.02] dark:bg-amber-500/[0.01] border border-amber-500/5 space-y-2">
@@ -409,8 +419,20 @@ export function QueueControlPanel() {
             variant="default"
             disabled={isAnyActionLoading || q.currentFailed === 0}
           />
+          {source === 'social' && (
+            <div className="w-full mt-2 pt-2 border-t border-dashed border-slate-100 dark:border-slate-800/80">
+              <ActionButton
+                icon={Play}
+                label={isSocialEnqueuing ? "Social Job..." : "Run Social Job"}
+                onClick={() => handleTriggerJob('social-mentions')}
+                loading={loadingActions.has('trigger-social-mentions') || isSocialEnqueuing}
+                disabled={isAnyActionLoading || isSocialEnqueuing}
+                variant="primary"
+              />
+            </div>
+          )}
           {source === 'scheduler' && (
-            <div className="grid grid-cols-2 gap-1.5 w-full mt-2 pt-2 border-t border-dashed border-slate-100 dark:border-slate-800/80">
+            <div className="grid grid-cols-3 gap-1.5 w-full mt-2 pt-2 border-t border-dashed border-slate-100 dark:border-slate-800/80">
               <ActionButton
                 icon={Play}
                 label={isDiscoveryEnqueuing ? "Discovery..." : "Discovery"}
@@ -427,13 +449,20 @@ export function QueueControlPanel() {
                 disabled={isAnyActionLoading || isUpdateEnqueuing}
                 variant="primary"
               />
+              <ActionButton
+                icon={Play}
+                label={isSocialEnqueuing ? "Social..." : "Social"}
+                onClick={() => handleTriggerJob('social-mentions')}
+                loading={loadingActions.has('trigger-social-mentions') || isSocialEnqueuing}
+                disabled={isAnyActionLoading || isSocialEnqueuing}
+                variant="primary"
+              />
             </div>
           )}
         </div>
       </div>
     );
   };
-
   const totalPending = totalUpdateJobs + totalDiscoveryJobs;
   const hasActiveScheduler = !!(stats?.activeSchedulerJobs && stats.activeSchedulerJobs.length > 0);
 
@@ -536,9 +565,10 @@ export function QueueControlPanel() {
                 {updaterGroupText}
               </h4>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {renderQueueCard('github-updater', 'GH Updater', stats.githubUpdater)}
               {renderQueueCard('hf-updater', 'HF Updater', stats.hfUpdater)}
+              {renderQueueCard('social', 'Social Crawler', stats.social)}
               {renderQueueCard('scheduler', 'Scheduler', stats.scheduler)}
             </div>
           </div>

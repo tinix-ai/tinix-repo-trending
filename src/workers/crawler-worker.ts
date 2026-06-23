@@ -2,7 +2,10 @@ import 'dotenv/config';
 import { Worker, Job } from 'bullmq';
 import Redis from 'ioredis';
 import { db } from '../lib/db';
-import { projects, projectSnapshots, projectTrends } from '../lib/db/schema';
+import { projects, projectSnapshots, projectTrends, projectMentions } from '../lib/db/schema';
+import { crawlHNMentions } from '../lib/crawlers/hn';
+import { crawlRedditMentions } from '../lib/crawlers/reddit';
+import { crawlTwitterMentions } from '../lib/crawlers/twitter';
 import * as zlib from 'zlib';
 import { sql, eq } from 'drizzle-orm';
 import { categorizeProject } from '../lib/categorizer';
@@ -10,7 +13,7 @@ import { updateProjectCrawlSchedule } from '../lib/crawlers/scheduler';
 import { githubPool } from '../lib/crawlers/github-pool';
 import { proxyManager } from '../lib/crawlers/proxy';
 import { setTimeout } from 'timers/promises';
-import { crawlerQueue, githubUpdaterQueue } from './queue';
+import { crawlerQueue, githubUpdaterQueue, socialCrawlerQueue } from './queue';
 import { setupQueueAutoRecovery } from './recovery';
 import { startMemoryReporting } from './metrics';
 
@@ -189,7 +192,7 @@ export async function handleGithubCrawlJob(job: Job<CrawlJobData>) {
 
     // Use Categorizer for GitHub repos
     const rawTags = data.topics || [];
-    const canonicalCategories = categorizeProject(rawTags, 'repository');
+    const canonicalCategories = await categorizeProject(rawTags, 'repository');
     
     // Upsert into projects
     const [project] = await db.insert(projects)
@@ -302,6 +305,104 @@ export const githubUpdaterWorker = new Worker<CrawlJobData>(
   }
 );
 
+interface SocialCrawlJobData {
+  projectId: string;
+}
+
+export async function handleSocialCrawlJob(job: Job<SocialCrawlJobData>) {
+  const { projectId } = job.data;
+  console.log(`[Social Crawler] Starting social crawl for project ID: ${projectId}`);
+
+  try {
+    // 1. Fetch project details
+    const [project] = await db.select({
+      id: projects.id,
+      fullName: projects.fullName,
+      name: projects.name,
+      ownerName: projects.ownerName,
+      primaryLanguage: projects.primaryLanguage,
+      topics: projects.topics,
+      description: projects.description,
+      homepageUrl: projects.homepageUrl,
+      sourceUrl: projects.sourceUrl,
+      source: projects.source,
+    })
+    .from(projects)
+    .where(eq(projects.id, projectId))
+    .limit(1);
+
+    if (!project) {
+      console.warn(`[Social Crawler] Project ${projectId} not found in DB.`);
+      return { status: 'ignored', reason: 'project_not_found' };
+    }
+
+    const topicsArray = Array.isArray(project.topics) ? (project.topics as string[]) : [];
+
+    // 2. Run crawlers in parallel
+    const [hnMentions, redditMentions, twitterMentions] = await Promise.all([
+      crawlHNMentions(project.fullName, project.name, project.sourceUrl, project.homepageUrl),
+      crawlRedditMentions(project.fullName, project.name, project.sourceUrl, project.homepageUrl),
+      crawlTwitterMentions(
+        project.fullName,
+        project.name,
+        project.ownerName,
+        project.primaryLanguage,
+        topicsArray,
+        project.description
+      )
+    ]);
+
+    const allMentions = [...hnMentions, ...redditMentions, ...twitterMentions];
+    if (allMentions.length > 0) {
+      console.log(`[Social Crawler] Inserting ${allMentions.length} mentions for ${project.fullName}`);
+      for (const mention of allMentions) {
+        // Enforce strict 500 characters limit on content
+        let content = mention.content;
+        if (content.length > 500) {
+          content = content.substring(0, 497) + '...';
+        }
+
+        try {
+          await db.insert(projectMentions)
+            .values({
+              projectId: project.id,
+              source: mention.source,
+              author: mention.author,
+              content: content,
+              url: mention.url,
+              score: mention.score,
+              commentsCount: mention.commentsCount,
+              mentionedAt: mention.mentionedAt,
+            })
+            .onConflictDoNothing();
+        } catch (insertErr) {
+          console.error(`[Social Crawler] Failed to insert mention for ${project.fullName} (URL: ${mention.url}):`, insertErr);
+        }
+      }
+    }
+
+    return { status: 'success', mentionsCount: allMentions.length };
+  } catch (error) {
+    console.error(`[Social Crawler] Error crawling social mentions for project ${projectId}:`, error);
+    throw error;
+  }
+}
+
+export const socialCrawlerWorker = new Worker<SocialCrawlJobData>(
+  'social-crawler',
+  handleSocialCrawlJob,
+  {
+    connection: redisConnection as unknown as Worker['opts']['connection'],
+    concurrency: 1, // Process 1 job at a time per worker instance
+    stalledInterval: 15000,
+    maxStalledCount: 2,
+    limiter: {
+      max: 1,
+      duration: 3000, // 3 seconds delay between jobs per worker
+    }
+  }
+);
+
 crawlerWorker.on('completed', async (job) => {
   console.log(`[Crawler] Job ${job.id} completed with result`, job.returnvalue);
   try {
@@ -346,18 +447,37 @@ githubUpdaterWorker.on('failed', async (job, err) => {
   }
 });
 
-console.log('[Crawler] Worker started (github-crawler + github-updater merged).');
+socialCrawlerWorker.on('completed', async (job) => {
+  console.log(`[Social Crawler] Job ${job.id} completed with result`, job.returnvalue);
+  try {
+    await redisConnection.incr('crawler:stats:social-crawler:completed');
+  } catch (err) {
+    console.error('[Social Crawler] Failed to increment completed stats in Redis:', err);
+  }
+});
+
+socialCrawlerWorker.on('failed', async (job, err) => {
+  console.error(`[Social Crawler] Job ${job?.id} failed with error:`, err.message);
+  try {
+    await redisConnection.incr('crawler:stats:social-crawler:failed');
+  } catch (redisErr) {
+    console.error('[Social Crawler] Failed to increment failed stats in Redis:', redisErr);
+  }
+});
+
+console.log('[Crawler] Worker started (github-crawler + github-updater + social-crawler merged).');
 
 // On worker startup, run auto-recovery checks and start metrics reporting
 setupQueueAutoRecovery('github-crawler', crawlerQueue, redisConnection);
 setupQueueAutoRecovery('github-updater', githubUpdaterQueue, redisConnection);
+setupQueueAutoRecovery('social-crawler', socialCrawlerQueue, redisConnection);
 const stopReporting = startMemoryReporting('crawler-worker', redisConnection);
 
 // Graceful shutdown
 const gracefulShutdown = async () => {
   console.log('[Crawler Worker] Gracefully shutting down...');
   stopReporting();
-  await Promise.allSettled([crawlerWorker.close(), githubUpdaterWorker.close()]);
+  await Promise.allSettled([crawlerWorker.close(), githubUpdaterWorker.close(), socialCrawlerWorker.close()]);
   await redisConnection.quit();
   process.exit(0);
 };

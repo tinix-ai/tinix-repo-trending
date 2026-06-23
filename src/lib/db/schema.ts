@@ -77,3 +77,30 @@ export const projectTrends = pgTable("project_trends", {
   monthlyDownloads: integer("monthly_downloads").default(0),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
+
+export const categories = pgTable("categories", {
+  id: text("id").primaryKey(), // ID matches category name (e.g., "LLM")
+  icon: text("icon").notNull(),
+  color: text("color").notNull(),
+  keywords: jsonb("keywords").notNull().$type<string[]>(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const projectMentions = pgTable("project_mentions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  projectId: uuid("project_id").references(() => projects.id, { onDelete: "cascade" }).notNull(),
+  source: text("source").notNull(), // 'reddit' | 'x' | 'hacker_news'
+  author: text("author").notNull(),
+  authorAvatarUrl: text("author_avatar_url"),
+  content: text("content").notNull(),
+  url: text("url").notNull().unique(),
+  score: integer("score").default(0),
+  commentsCount: integer("comments_count").default(0),
+  mentionedAt: timestamp("mentioned_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("project_mentions_project_idx").on(table.projectId),
+  index("project_mentions_source_idx").on(table.source),
+  index("project_mentions_mentioned_at_idx").on(table.mentionedAt),
+]);

@@ -1,15 +1,16 @@
 "use server";
 
 import { Queue } from "bullmq";
-import { getDynamicTrendingProjects, ProjectQueryParams, getGlobalStats, getProjectBySlug, getProjectHistory, getProjectById, getCategoryStats, getPopularLanguagesAndHashtags, getDatabaseStorageStats, getLanguageStats, getDataStalenessStats } from "@/lib/db/queries";
+import { getDynamicTrendingProjects, ProjectQueryParams, getGlobalStats, getProjectBySlug, getProjectHistory, getProjectById, getCategoryStats, getPopularLanguagesAndHashtags, getDatabaseStorageStats, getLanguageStats, getDataStalenessStats, getDatabaseGrowthStats, getProjectMentions, getRecentSocialMentions, getSimilarProjects } from "@/lib/db/queries";
 import os from "os";
 
 import type { RankedProject } from "@/types";
-import { redisConnection, crawlerQueue, hfQueue, githubUpdaterQueue, hfUpdaterQueue, schedulerQueue } from "@/workers/queue";
+import { redisConnection, crawlerQueue, hfQueue, githubUpdaterQueue, hfUpdaterQueue, schedulerQueue, socialCrawlerQueue } from "@/workers/queue";
 import { githubPool } from "@/lib/crawlers/github-pool";
 import { db } from "@/lib/db";
-import { projects } from "@/lib/db/schema";
+import { projects, categories as categoriesTable } from "@/lib/db/schema";
 import { eq, sql, ilike, or } from "drizzle-orm";
+import { ensureCategoriesLoaded, categorizeProject } from "@/lib/categorizer";
 
 export async function fetchDynamicRankings(params: ProjectQueryParams): Promise<{ projects: RankedProject[], total: number }> {
   try {
@@ -38,6 +39,18 @@ export async function fetchProjectDetails(slug: string) {
 
 export async function fetchProjectById(id: string) {
   return await getProjectById(id);
+}
+
+export async function fetchSimilarProjects(projectId: string, limit: number = 3) {
+  return await getSimilarProjects(projectId, limit);
+}
+
+export async function fetchProjectMentions(projectId: string) {
+  return await getProjectMentions(projectId);
+}
+
+export async function fetchRecentSocialMentions(limit: number = 30) {
+  return await getRecentSocialMentions(limit);
 }
 
 export async function triggerCrawlerSync(source: 'github' | 'huggingface') {
@@ -149,11 +162,12 @@ export async function fetchDetailedQueueStats() {
       };
     };
 
-    const [github, huggingface, githubUpdater, hfUpdater, scheduler, activeSchedulerJobs] = await Promise.all([
+    const [github, huggingface, githubUpdater, hfUpdater, social, scheduler, activeSchedulerJobs] = await Promise.all([
       getQueueDetails(crawlerQueue, 'github-crawler'),
       getQueueDetails(hfQueue, 'hf-crawler'),
       getQueueDetails(githubUpdaterQueue, 'github-updater'),
       getQueueDetails(hfUpdaterQueue, 'hf-updater'),
+      getQueueDetails(socialCrawlerQueue, 'social-crawler'),
       schedulerQueue 
         ? getQueueDetails(schedulerQueue, 'scheduler-queue')
         : Promise.resolve({ waiting: 0, active: 0, completed: 0, failed: 0, currentFailed: 0, delayed: 0, isPaused: false, total: 0, discovery: 0, update: 0 }),
@@ -172,18 +186,19 @@ export async function fetchDetailedQueueStats() {
       huggingface: { ...huggingface, isSyncRunning: hfSyncRunning === 'true' }, 
       githubUpdater,
       hfUpdater,
+      social,
       scheduler, 
       activeSchedulerJobs: activeJobNames 
     };
   } catch (error) {
     console.error("Failed to fetch detailed queue stats:", error);
     const empty = { waiting: 0, active: 0, completed: 0, failed: 0, currentFailed: 0, delayed: 0, isPaused: false, total: 0, discovery: 0, update: 0 };
-    return { github: empty, huggingface: empty, githubUpdater: empty, hfUpdater: empty, scheduler: empty, activeSchedulerJobs: [] };
+    return { github: empty, huggingface: empty, githubUpdater: empty, hfUpdater: empty, social: empty, scheduler: empty, activeSchedulerJobs: [] };
   }
 }
 
 
-export async function pauseQueue(source: 'github' | 'huggingface' | 'github-updater' | 'hf-updater' | 'scheduler') {
+export async function pauseQueue(source: 'github' | 'huggingface' | 'github-updater' | 'hf-updater' | 'scheduler' | 'social') {
   try {
     const queueMap: Record<string, Queue | null> = {
       'github': crawlerQueue,
@@ -191,6 +206,7 @@ export async function pauseQueue(source: 'github' | 'huggingface' | 'github-upda
       'github-updater': githubUpdaterQueue,
       'hf-updater': hfUpdaterQueue,
       'scheduler': schedulerQueue,
+      'social': socialCrawlerQueue,
     };
     const queue = queueMap[source];
     if (!queue) throw new Error(`Queue ${source} not initialized`);
@@ -203,7 +219,7 @@ export async function pauseQueue(source: 'github' | 'huggingface' | 'github-upda
   }
 }
 
-export async function resumeQueue(source: 'github' | 'huggingface' | 'github-updater' | 'hf-updater' | 'scheduler') {
+export async function resumeQueue(source: 'github' | 'huggingface' | 'github-updater' | 'hf-updater' | 'scheduler' | 'social') {
   try {
     const queueMap: Record<string, Queue | null> = {
       'github': crawlerQueue,
@@ -211,6 +227,7 @@ export async function resumeQueue(source: 'github' | 'huggingface' | 'github-upd
       'github-updater': githubUpdaterQueue,
       'hf-updater': hfUpdaterQueue,
       'scheduler': schedulerQueue,
+      'social': socialCrawlerQueue,
     };
     const queue = queueMap[source];
     if (!queue) throw new Error(`Queue ${source} not initialized`);
@@ -223,7 +240,7 @@ export async function resumeQueue(source: 'github' | 'huggingface' | 'github-upd
   }
 }
 
-export async function drainQueue(source: 'github' | 'huggingface' | 'github-updater' | 'hf-updater' | 'scheduler') {
+export async function drainQueue(source: 'github' | 'huggingface' | 'github-updater' | 'hf-updater' | 'scheduler' | 'social') {
   try {
     const queueMap: Record<string, Queue | null> = {
       'github': crawlerQueue,
@@ -231,6 +248,7 @@ export async function drainQueue(source: 'github' | 'huggingface' | 'github-upda
       'github-updater': githubUpdaterQueue,
       'hf-updater': hfUpdaterQueue,
       'scheduler': schedulerQueue,
+      'social': socialCrawlerQueue,
     };
     const queue = queueMap[source];
     if (!queue) throw new Error(`Queue ${source} not initialized`);
@@ -243,6 +261,7 @@ export async function drainQueue(source: 'github' | 'huggingface' | 'github-upda
       'github-updater': 'github-updater',
       'hf-updater': 'hf-updater',
       'scheduler': 'scheduler-queue',
+      'social': 'social-crawler',
     };
     const queueName = queueNameMap[source];
     try {
@@ -262,7 +281,7 @@ export async function drainQueue(source: 'github' | 'huggingface' | 'github-upda
   }
 }
 
-export async function retryFailedJobs(source: 'github' | 'huggingface' | 'github-updater' | 'hf-updater' | 'scheduler') {
+export async function retryFailedJobs(source: 'github' | 'huggingface' | 'github-updater' | 'hf-updater' | 'scheduler' | 'social') {
   try {
     const queueMap: Record<string, Queue | null> = {
       'github': crawlerQueue,
@@ -270,6 +289,7 @@ export async function retryFailedJobs(source: 'github' | 'huggingface' | 'github
       'github-updater': githubUpdaterQueue,
       'hf-updater': hfUpdaterQueue,
       'scheduler': schedulerQueue,
+      'social': socialCrawlerQueue,
     };
     const queue = queueMap[source];
     if (!queue) throw new Error(`Queue ${source} not initialized`);
@@ -292,7 +312,7 @@ export interface RecentJob {
   name: string;
   data: string;
   rawData: unknown;
-  queueName: 'github' | 'huggingface' | 'github-updater' | 'hf-updater' | 'scheduler';
+  queueName: 'github' | 'huggingface' | 'github-updater' | 'hf-updater' | 'scheduler' | 'social';
   status: 'active' | 'completed' | 'failed' | 'waiting' | 'delayed';
   timestamp: number;
   processedOn: number | null;
@@ -302,7 +322,7 @@ export interface RecentJob {
 }
 
 export async function fetchRecentJobs(
-  source: 'github' | 'huggingface' | 'github-updater' | 'hf-updater' | 'scheduler' | 'all',
+  source: 'github' | 'huggingface' | 'github-updater' | 'hf-updater' | 'scheduler' | 'social' | 'all',
   status: 'active' | 'completed' | 'failed' | 'waiting' | 'all',
   page: number = 0,
   limit: number = 10
@@ -314,6 +334,7 @@ export async function fetchRecentJobs(
       { queue: githubUpdaterQueue, label: 'github-updater' },
       { queue: hfUpdaterQueue, label: 'hf-updater' },
       { queue: schedulerQueue, label: 'scheduler' },
+      { queue: socialCrawlerQueue, label: 'social' },
     ];
 
     const queues = source === 'all'
@@ -340,7 +361,9 @@ export async function fetchRecentJobs(
             ? `${job.data?.owner || ''}/${job.data?.repo || ''}`
             : (label === 'huggingface' || label === 'hf-updater')
               ? `${job.data?.id || ''}`
-              : 'System Task Execution';
+              : label === 'social'
+                ? `Project ID: ${job.data?.projectId || ''}`
+                : 'System Task Execution';
           allJobs.push({
             id: job.id || '',
             name: job.name,
@@ -368,7 +391,7 @@ export async function fetchRecentJobs(
   }
 }
 
-export async function retryJob(queueName: 'github' | 'huggingface' | 'github-updater' | 'hf-updater' | 'scheduler', jobId: string) {
+export async function retryJob(queueName: 'github' | 'huggingface' | 'github-updater' | 'hf-updater' | 'scheduler' | 'social', jobId: string) {
   try {
     const queueMap: Record<string, Queue | null> = {
       'github': crawlerQueue,
@@ -376,6 +399,7 @@ export async function retryJob(queueName: 'github' | 'huggingface' | 'github-upd
       'github-updater': githubUpdaterQueue,
       'hf-updater': hfUpdaterQueue,
       'scheduler': schedulerQueue,
+      'social': socialCrawlerQueue,
     };
     const queue = queueMap[queueName];
     if (!queue) throw new Error(`Queue ${queueName} not initialized`);
@@ -390,7 +414,7 @@ export async function retryJob(queueName: 'github' | 'huggingface' | 'github-upd
   }
 }
 
-export async function removeJob(queueName: 'github' | 'huggingface' | 'github-updater' | 'hf-updater' | 'scheduler', jobId: string) {
+export async function removeJob(queueName: 'github' | 'huggingface' | 'github-updater' | 'hf-updater' | 'scheduler' | 'social', jobId: string) {
   try {
     const queueMap: Record<string, Queue | null> = {
       'github': crawlerQueue,
@@ -398,6 +422,7 @@ export async function removeJob(queueName: 'github' | 'huggingface' | 'github-up
       'github-updater': githubUpdaterQueue,
       'hf-updater': hfUpdaterQueue,
       'scheduler': schedulerQueue,
+      'social': socialCrawlerQueue,
     };
     const queue = queueMap[queueName];
     if (!queue) throw new Error(`Queue ${queueName} not initialized`);
@@ -685,6 +710,8 @@ export async function triggerJobNow(name: string) {
         crawlerQueue.resume(),
         hfQueue.resume(),
       ]);
+    } else if (name === 'social-mentions') {
+      await socialCrawlerQueue.resume();
     }
 
     return { success: true, message: `Triggered ${name} manually` };
@@ -865,5 +892,115 @@ export async function fetchAnalyticsData() {
     };
   }
 }
+
+export async function fetchCategories() {
+  try {
+    await ensureCategoriesLoaded();
+    const list = await db.select().from(categoriesTable).orderBy(categoriesTable.id);
+    return { success: true, categories: list };
+  } catch (error) {
+    console.error("[Admin] Failed to fetch categories:", error);
+    return { success: false, categories: [], error: String(error) };
+  }
+}
+
+export async function saveCategory(id: string, data: { icon: string; color: string; keywords: string[] }) {
+  try {
+    if (!id || id.trim() === "") throw new Error("Category ID is required");
+    if (!data.icon || data.icon.trim() === "") throw new Error("Icon is required");
+    if (!data.color || data.color.trim() === "") throw new Error("Color is required");
+
+    await db.insert(categoriesTable)
+      .values({
+        id: id.trim(),
+        icon: data.icon.trim(),
+        color: data.color.trim(),
+        keywords: data.keywords.map(k => k.trim()).filter(Boolean),
+        updatedAt: new Date()
+      })
+      .onConflictDoUpdate({
+        target: categoriesTable.id,
+        set: {
+          icon: data.icon.trim(),
+          color: data.color.trim(),
+          keywords: data.keywords.map(k => k.trim()).filter(Boolean),
+          updatedAt: new Date()
+        }
+      });
+
+    // Force refresh cache
+    await ensureCategoriesLoaded(true);
+
+    return { success: true };
+  } catch (error) {
+    console.error("[Admin] Failed to save category:", error);
+    return { success: false, error: String(error) };
+  }
+}
+
+export async function deleteCategory(id: string) {
+  try {
+    if (!id) throw new Error("Category ID is required");
+
+    await db.delete(categoriesTable).where(eq(categoriesTable.id, id));
+
+    // Force refresh cache
+    await ensureCategoriesLoaded(true);
+
+    return { success: true };
+  } catch (error) {
+    console.error("[Admin] Failed to delete category:", error);
+    return { success: false, error: String(error) };
+  }
+}
+
+export async function reCategorizeAllProjects() {
+  try {
+    await ensureCategoriesLoaded(true); // force fresh categories cache
+
+    // Fetch all project IDs, topics, and type
+    const allProjects = await db.select({
+      id: projects.id,
+      topics: projects.topics,
+      projectType: projects.projectType
+    }).from(projects);
+
+    let updatedCount = 0;
+    const CHUNK_SIZE = 100;
+
+    for (let i = 0; i < allProjects.length; i += CHUNK_SIZE) {
+      const chunk = allProjects.slice(i, i + CHUNK_SIZE);
+      
+      await Promise.all(chunk.map(async (project) => {
+        const rawTags = Array.isArray(project.topics) ? (project.topics as string[]) : [];
+        const computedCategories = await categorizeProject(
+          rawTags, 
+          project.projectType as 'repository' | 'model' | 'dataset'
+        );
+
+        await db.update(projects)
+          .set({ categories: computedCategories, updatedAt: new Date() })
+          .where(eq(projects.id, project.id));
+      }));
+
+      updatedCount += chunk.length;
+    }
+
+    return { success: true, count: updatedCount };
+  } catch (error) {
+    console.error("[Admin] Failed to re-categorize projects:", error);
+    return { success: false, error: String(error) };
+  }
+}
+
+export async function fetchDatabaseGrowthStats() {
+  try {
+    return await getDatabaseGrowthStats();
+  } catch (error) {
+    console.error("Error fetching database growth stats:", error);
+    return [];
+  }
+}
+
 
 

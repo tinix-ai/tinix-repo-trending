@@ -40,6 +40,7 @@ export function ProjectAvatar({ src, name, className, size = 48 }: ProjectAvatar
 
   if (src && !error) {
     return (
+      // eslint-disable-next-line @next/next/no-img-element
       <img
         src={src}
         alt={name}

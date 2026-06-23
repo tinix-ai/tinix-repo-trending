@@ -50,8 +50,9 @@ export async function handleHFCrawlJob(job: Job<HFCrawlJobData>) {
         const headers: Record<string, string> = {
           'Accept': isText ? 'text/plain' : 'application/json',
         };
-        if (process.env.HF_TOKEN) {
-          headers['Authorization'] = `Bearer ${process.env.HF_TOKEN}`;
+        const hfToken = (process.env.HF_TOKEN || '').replace(/^["']|["']$/g, '').trim();
+        if (hfToken) {
+          headers['Authorization'] = `Bearer ${hfToken}`;
         }
 
         const dispatcher = proxyManager.getRandomDispatcher();
@@ -176,7 +177,7 @@ export async function handleHFCrawlJob(job: Job<HFCrawlJobData>) {
     if (data.pipeline_tag) rawTags.push(data.pipeline_tag);
     if (type === 'datasets' && data.task_categories) rawTags.push(...data.task_categories);
     
-    const canonicalCategories = categorizeProject(rawTags, projectType);
+    const canonicalCategories = await categorizeProject(rawTags, projectType);
 
     let readme: Buffer | null = null;
     let finalDescription = data.cardData?.summary || data.description || '';

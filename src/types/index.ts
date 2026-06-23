@@ -100,8 +100,30 @@ export interface RankedProject extends Project {
   categories: Category[];
   tags: Tag[];
   sparklineData?: number[];
+  mentionsCount?: number;
 }
 
 export type RankingPeriod = "daily" | "weekly" | "monthly" | "yearly";
 export type ViewMode = "card" | "table" | "compact";
 export type SortField = "rank" | "stars" | "starsGained" | "forks" | "score";
+
+export interface ProjectMention {
+  id: string;
+  projectId: string;
+  source: string;
+  author: string;
+  authorAvatarUrl?: string;
+  content: string;
+  url: string;
+  score: number;
+  commentsCount: number;
+  mentionedAt: Date;
+  createdAt?: Date;
+}
+
+export interface RecentProjectMention extends ProjectMention {
+  projectSlug: string;
+  projectFullName: string;
+  projectName: string;
+  projectSource: ProjectSource;
+}

@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { Worker, Job } from 'bullmq';
 import { schedulerQueue, redisConnection } from './queue';
-import { runDailyDiscovery, runDailyUpdate, runTrendCalculation } from './cron';
+import { runDailyDiscovery, runDailyUpdate, runTrendCalculation, runDailySocialMentions } from './cron';
 import { startMemoryReporting } from './metrics';
 
 
@@ -37,6 +37,8 @@ const schedulerWorker = new Worker('scheduler-queue', async (job: Job) => {
       await runDailyUpdate(!!job.data?.force);
     } else if (job.name === 'trend-calculation') {
       await runTrendCalculation();
+    } else if (job.name === 'social-mentions') {
+      await runDailySocialMentions();
     } else {
       console.warn(`[Scheduler Worker] Unknown job name: ${job.name}`);
     }
@@ -89,22 +91,22 @@ async function setupRepeatableJobs() {
     console.error('[Scheduler Worker] Error cleaning up repeatable jobs:', error);
   }
 
-  // 1. Daily Discovery: Run at 00:00 every day
+  // 1. Daily Discovery: Run at 00:00 every day GMT+7
   await schedulerQueue.add('daily-discovery', {}, {
-    repeat: { pattern: '0 0 * * *' },
+    repeat: { pattern: '0 0 * * *', tz: 'Asia/Ho_Chi_Minh' },
     jobId: 'repeat-daily-discovery'
   });
 
-  // 2. Daily Update: Run at 00:30 every day
+  // 2. Daily Update: Run at 00:30 every day GMT+7
   await schedulerQueue.add('daily-update', {}, {
-    repeat: { pattern: '30 0 * * *' },
+    repeat: { pattern: '30 0 * * *', tz: 'Asia/Ho_Chi_Minh' },
     jobId: 'repeat-daily-update'
   });
 
-  // 3. Trend Calculation: Run every 30 minutes
-  await schedulerQueue.add('trend-calculation', {}, {
-    repeat: { pattern: '*/30 * * * *' },
-    jobId: 'repeat-trend-calculation'
+  // 3. Social Mentions Update: Run at 01:00 every day GMT+7
+  await schedulerQueue.add('social-mentions', {}, {
+    repeat: { pattern: '0 1 * * *', tz: 'Asia/Ho_Chi_Minh' },
+    jobId: 'repeat-social-mentions'
   });
 
   console.log('[Scheduler Worker] Repeatable jobs synced successfully.');

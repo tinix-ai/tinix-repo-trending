@@ -17,6 +17,7 @@ const globalForRedis = globalThis as unknown as {
   githubUpdaterQueue: Queue | undefined;
   hfUpdaterQueue: Queue | undefined;
   schedulerQueue: Queue | undefined;
+  socialCrawlerQueue: Queue | undefined;
 };
 
 const isNewConnection = !globalForRedis.redisConnection;
@@ -95,11 +96,25 @@ export const schedulerQueue = globalForRedis.schedulerQueue ?? new Queue('schedu
   },
 });
 
+export const socialCrawlerQueue = globalForRedis.socialCrawlerQueue ?? new Queue('social-crawler', {
+  connection: redisConnection as unknown as ConnectionOptions,
+  defaultJobOptions: {
+    attempts: 3,
+    backoff: {
+      type: 'exponential',
+      delay: 10000,
+    },
+    removeOnComplete: { count: 100 },
+    removeOnFail: { count: 500 },
+  },
+});
+
 if (process.env.NODE_ENV !== 'production') {
   globalForRedis.crawlerQueue = crawlerQueue;
   globalForRedis.hfQueue = hfQueue;
   globalForRedis.githubUpdaterQueue = githubUpdaterQueue;
   globalForRedis.hfUpdaterQueue = hfUpdaterQueue;
   globalForRedis.schedulerQueue = schedulerQueue;
+  globalForRedis.socialCrawlerQueue = socialCrawlerQueue;
 }
 

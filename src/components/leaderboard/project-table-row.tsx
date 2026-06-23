@@ -9,7 +9,6 @@ import { CategoryIcon } from "@/components/common/category-icon";
 
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
-import { useTranslations } from "next-intl";
 
 interface ProjectTableRowProps {
   project: RankedProject;
@@ -17,8 +16,7 @@ interface ProjectTableRowProps {
   days: number;
 }
 
-export function ProjectTableRow({ project, index, days }: ProjectTableRowProps) {
-  const t = useTranslations("HomePage");
+export function ProjectTableRow({ project, index, days: _days }: ProjectTableRowProps) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const currentFilter = searchParams.get("filter");

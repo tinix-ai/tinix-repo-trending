@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { SearchableSelect } from "@/components/common/searchable-select";
 import { CategoryIcon } from "@/components/common/category-icon";
+import { ComparisonDrawer } from "@/components/leaderboard/comparison-drawer";
 
 function getPageNumbers(currentPage: number, totalPages: number): (number | string)[] {
   const pages: (number | string)[] = [];
@@ -313,7 +314,20 @@ export default function HomePage() {
                       : "text-[var(--color-ink-muted-80)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-pearl)]"
                   }`}
                 >
-                  <span className="text-base leading-none">🤗</span>
+                  <svg 
+                    className="w-4 h-4" 
+                    viewBox="0 0 24 24" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    strokeWidth="2" 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round"
+                  >
+                    <path d="M18 10h-.01" />
+                    <path d="M6 10h-.01" />
+                    <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2z" />
+                    <path d="M8 15a5 5 0 0 0 8 0" />
+                  </svg>
                   {t("huggingfaceTab")}
                 </button>
               </div>
@@ -461,45 +475,7 @@ export default function HomePage() {
                 </div>
               </div>
 
-              {showAdvanced && (
-                <div className="pt-4 border-t border-[var(--color-divider-soft)] grid grid-cols-1 sm:grid-cols-3 gap-6 animate-in slide-in-from-top-2 fade-in duration-200">
-                  <div className="flex flex-col gap-2">
-                    <label className="text-[11px] font-semibold text-[var(--color-ink-muted-80)] uppercase tracking-wider">
-                      {t("timePeriod")}
-                    </label>
-                    <div className="flex items-center gap-3">
-                      <input 
-                        type="range" min="1" max="90" value={days}
-                        onChange={(e) => setDays(parseInt(e.target.value))}
-                        className="w-full accent-[var(--color-action-blue)]"
-                      />
-                      <span className="text-sm font-medium w-8 text-right tabular-nums">{days}</span>
-                    </div>
-                  </div>
 
-                  <div className="flex flex-col gap-2">
-                    <label className="text-[11px] font-semibold text-[var(--color-ink-muted-80)] uppercase tracking-wider">
-                      {t("minStars")}
-                    </label>
-                    <input 
-                      type="number" min="0" step="100" value={minStars}
-                      onChange={(e) => setMinStars(parseInt(e.target.value) || 0)}
-                      className="h-9 rounded-lg border border-[var(--color-hairline)] bg-[var(--color-canvas)] px-3 text-sm outline-none focus:border-[var(--color-action-blue)]"
-                    />
-                  </div>
-
-                  <div className="flex flex-col gap-2">
-                    <label className="text-[11px] font-semibold text-[var(--color-ink-muted-80)] uppercase tracking-wider">
-                      {t("minDownloads")}
-                    </label>
-                    <input 
-                      type="number" min="0" step="1000" value={minDownloads}
-                      onChange={(e) => setMinDownloads(parseInt(e.target.value) || 0)}
-                      className="h-9 rounded-lg border border-[var(--color-hairline)] bg-[var(--color-canvas)] px-3 text-sm outline-none focus:border-[var(--color-action-blue)]"
-                    />
-                  </div>
-                </div>
-              )}
             </div>
 
             <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
@@ -781,6 +757,98 @@ export default function HomePage() {
           </aside>
         </div>
       </section>
+
+      {/* Advanced Filters Drawer (Option A) */}
+      <div className={`fixed inset-0 z-50 transition-all duration-305 ${showAdvanced ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}>
+        <div 
+          className="absolute inset-0 bg-black/30 dark:bg-black/60 backdrop-blur-xs transition-opacity"
+          onClick={() => setShowAdvanced(false)}
+        />
+        <div className={`fixed right-0 top-0 bottom-0 w-full sm:w-[360px] bg-[var(--color-canvas)] border-l border-[var(--color-divider-soft)] shadow-2xl p-6 flex flex-col justify-between transform transition-transform duration-300 ease-out z-50 ${showAdvanced ? "translate-x-0" : "translate-x-full"}`}>
+          <div className="space-y-6">
+            <div className="flex items-center justify-between border-b border-[var(--color-divider-soft)] pb-4">
+              <h3 className="text-lg font-bold text-[var(--color-ink)] flex items-center gap-2">
+                <Settings2 className="h-5 w-5 text-[var(--color-action-blue)]" />
+                {t("advanced")}
+              </h3>
+              <button 
+                onClick={() => setShowAdvanced(false)}
+                className="w-8 h-8 rounded-full flex items-center justify-center text-[var(--color-ink-muted-80)] hover:bg-[var(--color-surface-pearl)] transition-colors cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-6">
+              {/* Time Period Filter */}
+              <div className="flex flex-col gap-2.5">
+                <label className="text-[11px] font-bold text-[var(--color-ink-muted-80)] uppercase tracking-wider">
+                  {t("timePeriod")} ({t("dayTime").toLowerCase()})
+                </label>
+                <div className="flex items-center gap-4 bg-[var(--color-surface-pearl)] border border-[var(--color-divider-soft)] rounded-xl p-3.5">
+                  <input 
+                    type="range" min="1" max="90" value={days}
+                    onChange={(e) => handleDaysChange(parseInt(e.target.value))}
+                    className="w-full accent-[var(--color-action-blue)] cursor-pointer"
+                  />
+                  <span className="text-sm font-bold text-[var(--color-ink)] font-mono w-8 text-right tabular-nums">{days}</span>
+                </div>
+              </div>
+
+              {/* Min Stars Filter */}
+              <div className="flex flex-col gap-2">
+                <label className="text-[11px] font-bold text-[var(--color-ink-muted-80)] uppercase tracking-wider">
+                  {t("minStars")}
+                </label>
+                <div className="relative">
+                  <input 
+                    type="number" min="0" step="100" value={minStars}
+                    onChange={(e) => setMinStars(parseInt(e.target.value) || 0)}
+                    className="w-full h-11 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-pearl)] px-4.5 text-sm outline-none focus:border-[var(--color-action-blue)] focus:ring-2 focus:ring-[var(--color-action-blue)]/10 text-[var(--color-ink)] font-semibold transition-all"
+                  />
+                  <span className="absolute right-3.5 top-3.5 text-xs text-[var(--color-ink-muted-48)] font-semibold font-mono">★</span>
+                </div>
+              </div>
+
+              {/* Min Downloads Filter */}
+              <div className="flex flex-col gap-2">
+                <label className="text-[11px] font-bold text-[var(--color-ink-muted-80)] uppercase tracking-wider">
+                  {t("minDownloads")}
+                </label>
+                <div className="relative">
+                  <input 
+                    type="number" min="0" step="1000" value={minDownloads}
+                    onChange={(e) => setMinDownloads(parseInt(e.target.value) || 0)}
+                    className="w-full h-11 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-pearl)] px-4.5 text-sm outline-none focus:border-[var(--color-action-blue)] focus:ring-2 focus:ring-[var(--color-action-blue)]/10 text-[var(--color-ink)] font-semibold transition-all"
+                  />
+                  <span className="absolute right-3.5 top-3.5 text-xs text-[var(--color-ink-muted-48)] font-semibold font-mono">⬇</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t border-[var(--color-divider-soft)] pt-4 flex gap-3">
+            <button
+              onClick={() => {
+                setDays(1);
+                setMinStars(100);
+                setMinDownloads(1000);
+                setShowAdvanced(false);
+              }}
+              className="flex-1 py-3 text-sm font-semibold rounded-xl bg-[var(--color-surface-pearl)] border border-[var(--color-border)] hover:bg-[var(--color-divider-soft)] text-[var(--color-ink)] transition-colors cursor-pointer"
+            >
+              Reset
+            </button>
+            <button
+              onClick={() => setShowAdvanced(false)}
+              className="flex-1 py-3 text-sm font-semibold rounded-xl bg-[var(--color-action-blue)] text-white hover:bg-[var(--color-accent-hover)] transition-colors cursor-pointer"
+            >
+              Apply
+            </button>
+          </div>
+        </div>
+      </div>
+      <ComparisonDrawer />
     </div>
   );
 }

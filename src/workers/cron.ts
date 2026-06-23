@@ -1,10 +1,13 @@
 import 'dotenv/config';
-import { crawlerQueue, githubUpdaterQueue, hfUpdaterQueue } from './queue';
+import { crawlerQueue, githubUpdaterQueue, hfUpdaterQueue, socialCrawlerQueue } from './queue';
 import { db } from '../lib/db';
-import { projects } from '../lib/db/schema';
+import { projects, projectMentions } from '../lib/db/schema';
 import { discoverNewRepos } from '../lib/crawlers/github-discovery';
 import { discoverHFTrending } from '../lib/crawlers/hf-discovery';
 import { eq, lte, or, isNull, sql, asc } from 'drizzle-orm';
+import { crawlHNMentions } from '../lib/crawlers/hn';
+import { crawlRedditMentions } from '../lib/crawlers/reddit';
+import { crawlTwitterMentions } from '../lib/crawlers/twitter';
 
 /**
  * Job 1: Daily Discovery
@@ -186,28 +189,30 @@ export async function runTrendCalculation() {
   try {
     const query = sql`
       WITH current_snaps AS (
-        SELECT DISTINCT ON (project_id) project_id, COALESCE(stars, likes, 0) as stars, downloads
+        SELECT DISTINCT ON (project_id) project_id, COALESCE(stars, likes, 0) as stars, downloads, snapshot_date
         FROM project_snapshots
-        WHERE snapshot_date <= CURRENT_DATE
         ORDER BY project_id, snapshot_date DESC
       ),
       daily_snaps AS (
-        SELECT DISTINCT ON (project_id) project_id, COALESCE(stars, likes, 0) as stars, downloads
-        FROM project_snapshots
-        WHERE snapshot_date <= CURRENT_DATE - INTERVAL '1 day'
-        ORDER BY project_id, snapshot_date DESC
+        SELECT DISTINCT ON (s.project_id) s.project_id, COALESCE(s.stars, s.likes, 0) as stars, s.downloads
+        FROM project_snapshots s
+        JOIN current_snaps c ON s.project_id = c.project_id
+        WHERE s.snapshot_date = (c.snapshot_date - INTERVAL '1 day')::date
+        ORDER BY s.project_id, s.snapshot_date DESC
       ),
       weekly_snaps AS (
-        SELECT DISTINCT ON (project_id) project_id, COALESCE(stars, likes, 0) as stars, downloads
-        FROM project_snapshots
-        WHERE snapshot_date <= CURRENT_DATE - INTERVAL '7 days'
-        ORDER BY project_id, snapshot_date DESC
+        SELECT DISTINCT ON (s.project_id) s.project_id, COALESCE(s.stars, s.likes, 0) as stars, s.downloads
+        FROM project_snapshots s
+        JOIN current_snaps c ON s.project_id = c.project_id
+        WHERE s.snapshot_date = (c.snapshot_date - INTERVAL '7 days')::date
+        ORDER BY s.project_id, s.snapshot_date DESC
       ),
       monthly_snaps AS (
-        SELECT DISTINCT ON (project_id) project_id, COALESCE(stars, likes, 0) as stars, downloads
-        FROM project_snapshots
-        WHERE snapshot_date <= CURRENT_DATE - INTERVAL '30 days'
-        ORDER BY project_id, snapshot_date DESC
+        SELECT DISTINCT ON (s.project_id) s.project_id, COALESCE(s.stars, s.likes, 0) as stars, s.downloads
+        FROM project_snapshots s
+        JOIN current_snaps c ON s.project_id = c.project_id
+        WHERE s.snapshot_date = (c.snapshot_date - INTERVAL '30 days')::date
+        ORDER BY s.project_id, s.snapshot_date DESC
       )
       INSERT INTO project_trends (
         project_id, 
@@ -252,31 +257,34 @@ export async function calculateProjectTrendInline(projectId: string) {
   try {
     const query = sql`
       WITH current_snaps AS (
-        SELECT COALESCE(stars, likes, 0) as stars, downloads
+        SELECT COALESCE(stars, likes, 0) as stars, downloads, snapshot_date
         FROM project_snapshots
-        WHERE project_id = ${projectId}::uuid AND snapshot_date <= CURRENT_DATE
+        WHERE project_id = ${projectId}::uuid
         ORDER BY snapshot_date DESC
         LIMIT 1
       ),
       daily_snaps AS (
-        SELECT COALESCE(stars, likes, 0) as stars, downloads
-        FROM project_snapshots
-        WHERE project_id = ${projectId}::uuid AND snapshot_date <= CURRENT_DATE - INTERVAL '1 day'
-        ORDER BY snapshot_date DESC
+        SELECT COALESCE(s.stars, s.likes, 0) as stars, s.downloads
+        FROM project_snapshots s
+        JOIN current_snaps c ON true
+        WHERE s.project_id = ${projectId}::uuid AND s.snapshot_date = (c.snapshot_date - INTERVAL '1 day')::date
+        ORDER BY s.snapshot_date DESC
         LIMIT 1
       ),
       weekly_snaps AS (
-        SELECT COALESCE(stars, likes, 0) as stars, downloads
-        FROM project_snapshots
-        WHERE project_id = ${projectId}::uuid AND snapshot_date <= CURRENT_DATE - INTERVAL '7 days'
-        ORDER BY snapshot_date DESC
+        SELECT COALESCE(s.stars, s.likes, 0) as stars, s.downloads
+        FROM project_snapshots s
+        JOIN current_snaps c ON true
+        WHERE s.project_id = ${projectId}::uuid AND s.snapshot_date = (c.snapshot_date - INTERVAL '7 days')::date
+        ORDER BY s.snapshot_date DESC
         LIMIT 1
       ),
       monthly_snaps AS (
-        SELECT COALESCE(stars, likes, 0) as stars, downloads
-        FROM project_snapshots
-        WHERE project_id = ${projectId}::uuid AND snapshot_date <= CURRENT_DATE - INTERVAL '30 days'
-        ORDER BY snapshot_date DESC
+        SELECT COALESCE(s.stars, s.likes, 0) as stars, s.downloads
+        FROM project_snapshots s
+        JOIN current_snaps c ON true
+        WHERE s.project_id = ${projectId}::uuid AND s.snapshot_date = (c.snapshot_date - INTERVAL '30 days')::date
+        ORDER BY s.snapshot_date DESC
         LIMIT 1
       )
       INSERT INTO project_trends (
@@ -312,6 +320,54 @@ export async function calculateProjectTrendInline(projectId: string) {
     console.log(`[Cron] Inline Trend Calculation completed for project: ${projectId}`);
   } catch (error) {
     console.error(`[Cron] Error running inline trend calculation for ${projectId}:`, error);
+  }
+}
+
+/**
+ * Job 4: Daily Social Mentions Fetcher
+ * Collects project discussion/mentions from Hacker News, Reddit, and X.
+ */
+export async function runDailySocialMentions() {
+  console.log('[Cron] Enqueuing Daily Social Mentions crawl jobs...');
+  try {
+    // 1. Fetch all projects with stars >= 100 (for GitHub) or likes >= 100 (for Hugging Face) using their latest snapshot
+    const result = await db.execute(sql`
+      WITH latest_snapshots AS (
+        SELECT DISTINCT ON (project_id) project_id, stars, likes
+        FROM project_snapshots
+        ORDER BY project_id, snapshot_date DESC
+      )
+      SELECT p.id, p.full_name as "fullName", p.source
+      FROM projects p
+      JOIN latest_snapshots s ON p.id = s.project_id
+      WHERE (p.source = 'github' AND COALESCE(s.stars, 0) >= 100)
+         OR (p.source = 'huggingface' AND COALESCE(s.likes, 0) >= 100)
+    `);
+
+    const activeProjects = result as unknown as { id: string; fullName: string; source: string }[];
+    console.log(`[Cron] Found ${activeProjects.length} projects with >= 100 stars/likes for social update.`);
+
+    const dateSuffix = new Date().toISOString().split('T')[0];
+    const jobs = activeProjects.map(project => ({
+      name: 'crawl-social',
+      data: {
+        projectId: project.id,
+      },
+      opts: {
+        jobId: `social-${project.id}-${dateSuffix}`,
+      }
+    }));
+
+    // Enqueue jobs in bulk (500 items per chunk)
+    const CHUNK_SIZE = 500;
+    for (let i = 0; i < jobs.length; i += CHUNK_SIZE) {
+      const chunk = jobs.slice(i, i + CHUNK_SIZE);
+      await socialCrawlerQueue.addBulk(chunk);
+    }
+
+    console.log(`[Cron] Bulk enqueued ${jobs.length} social crawler jobs in queue.`);
+  } catch (error) {
+    console.error('[Cron] Error enqueuing daily social mentions:', error);
   }
 }
 
