@@ -255,57 +255,60 @@ export async function runTrendCalculation() {
  */
 export async function calculateProjectTrendInline(projectId: string) {
   try {
-    const query = sql`
-      WITH current_snaps AS (
-        SELECT COALESCE(stars, likes, 0) as stars, downloads, snapshot_date
-        FROM project_snapshots
-        WHERE project_id = ${projectId}::uuid
-        ORDER BY snapshot_date DESC
-        LIMIT 1
-      ),
-      daily_snaps AS (
-        SELECT COALESCE(s.stars, s.likes, 0) as stars, s.downloads
-        FROM project_snapshots s
-        JOIN current_snaps c ON true
-        WHERE s.project_id = ${projectId}::uuid AND s.snapshot_date = (c.snapshot_date - INTERVAL '1 day')::date
-        ORDER BY s.snapshot_date DESC
-        LIMIT 1
-      ),
-      weekly_snaps AS (
-        SELECT COALESCE(s.stars, s.likes, 0) as stars, s.downloads
-        FROM project_snapshots s
-        JOIN current_snaps c ON true
-        WHERE s.project_id = ${projectId}::uuid AND s.snapshot_date = (c.snapshot_date - INTERVAL '7 days')::date
-        ORDER BY s.snapshot_date DESC
-        LIMIT 1
-      ),
-      monthly_snaps AS (
-        SELECT COALESCE(s.stars, s.likes, 0) as stars, s.downloads
-        FROM project_snapshots s
-        JOIN current_snaps c ON true
-        WHERE s.project_id = ${projectId}::uuid AND s.snapshot_date = (c.snapshot_date - INTERVAL '30 days')::date
-        ORDER BY s.snapshot_date DESC
-        LIMIT 1
-      )
+    // 1. Fetch snapshots for the project from the last 31 days
+    const snapshots = await db.execute(sql`
+      SELECT snapshot_date::text, COALESCE(stars, likes, 0) as stars, downloads
+      FROM project_snapshots
+      WHERE project_id = ${projectId}::uuid
+        AND snapshot_date >= CURRENT_DATE - INTERVAL '31 days'
+      ORDER BY snapshot_date DESC
+    `) as unknown as { snapshot_date: string; stars: number; downloads: number }[];
+
+    if (snapshots.length === 0) return;
+
+    // The first snapshot in the sorted list is the latest one
+    const latest = snapshots[0];
+    const latestDate = new Date(latest.snapshot_date);
+
+    // Helper to format Date back to YYYY-MM-DD
+    const formatDate = (date: Date) => {
+      return date.toISOString().split('T')[0];
+    };
+
+    const targetDate1d = formatDate(new Date(latestDate.getTime() - 1 * 24 * 60 * 60 * 1000));
+    const targetDate7d = formatDate(new Date(latestDate.getTime() - 7 * 24 * 60 * 60 * 1000));
+    const targetDate30d = formatDate(new Date(latestDate.getTime() - 30 * 24 * 60 * 60 * 1000));
+
+    // Find the closest snapshot on or before the target dates
+    const findSnapshot = (targetDateStr: string) => {
+      return snapshots.find(s => s.snapshot_date <= targetDateStr) || snapshots[snapshots.length - 1];
+    };
+
+    const snap1d = findSnapshot(targetDate1d);
+    const snap7d = findSnapshot(targetDate7d);
+    const snap30d = findSnapshot(targetDate30d);
+
+    const dailyStars = Math.max(0, latest.stars - (snap1d?.stars ?? latest.stars));
+    const weeklyStars = Math.max(0, latest.stars - (snap7d?.stars ?? latest.stars));
+    const monthlyStars = Math.max(0, latest.stars - (snap30d?.stars ?? latest.stars));
+
+    const dailyDownloads = Math.max(0, latest.downloads - (snap1d?.downloads ?? latest.downloads));
+    const weeklyDownloads = Math.max(0, latest.downloads - (snap7d?.downloads ?? latest.downloads));
+    const monthlyDownloads = Math.max(0, latest.downloads - (snap30d?.downloads ?? latest.downloads));
+
+    await db.execute(sql`
       INSERT INTO project_trends (
         project_id, 
         daily_stars, weekly_stars, monthly_stars, 
         daily_downloads, weekly_downloads, monthly_downloads,
         updated_at
       )
-      SELECT 
-        ${projectId}::uuid as project_id,
-        COALESCE(c.stars - d.stars, 0) as daily_stars,
-        COALESCE(c.stars - w.stars, 0) as weekly_stars,
-        COALESCE(c.stars - m.stars, 0) as monthly_stars,
-        COALESCE(c.downloads - d.downloads, 0) as daily_downloads,
-        COALESCE(c.downloads - w.downloads, 0) as weekly_downloads,
-        COALESCE(c.downloads - m.downloads, 0) as monthly_downloads,
-        NOW() as updated_at
-      FROM current_snaps c
-      LEFT JOIN daily_snaps d ON true
-      LEFT JOIN weekly_snaps w ON true
-      LEFT JOIN monthly_snaps m ON true
+      VALUES (
+        ${projectId}::uuid,
+        ${dailyStars}, ${weeklyStars}, ${monthlyStars},
+        ${dailyDownloads}, ${weeklyDownloads}, ${monthlyDownloads},
+        NOW()
+      )
       ON CONFLICT (project_id) DO UPDATE SET
         daily_stars = EXCLUDED.daily_stars,
         weekly_stars = EXCLUDED.weekly_stars,
@@ -314,9 +317,8 @@ export async function calculateProjectTrendInline(projectId: string) {
         weekly_downloads = EXCLUDED.weekly_downloads,
         monthly_downloads = EXCLUDED.monthly_downloads,
         updated_at = EXCLUDED.updated_at;
-    `;
+    `);
 
-    await db.execute(query);
     console.log(`[Cron] Inline Trend Calculation completed for project: ${projectId}`);
   } catch (error) {
     console.error(`[Cron] Error running inline trend calculation for ${projectId}:`, error);

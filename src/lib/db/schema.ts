@@ -39,6 +39,13 @@ export const projects = pgTable("projects", {
   ownerType: text("owner_type"), // 'user' | 'org'
   topics: jsonb("topics").default([]),
   categories: jsonb("categories").default([]),
+  stars: integer("stars").default(0),
+  forks: integer("forks").default(0),
+  watchers: integer("watchers").default(0),
+  openIssues: integer("open_issues").default(0),
+  downloads: integer("downloads").default(0),
+  likes: integer("likes").default(0),
+  contributorsCount: integer("contributors_count").default(0),
   extraMetadata: jsonb("extra_metadata").default({}),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -64,7 +71,8 @@ export const projectSnapshots = pgTable("project_snapshots", {
   snapshotDate: date("snapshot_date").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [
-  index("project_snapshot_date_idx").on(table.projectId, table.snapshotDate)
+  index("project_snapshot_date_idx").on(table.projectId, table.snapshotDate),
+  index("project_snapshot_date_only_idx").on(table.snapshotDate)
 ]);
 
 export const projectTrends = pgTable("project_trends", {

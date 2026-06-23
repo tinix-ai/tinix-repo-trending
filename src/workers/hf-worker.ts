@@ -223,6 +223,8 @@ export async function handleHFCrawlJob(job: Job<HFCrawlJobData>) {
         ownerType: 'organization', 
         topics: rawTags,
         categories: canonicalCategories,
+        likes: likes,
+        downloads: downloads,
         sourceCreatedAt: data.createdAt ? new Date(data.createdAt) : new Date(),
         sourceUpdatedAt: data.lastModified ? new Date(data.lastModified) : (data.createdAt ? new Date(data.createdAt) : new Date()),
         lastCrawledAt: new Date(),
@@ -235,6 +237,8 @@ export async function handleHFCrawlJob(job: Job<HFCrawlJobData>) {
           topics: rawTags,
           categories: canonicalCategories,
           primaryLanguage: data.pipeline_tag || (type === 'datasets' ? data.task_categories?.[0] : '') || '',
+          likes: likes,
+          downloads: downloads,
           lastCrawledAt: new Date(),
         }
       })

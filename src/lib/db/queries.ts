@@ -52,7 +52,16 @@ export async function getDynamicTrendingProjects(params: ProjectQueryParams): Pr
   const filters = [];
 
   if (filterType === "trending") {
-    filters.push(sql`momentum_score >= 0`);
+    // Exclude projects with zero growth
+    filters.push(sql`momentum_score > 0`);
+
+    // Apply dynamic noise filtering based on the time window
+    if (days === 7) {
+      filters.push(sql`((source = 'github' AND stars_gained >= 2) OR (source = 'huggingface' AND downloads_gained >= 20) OR (source NOT IN ('github', 'huggingface')))`);
+    } else if (days >= 30) {
+      filters.push(sql`((source = 'github' AND stars_gained >= 5) OR (source = 'huggingface' AND downloads_gained >= 50) OR (source NOT IN ('github', 'huggingface')))`);
+    }
+
     filters.push(sql`((source = 'github' AND stars >= ${minStars}) OR (source = 'huggingface' AND downloads >= ${minDownloads}) OR (source NOT IN ('github', 'huggingface')))`);
     // Exclude newly discovered projects (less than 24 hours in the system) from trending
     // to ensure they have at least one overnight snapshot for accurate momentum calculation.
@@ -114,22 +123,7 @@ export async function getDynamicTrendingProjects(params: ProjectQueryParams): Pr
     const downloadsGainedCol = days === 1 ? sql`t.daily_downloads` : days === 7 ? sql`t.weekly_downloads` : sql`t.monthly_downloads`;
 
     result = await db.execute(sql`
-      WITH current_snapshots AS (
-        SELECT DISTINCT ON (project_id) project_id, stars, forks, contributors_count, open_issues, likes, downloads, snapshot_date
-        FROM project_snapshots
-        ORDER BY project_id, snapshot_date DESC
-      ),
-      sparkline_history AS (
-        SELECT 
-          project_id,
-          json_agg(
-            COALESCE(stars, likes, 0) ORDER BY snapshot_date ASC
-          ) as sparkline_data
-        FROM project_snapshots
-        WHERE snapshot_date >= CURRENT_DATE - INTERVAL '14 days'
-        GROUP BY project_id
-      ),
-      deltas AS (
+      WITH deltas AS (
         SELECT 
           p.id as project_id,
           p.source,
@@ -169,18 +163,9 @@ export async function getDynamicTrendingProjects(params: ProjectQueryParams): Pr
             END, 0
           ), 0) as likes_gained,
           GREATEST(COALESCE(${downloadsGainedCol}, 0), 0) as downloads_gained,
-          sh.sparkline_data,
-          COALESCE(pm.mentions_count, 0) as mentions_count,
-          c.stars, c.forks, c.downloads, c.likes, c.open_issues, c.contributors_count as current_contributors_count
+          p.stars, p.forks, p.downloads, p.likes, p.open_issues, p.contributors_count as current_contributors_count
         FROM projects p
-        JOIN current_snapshots c ON p.id = c.project_id
         LEFT JOIN project_trends t ON p.id = t.project_id
-        LEFT JOIN sparkline_history sh ON p.id = sh.project_id
-        LEFT JOIN (
-          SELECT project_id, COUNT(*) as mentions_count
-          FROM project_mentions
-          GROUP BY project_id
-        ) pm ON p.id = pm.project_id
       ),
       scored AS (
         SELECT 
@@ -195,23 +180,35 @@ export async function getDynamicTrendingProjects(params: ProjectQueryParams): Pr
       filtered AS (
         SELECT * FROM scored
         WHERE ${whereFragment}
+      ),
+      paginated AS (
+        SELECT 
+          *,
+          COUNT(*) OVER() as total_count,
+          ROW_NUMBER() OVER(${orderFragment}) as rank
+        FROM filtered
+        ORDER BY rank ASC
+        LIMIT ${limit} OFFSET ${offset}
       )
       SELECT 
-        *,
-        COUNT(*) OVER() as total_count,
-        ROW_NUMBER() OVER(${orderFragment}) as rank
-      FROM filtered
-      ORDER BY rank ASC
-      LIMIT ${limit} OFFSET ${offset};
+        pg.*,
+        (
+          SELECT json_agg(COALESCE(stars, likes, 0) ORDER BY snapshot_date ASC)
+          FROM (
+            SELECT stars, likes, snapshot_date
+            FROM project_snapshots
+            WHERE project_id = pg.project_id
+              AND snapshot_date >= CURRENT_DATE - INTERVAL '14 days'
+            ORDER BY snapshot_date ASC
+          ) s
+        ) as sparkline_data,
+        (SELECT COUNT(*) FROM project_mentions pm WHERE pm.project_id = pg.project_id) as mentions_count
+      FROM paginated pg
+      ORDER BY pg.rank ASC;
     `);
   } else {
     result = await db.execute(sql`
-      WITH current_snapshots AS (
-        SELECT DISTINCT ON (project_id) project_id, stars, forks, contributors_count, open_issues, likes, downloads, snapshot_date
-        FROM project_snapshots
-        ORDER BY project_id, snapshot_date DESC
-      ),
-      previous_snapshots AS (
+      WITH previous_snapshots AS (
         SELECT DISTINCT ON (project_id) project_id, stars, forks, contributors_count, open_issues, likes, downloads, snapshot_date
         FROM project_snapshots
         WHERE snapshot_date <= CURRENT_DATE - ${days} * INTERVAL '1 day'
@@ -221,16 +218,6 @@ export async function getDynamicTrendingProjects(params: ProjectQueryParams): Pr
         SELECT DISTINCT ON (project_id) project_id, stars, forks, contributors_count, open_issues, likes, downloads, snapshot_date
         FROM project_snapshots
         ORDER BY project_id, snapshot_date ASC
-      ),
-      sparkline_history AS (
-        SELECT 
-          project_id,
-          json_agg(
-            COALESCE(stars, likes, 0) ORDER BY snapshot_date ASC
-          ) as sparkline_data
-        FROM project_snapshots
-        WHERE snapshot_date >= CURRENT_DATE - INTERVAL '14 days'
-        GROUP BY project_id
       ),
       deltas AS (
         SELECT 
@@ -257,24 +244,15 @@ export async function getDynamicTrendingProjects(params: ProjectQueryParams): Pr
           p.source_created_at,
           p.source_updated_at,
           p.categories,
-          GREATEST(c.stars - COALESCE(prev.stars, earliest.stars, c.stars), 0) as stars_gained,
-          GREATEST(c.forks - COALESCE(prev.forks, earliest.forks, c.forks), 0) as forks_gained,
-          GREATEST(c.contributors_count - COALESCE(prev.contributors_count, earliest.contributors_count, c.contributors_count), 0) as contributors_gained,
-          GREATEST(c.likes - COALESCE(prev.likes, earliest.likes, c.likes), 0) as likes_gained,
-          GREATEST(c.downloads - COALESCE(prev.downloads, earliest.downloads, c.downloads), 0) as downloads_gained,
-          sh.sparkline_data,
-          COALESCE(pm.mentions_count, 0) as mentions_count,
-          c.stars, c.forks, c.downloads, c.likes, c.open_issues, c.contributors_count as current_contributors_count
+          GREATEST(p.stars - COALESCE(prev.stars, earliest.stars, p.stars), 0) as stars_gained,
+          GREATEST(p.forks - COALESCE(prev.forks, earliest.forks, p.forks), 0) as forks_gained,
+          GREATEST(p.contributors_count - COALESCE(prev.contributors_count, earliest.contributors_count, p.contributors_count), 0) as contributors_gained,
+          GREATEST(p.likes - COALESCE(prev.likes, earliest.likes, p.likes), 0) as likes_gained,
+          GREATEST(p.downloads - COALESCE(prev.downloads, earliest.downloads, p.downloads), 0) as downloads_gained,
+          p.stars, p.forks, p.downloads, p.likes, p.open_issues, p.contributors_count as current_contributors_count
         FROM projects p
-        JOIN current_snapshots c ON p.id = c.project_id
         LEFT JOIN previous_snapshots prev ON p.id = prev.project_id
         LEFT JOIN earliest_snapshots earliest ON p.id = earliest.project_id
-        LEFT JOIN sparkline_history sh ON p.id = sh.project_id
-        LEFT JOIN (
-          SELECT project_id, COUNT(*) as mentions_count
-          FROM project_mentions
-          GROUP BY project_id
-        ) pm ON p.id = pm.project_id
       ),
       scored AS (
         SELECT 
@@ -289,14 +267,31 @@ export async function getDynamicTrendingProjects(params: ProjectQueryParams): Pr
       filtered AS (
         SELECT * FROM scored
         WHERE ${whereFragment}
+      ),
+      paginated AS (
+        SELECT 
+          *,
+          COUNT(*) OVER() as total_count,
+          ROW_NUMBER() OVER(${orderFragment}) as rank
+        FROM filtered
+        ORDER BY rank ASC
+        LIMIT ${limit} OFFSET ${offset}
       )
       SELECT 
-        *,
-        COUNT(*) OVER() as total_count,
-        ROW_NUMBER() OVER(${orderFragment}) as rank
-      FROM filtered
-      ORDER BY rank ASC
-      LIMIT ${limit} OFFSET ${offset};
+        pg.*,
+        (
+          SELECT json_agg(COALESCE(stars, likes, 0) ORDER BY snapshot_date ASC)
+          FROM (
+            SELECT stars, likes, snapshot_date
+            FROM project_snapshots
+            WHERE project_id = pg.project_id
+              AND snapshot_date >= CURRENT_DATE - INTERVAL '14 days'
+            ORDER BY snapshot_date ASC
+          ) s
+        ) as sparkline_data,
+        (SELECT COUNT(*) FROM project_mentions pm WHERE pm.project_id = pg.project_id) as mentions_count
+      FROM paginated pg
+      ORDER BY pg.rank ASC;
     `);
   }
 
@@ -370,14 +365,9 @@ export async function getGlobalStats() {
         (
           SELECT COUNT(*) 
           FROM projects p
-          JOIN (
-            SELECT DISTINCT ON (project_id) project_id, stars, downloads
-            FROM project_snapshots
-            ORDER BY project_id, snapshot_date DESC
-          ) c ON p.id = c.project_id
           WHERE 
-            (p.source = 'github' AND c.stars >= 100) OR
-            (p.source = 'huggingface' AND c.downloads >= 1000) OR
+            (p.source = 'github' AND p.stars >= 100) OR
+            (p.source = 'huggingface' AND p.downloads >= 1000) OR
             (p.source NOT IN ('github', 'huggingface'))
         ) as trending_projects,
         (SELECT COUNT(*) FROM projects WHERE source_created_at >= CURRENT_DATE - INTERVAL '30 days') as new_projects
@@ -466,18 +456,12 @@ export async function getProjectById(id: string) {
     const result = await db.execute(sql`
       SELECT 
         p.*,
-        COALESCE(ps.stars, 0) as current_stars,
-        COALESCE(ps.forks, 0) as current_forks,
-        COALESCE(ps.open_issues, 0) as current_issues,
-        COALESCE(ps.downloads, 0) as current_downloads,
-        COALESCE(ps.likes, 0) as current_likes
+        COALESCE(p.stars, 0) as current_stars,
+        COALESCE(p.forks, 0) as current_forks,
+        COALESCE(p.open_issues, 0) as current_issues,
+        COALESCE(p.downloads, 0) as current_downloads,
+        COALESCE(p.likes, 0) as current_likes
       FROM projects p
-      LEFT JOIN project_snapshots ps ON p.id = ps.project_id
-        AND ps.snapshot_date = (
-          SELECT MAX(snapshot_date) 
-          FROM project_snapshots 
-          WHERE project_id = p.id
-        )
       WHERE p.id = ${id}
       LIMIT 1
     `);
@@ -527,18 +511,12 @@ export async function getProjectBySlug(slug: string) {
     const result = await db.execute(sql`
       SELECT 
         p.*,
-        COALESCE(ps.stars, 0) as current_stars,
-        COALESCE(ps.forks, 0) as current_forks,
-        COALESCE(ps.open_issues, 0) as current_issues,
-        COALESCE(ps.downloads, 0) as current_downloads,
-        COALESCE(ps.likes, 0) as current_likes
+        COALESCE(p.stars, 0) as current_stars,
+        COALESCE(p.forks, 0) as current_forks,
+        COALESCE(p.open_issues, 0) as current_issues,
+        COALESCE(p.downloads, 0) as current_downloads,
+        COALESCE(p.likes, 0) as current_likes
       FROM projects p
-      LEFT JOIN project_snapshots ps ON p.id = ps.project_id
-        AND ps.snapshot_date = (
-          SELECT MAX(snapshot_date) 
-          FROM project_snapshots 
-          WHERE project_id = p.id
-        )
       WHERE p.slug = ${slug}
       LIMIT 1
     `);
@@ -734,8 +712,9 @@ export async function getDatabaseGrowthStats() {
   try {
     const result = await db.execute(sql`
       SELECT 
+        (SELECT COUNT(*) FROM projects WHERE created_at < CURRENT_DATE - INTERVAL '6 days') as base_count,
         TO_CHAR(d.day, 'YYYY-MM-DD') as date,
-        COALESCE(COUNT(p.id), 0) as count
+        COALESCE(p.count, 0) as new_count
       FROM (
         SELECT generate_series(
           CURRENT_DATE - INTERVAL '6 days',
@@ -743,16 +722,26 @@ export async function getDatabaseGrowthStats() {
           '1 day'::interval
         )::date as day
       ) d
-      LEFT JOIN projects p ON DATE(p.created_at) <= d.day
-      GROUP BY d.day
+      LEFT JOIN (
+        SELECT DATE(created_at) as day, COUNT(*) as count
+        FROM projects
+        WHERE created_at >= CURRENT_DATE - INTERVAL '6 days'
+        GROUP BY DATE(created_at)
+      ) p ON d.day = p.day
       ORDER BY d.day ASC;
     `);
     
+    let cumulative = 0;
+    if (result.length > 0) {
+      cumulative = Number((result[0] as Record<string, unknown>).base_count || 0);
+    }
+    
     return result.map(row => {
       const r = row as Record<string, unknown>;
+      cumulative += Number(r.new_count || 0);
       return {
         date: new Date(r.date as string).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-        count: Number(r.count)
+        count: cumulative
       };
     });
   } catch (error) {
@@ -852,22 +841,7 @@ export async function getSimilarProjects(projectId: string, limit: number = 3): 
       : sql`false`;
 
     const result = await db.execute(sql`
-      WITH current_snapshots AS (
-        SELECT DISTINCT ON (project_id) project_id, stars, forks, contributors_count, open_issues, likes, downloads, snapshot_date
-        FROM project_snapshots
-        ORDER BY project_id, snapshot_date DESC
-      ),
-      sparkline_history AS (
-        SELECT 
-          project_id,
-          json_agg(
-            COALESCE(stars, likes, 0) ORDER BY snapshot_date ASC
-          ) as sparkline_data
-        FROM project_snapshots
-        WHERE snapshot_date >= CURRENT_DATE - INTERVAL '14 days'
-        GROUP BY project_id
-      ),
-      similarity_scored AS (
+      WITH similarity_scored AS (
         SELECT 
           p.id as project_id,
           p.source,
@@ -892,24 +866,36 @@ export async function getSimilarProjects(projectId: string, limit: number = 3): 
           p.source_created_at,
           p.source_updated_at,
           p.categories,
-          sh.sparkline_data,
-          c.stars, c.forks, c.downloads, c.likes, c.open_issues, c.contributors_count as current_contributors_count,
+          p.stars, p.forks, p.downloads, p.likes, p.open_issues, p.contributors_count as current_contributors_count,
           (
             CASE WHEN ${categoriesArray} THEN 10 ELSE 0 END +
             CASE WHEN ${topicsArray} THEN 5 ELSE 0 END +
             CASE WHEN ${langMatch} THEN 3 ELSE 0 END
           ) as similarity_score
         FROM projects p
-        JOIN current_snapshots c ON p.id = c.project_id
-        LEFT JOIN sparkline_history sh ON p.id = sh.project_id
         WHERE p.id != ${projectId}::uuid
           AND (${categoriesArray} OR ${topicsArray} OR ${langMatch})
+      ),
+      paginated AS (
+        SELECT *
+        FROM similarity_scored
+        ORDER BY similarity_score DESC, 
+                 (CASE WHEN source = 'github' THEN COALESCE(stars, 0) ELSE COALESCE(likes, 0) * 5.0 + (COALESCE(downloads, 0) / 1000.0) END) DESC
+        LIMIT ${limit}
       )
-      SELECT *
-      FROM similarity_scored
-      ORDER BY similarity_score DESC, 
-               (CASE WHEN source = 'github' THEN COALESCE(stars, 0) ELSE COALESCE(likes, 0) * 5.0 + (COALESCE(downloads, 0) / 1000.0) END) DESC
-      LIMIT ${limit};
+      SELECT 
+        pg.*,
+        (
+          SELECT json_agg(COALESCE(stars, likes, 0) ORDER BY snapshot_date ASC)
+          FROM (
+            SELECT stars, likes, snapshot_date
+            FROM project_snapshots
+            WHERE project_id = pg.project_id
+              AND snapshot_date >= CURRENT_DATE - INTERVAL '14 days'
+            ORDER BY snapshot_date ASC
+          ) s
+        ) as sparkline_data
+      FROM paginated pg;
     `);
 
     return result.map(row => {

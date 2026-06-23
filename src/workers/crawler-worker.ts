@@ -40,7 +40,7 @@ interface CrawlJobData {
 }
 
 export async function handleGithubCrawlJob(job: Job<CrawlJobData>) {
-  const { owner, repo } = job.data;
+  let { owner, repo } = job.data;
   const currentQueue = job.queueName === 'github-updater' ? githubUpdaterQueue : crawlerQueue;
   const logPrefix = job.queueName === 'github-updater' ? '[GitHub Updater]' : '[Crawler]';
   console.log(`${logPrefix} Starting crawl for ${owner}/${repo}`);
@@ -164,6 +164,87 @@ export async function handleGithubCrawlJob(job: Job<CrawlJobData>) {
 
     const data = result.data;
 
+    // Detect if the repository has been renamed or transferred
+    const actualFullName = data.full_name || `${owner}/${repo}`;
+    const [actualOwner, actualRepo] = actualFullName.split('/');
+    const isRenamed = actualFullName.toLowerCase() !== `${owner.toLowerCase()}/${repo.toLowerCase()}`;
+
+    let projectId = job.data.projectId;
+
+    if (isRenamed) {
+      console.log(`${logPrefix} Rename detected for ${owner}/${repo} -> ${actualFullName}`);
+      const newSlug = `${actualOwner.toLowerCase()}-${actualRepo.toLowerCase()}`;
+
+      // Check if the target (new) project record already exists in the database
+      const existingNewProject = await db.select({ id: projects.id })
+        .from(projects)
+        .where(eq(projects.slug, newSlug))
+        .limit(1);
+
+      if (existingNewProject.length > 0) {
+        const targetId = existingNewProject[0].id;
+        console.log(`${logPrefix} Target project ${actualFullName} already exists with ID ${targetId}. Merging...`);
+
+        if (projectId && projectId !== targetId) {
+          // Reassign mentions
+          await db.execute(sql`
+            UPDATE project_mentions 
+            SET project_id = ${targetId}::uuid 
+            WHERE project_id = ${projectId}::uuid
+          `);
+
+          // Reassign snapshots (deleting duplicates first)
+          await db.execute(sql`
+            DELETE FROM project_snapshots 
+            WHERE project_id = ${projectId}::uuid 
+              AND snapshot_date IN (
+                SELECT snapshot_date 
+                FROM project_snapshots 
+                WHERE project_id = ${targetId}::uuid
+              )
+          `);
+          await db.execute(sql`
+            UPDATE project_snapshots 
+            SET project_id = ${targetId}::uuid 
+            WHERE project_id = ${projectId}::uuid
+          `);
+
+          // Delete old trends record
+          await db.execute(sql`
+            DELETE FROM project_trends 
+            WHERE project_id = ${projectId}::uuid
+          `);
+
+          // Delete old project record
+          await db.execute(sql`
+            DELETE FROM projects 
+            WHERE id = ${projectId}::uuid
+          `);
+        }
+
+        projectId = targetId;
+      } else {
+        // Case B: The new record does not exist yet. We can rename the old record in place!
+        if (projectId) {
+          console.log(`${logPrefix} Renaming database record ${projectId} from ${owner}/${repo} to ${actualFullName}`);
+          await db.update(projects)
+            .set({
+              sourceId: actualFullName,
+              slug: newSlug,
+              name: data.name,
+              fullName: actualFullName,
+              ownerName: actualOwner,
+              updatedAt: new Date()
+            })
+            .where(eq(projects.id, projectId));
+        }
+      }
+
+      // Update owner and repo variables for the rest of this crawl job execution
+      owner = actualOwner;
+      repo = actualRepo;
+    }
+
     // 2. Process data and update database
     const slug = `${owner.toLowerCase()}-${repo.toLowerCase()}`;
     
@@ -214,6 +295,10 @@ export async function handleGithubCrawlJob(job: Job<CrawlJobData>) {
         ownerType: data.owner?.type?.toLowerCase(),
         topics: data.topics || [],
         categories: canonicalCategories,
+        stars: data.stargazers_count || 0,
+        forks: data.forks_count || 0,
+        watchers: data.subscribers_count || 0,
+        openIssues: data.open_issues_count || 0,
         sourceCreatedAt: new Date(data.created_at),
         sourceUpdatedAt: new Date(data.pushed_at || data.updated_at || data.created_at),
         lastCrawledAt: new Date(),
@@ -227,6 +312,10 @@ export async function handleGithubCrawlJob(job: Job<CrawlJobData>) {
           primaryLanguage: data.language,
           topics: data.topics || [],
           categories: canonicalCategories,
+          stars: data.stargazers_count || 0,
+          forks: data.forks_count || 0,
+          watchers: data.subscribers_count || 0,
+          openIssues: data.open_issues_count || 0,
           lastCrawledAt: new Date(),
         }
       })
