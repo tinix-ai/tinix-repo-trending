@@ -603,11 +603,33 @@ body {
   }
   
   .apple-utility-card {
-    background-color: var(--color-canvas);
-    border: 1px solid var(--color-hairline);
+    background: rgba(255, 255, 255, 0.5);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
     border-radius: var(--radius-lg);
     padding: 24px;
     color: var(--color-ink);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.03);
+    transition: transform var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-base);
+  }
+  
+  .dark .apple-utility-card {
+    background: rgba(15, 23, 42, 0.45);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.4);
+  }
+
+  .apple-utility-card:hover {
+    border-color: rgba(0, 102, 204, 0.2);
+    box-shadow: 0 12px 40px rgba(0, 102, 204, 0.04);
+  }
+
+  .dark .apple-utility-card:hover {
+    border-color: rgba(41, 151, 255, 0.15);
+    box-shadow: 0 16px 48px rgba(41, 151, 255, 0.08);
   }
   
   .apple-product-shadow {
@@ -757,4 +779,91 @@ body {
   border-top: 1px solid var(--color-border);
   margin: 2em 0;
 }
+
+/* ─────────── UI/UX Pro Max Premium Styles ─────────── */
+.glass-card {
+  background: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.03);
+}
+
+.dark .glass-card {
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.4);
+}
+
+.glow-interactive {
+  position: relative;
+}
+
+.glow-interactive::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(
+    400px circle at var(--mouse-x, 0px) var(--mouse-y, 0px),
+    rgba(0, 102, 204, 0.06),
+    transparent 60%
+  );
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.dark .glow-interactive::before {
+  background: radial-gradient(
+    450px circle at var(--mouse-x, 0px) var(--mouse-y, 0px),
+    rgba(41, 151, 255, 0.09),
+    transparent 60%
+  );
+}
+
+.glow-interactive:hover::before {
+  opacity: 1;
+}
+
+.border-beam-active {
+  position: relative;
+}
+
+.border-beam-active::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: conic-gradient(
+    from var(--beam-deg, 0deg) at 50% 50%,
+    var(--color-action-blue) 0deg,
+    #34c759 120deg,
+    transparent 180deg,
+    var(--color-action-blue) 360deg
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.hover-spring {
+  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.15), box-shadow 0.3s ease;
+}
+
+.hover-spring:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-card-hover);
+}
+
+.hover-spring:active {
+  transform: translateY(-1px);
+}
+
 

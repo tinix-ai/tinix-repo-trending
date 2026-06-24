@@ -9,7 +9,7 @@ import { formatNumber } from "@/lib/utils";
 import { fetchDynamicRankings, fetchGlobalStats, fetchCategoryStats, fetchPopularFilters } from "../actions";
 import { useTranslations } from "next-intl";
 import { Link, useRouter, usePathname } from "@/i18n/routing";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useParams } from "next/navigation";
 import {
   TrendingUp,
   Zap,
@@ -20,10 +20,12 @@ import {
   Database,
   Sparkles,
   Github,
+  Search,
 } from "lucide-react";
 import { SearchableSelect } from "@/components/common/searchable-select";
 import { CategoryIcon } from "@/components/common/category-icon";
 import { ComparisonDrawer } from "@/components/leaderboard/comparison-drawer";
+import { TopRankedGrid } from "@/components/leaderboard/top-ranked-grid";
 
 function getPageNumbers(currentPage: number, totalPages: number): (number | string)[] {
   const pages: (number | string)[] = [];
@@ -59,12 +61,112 @@ function getPageNumbers(currentPage: number, totalPages: number): (number | stri
 export default function HomePage() {
   const router = useRouter();
   const pathname = usePathname();
+  const params = useParams();
+  const locale = (params?.locale as string) || "vi";
   const [view, setView] = useState<ViewMode>("card");
   const [selectedLanguage, setSelectedLanguage] = useState<string>("");
   const [showAdvanced, setShowAdvanced] = useState<boolean>(false);
   
   const searchParams = useSearchParams();
   const selectedSource = searchParams.get("source") || "github";
+
+  // Advanced Search States
+  const [searchValue, setSearchValue] = useState<string>(searchParams.get("q") || "");
+  const [advLicense, setAdvLicense] = useState<string>(searchParams.get("license") || "");
+  const [advCountry, setAdvCountry] = useState<string>(searchParams.get("country") || "");
+  const [advOwner, setAdvOwner] = useState<string>(searchParams.get("owner") || "");
+  const [showAdvancedSearch, setShowAdvancedSearch] = useState<boolean>(false);
+
+  useEffect(() => {
+    const q = searchParams.get("q") || "";
+    const lic = searchParams.get("license") || "";
+    const cty = searchParams.get("country") || "";
+    const own = searchParams.get("owner") || "";
+
+    Promise.resolve().then(() => {
+      setSearchValue(q);
+      setAdvLicense(lic);
+      setAdvCountry(cty);
+      setAdvOwner(own);
+    });
+  }, [searchParams]);
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const params = new URLSearchParams(searchParams.toString());
+    
+    let cleanQ = searchValue;
+    const licenseMatch = cleanQ.match(/license:([^\s]+)/i);
+    let parsedLic = advLicense;
+    if (licenseMatch) {
+      parsedLic = licenseMatch[1];
+      cleanQ = cleanQ.replace(/license:[^\s]+/i, "");
+    }
+    const countryMatch = cleanQ.match(/country:([^\s]+)/i);
+    let parsedCty = advCountry;
+    if (countryMatch) {
+      parsedCty = countryMatch[1];
+      cleanQ = cleanQ.replace(/country:[^\s]+/i, "");
+    }
+    const ownerMatch = cleanQ.match(/owner:([^\s]+)/i);
+    let parsedOwn = advOwner;
+    if (ownerMatch) {
+      parsedOwn = ownerMatch[1];
+      cleanQ = cleanQ.replace(/owner:[^\s]+/i, "");
+    }
+    
+    cleanQ = cleanQ.trim();
+    
+    if (cleanQ) params.set("q", cleanQ);
+    else params.delete("q");
+    
+    if (parsedLic) params.set("license", parsedLic);
+    else params.delete("license");
+    
+    if (parsedCty) params.set("country", parsedCty);
+    else params.delete("country");
+    
+    if (parsedOwn) params.set("owner", parsedOwn);
+    else params.delete("owner");
+    
+    params.delete("page");
+    router.push(`${pathname}?${params.toString()}`);
+  };
+
+  const handleApplySearch = () => {
+    const params = new URLSearchParams(searchParams.toString());
+    
+    if (searchValue.trim()) params.set("q", searchValue.trim());
+    else params.delete("q");
+    
+    if (advLicense) params.set("license", advLicense);
+    else params.delete("license");
+    
+    if (advCountry) params.set("country", advCountry);
+    else params.delete("country");
+    
+    if (advOwner) params.set("owner", advOwner);
+    else params.delete("owner");
+    
+    params.delete("page");
+    setShowAdvancedSearch(false);
+    router.push(`${pathname}?${params.toString()}`);
+  };
+
+  const handleResetSearch = () => {
+    setSearchValue("");
+    setAdvLicense("");
+    setAdvCountry("");
+    setAdvOwner("");
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("q");
+    params.delete("license");
+    params.delete("country");
+    params.delete("owner");
+    params.delete("page");
+    setShowAdvancedSearch(false);
+    router.push(`${pathname}?${params.toString()}`);
+  };
 
   // Dynamic Ranking Filters
   const [days, setDays] = useState<number>(Number(searchParams.get("days")) || 1);
@@ -74,7 +176,7 @@ export default function HomePage() {
   // Pagination & Filter
   const currentPage = Number(searchParams.get("page")) || 1;
   const filterType = (searchParams.get("filter") as "trending" | "all" | "new") || "trending";
-  const sortBy = (searchParams.get("sortBy") as "project" | "stars" | "trend" | "updated") || undefined;
+  const sortBy = (searchParams.get("sortBy") as "project" | "stars" | "trend" | "updated" | "views") || undefined;
   const sortOrder = (searchParams.get("sortOrder") as "asc" | "desc") || undefined;
   const itemsPerPage = 20;
 
@@ -83,7 +185,7 @@ export default function HomePage() {
   const [totalProjects, setTotalProjects] = useState(0);
   const [stats, setStats] = useState({ totalProjects: 12847, trendingProjects: 2340, newProjects: 0 });
   const [categories, setCategories] = useState<Category[]>([]);
-  const [popularFilters, setPopularFilters] = useState<{ languages: string[], hashtags: string[] }>({ languages: [], hashtags: [] });
+  const [popularFilters, setPopularFilters] = useState<{ languages: string[], hashtags: string[], countries: string[] }>({ languages: [], hashtags: [], countries: [] });
   const [isPending, startTransition] = useTransition();
   const searchQuery = searchParams.get("q")?.toLowerCase() || "";
   const selectedTag = searchParams.get("tag") || "";
@@ -194,13 +296,16 @@ export default function HomePage() {
         tag: selectedTag || undefined,
         filterType,
         sortBy,
-        sortOrder
+        sortOrder,
+        license: searchParams.get("license") || undefined,
+        country: searchParams.get("country") || undefined,
+        owner: searchParams.get("owner") || undefined
       }).then((res) => {
         setProjects(res.projects);
         setTotalProjects(res.total);
       });
     });
-  }, [days, minStars, minDownloads, selectedCategory, categoryParam, selectedSource, selectedLanguage, searchQuery, selectedTag, currentPage, filterType, sortBy, sortOrder]);
+  }, [days, minStars, minDownloads, selectedCategory, categoryParam, selectedSource, selectedLanguage, searchQuery, selectedTag, currentPage, filterType, sortBy, sortOrder, searchParams]);
 
   const filteredProjects = projects;
   const paginatedProjects = filteredProjects;
@@ -217,6 +322,49 @@ export default function HomePage() {
 
   const languages = popularFilters.languages;
   const hashtags = popularFilters.hashtags;
+  const countries = popularFilters.countries || [];
+
+  const displayNames = new Intl.DisplayNames([locale], { type: "region" });
+  const countryOptions = countries.map((code) => {
+    try {
+      return displayNames.of(code.toUpperCase()) || code.toUpperCase();
+    } catch {
+      return code.toUpperCase();
+    }
+  });
+
+  const selectedCountryCode = searchParams.get("country") || "";
+  let selectedCountryName = "";
+  if (selectedCountryCode) {
+    try {
+      selectedCountryName = displayNames.of(selectedCountryCode.toUpperCase()) || selectedCountryCode.toUpperCase();
+    } catch {
+      selectedCountryName = selectedCountryCode.toUpperCase();
+    }
+  }
+
+  const handleCountryChange = (name: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (name) {
+      const foundCode = countries.find((code) => {
+        try {
+          return displayNames.of(code.toUpperCase()) === name;
+        } catch {
+          return code.toUpperCase() === name;
+        }
+      });
+      if (foundCode) {
+        params.set("country", foundCode);
+      } else {
+        params.set("country", name.toLowerCase());
+      }
+    } else {
+      params.delete("country");
+    }
+    params.delete("page");
+    router.push(`${pathname}?${params.toString()}`);
+  };
+
   const categoryOptions = categories.map(c => c.name);
 
   return (
@@ -247,9 +395,212 @@ export default function HomePage() {
             <p className="text-sm sm:text-base text-[var(--color-ink-muted-80)] max-w-xl leading-relaxed">
               {t("heroDesc")}
             </p>
+
+            {/* Redesigned Search & Advanced Filters */}
+            <div className="w-full max-w-2xl mx-auto mt-6 relative z-40">
+              <form onSubmit={handleSearchSubmit} className="relative flex items-center bg-[var(--color-surface-elevated)] border border-[var(--color-divider-soft)] rounded-2xl p-1.5 shadow-lg backdrop-blur-md transition-all duration-305 focus-within:border-[var(--color-action-blue)]/50 focus-within:ring-2 focus-within:ring-[var(--color-action-blue)]/10">
+                <div className="flex-1 flex items-center pl-3">
+                  <Search className="h-5 w-5 text-[var(--color-ink-muted-48)] shrink-0" />
+                  <input
+                    type="text"
+                    value={searchValue}
+                    onChange={(e) => setSearchValue(e.target.value)}
+                    placeholder="Search projects, models, datasets..."
+                    className="w-full bg-transparent border-0 outline-none text-sm text-[var(--color-ink)] placeholder:text-[var(--color-ink-muted-48)] px-2.5 h-10"
+                  />
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setShowAdvancedSearch(!showAdvancedSearch)}
+                    className={`flex items-center justify-center h-10 px-3.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${
+                      showAdvancedSearch
+                        ? "bg-[var(--color-action-blue)]/10 border-[var(--color-action-blue)]/20 text-[var(--color-action-blue)]"
+                        : "border-[var(--color-hairline)] text-[var(--color-ink-muted-80)] hover:bg-[var(--color-surface-pearl)]"
+                    }`}
+                  >
+                    <Settings2 className="h-3.5 w-3.5 sm:mr-1.5" />
+                    <span className="hidden sm:inline">Advanced</span>
+                  </button>
+                  <button
+                    type="submit"
+                    className="apple-btn-primary h-10 px-5 text-xs font-bold rounded-xl cursor-pointer"
+                  >
+                    Search
+                  </button>
+                </div>
+              </form>
+
+              {/* Advanced Panel Dropdown */}
+              {showAdvancedSearch && (
+                <div className="absolute top-full left-0 right-0 mt-3 p-5 bg-[var(--color-surface-elevated)] border border-[var(--color-divider-soft)] rounded-2xl shadow-xl backdrop-blur-lg animate-in fade-in-50 slide-in-from-top-3 duration-250 flex flex-col gap-4 text-left">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    {/* Owner Input */}
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[10px] font-bold text-[var(--color-ink-muted-80)] uppercase tracking-wider">
+                        Owner / Org
+                      </label>
+                      <input
+                        type="text"
+                        value={advOwner}
+                        onChange={(e) => setAdvOwner(e.target.value)}
+                        placeholder="e.g. google, meta"
+                        className="h-9 px-3 rounded-lg border border-[var(--color-hairline)] bg-[var(--color-canvas)] text-xs text-[var(--color-ink)] placeholder:text-[var(--color-ink-muted-48)] outline-none focus:border-[var(--color-action-blue)]"
+                      />
+                    </div>
+
+                    {/* Country Selector */}
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[10px] font-bold text-[var(--color-ink-muted-80)] uppercase tracking-wider">
+                        Country
+                      </label>
+                      <select
+                        value={advCountry}
+                        onChange={(e) => setAdvCountry(e.target.value)}
+                        className="h-9 px-2.5 rounded-lg border border-[var(--color-hairline)] bg-[var(--color-canvas)] text-xs text-[var(--color-ink)] outline-none focus:border-[var(--color-action-blue)] cursor-pointer"
+                      >
+                        <option value="">Any Country</option>
+                        <option value="us">🇺🇸 United States</option>
+                        <option value="vn">🇻🇳 Vietnam</option>
+                        <option value="sg">🇸🇬 Singapore</option>
+                        <option value="fr">🇫🇷 France</option>
+                        <option value="de">🇩🇪 Germany</option>
+                        <option value="jp">🇯🇵 Japan</option>
+                        <option value="cn">🇨🇳 China</option>
+                        <option value="gb">🇬🇧 United Kingdom</option>
+                        <option value="ca">🇨🇦 Canada</option>
+                      </select>
+                    </div>
+
+                    {/* License Selector */}
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-[10px] font-bold text-[var(--color-ink-muted-80)] uppercase tracking-wider">
+                        License
+                      </label>
+                      <select
+                        value={advLicense}
+                        onChange={(e) => setAdvLicense(e.target.value)}
+                        className="h-9 px-2.5 rounded-lg border border-[var(--color-hairline)] bg-[var(--color-canvas)] text-xs text-[var(--color-ink)] outline-none focus:border-[var(--color-action-blue)] cursor-pointer"
+                      >
+                        <option value="">Any License</option>
+                        <option value="mit">MIT</option>
+                        <option value="apache-2.0">Apache 2.0</option>
+                        <option value="gpl">GPL</option>
+                        <option value="bsd">BSD</option>
+                        <option value="apache">Apache</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Actions & Cheat-sheet tips */}
+                  <div className="flex items-between justify-between border-t border-[var(--color-divider-soft)] pt-4 mt-1 flex-wrap gap-3">
+                    <p className="text-[11px] text-[var(--color-ink-muted-80)] italic leading-none">
+                      💡 Tip: type <code className="bg-[var(--color-canvas)] px-1.5 py-0.5 rounded text-blue-500 font-mono font-semibold">owner:meta</code> directly in search.
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={handleResetSearch}
+                        className="h-8 px-4 text-xs font-semibold rounded-lg bg-[var(--color-surface-pearl)] hover:bg-[var(--color-divider-soft)] text-[var(--color-ink)] transition-colors cursor-pointer"
+                      >
+                        Reset
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleApplySearch}
+                        className="h-8 px-4 text-xs font-semibold rounded-lg bg-[var(--color-action-blue)] text-white hover:bg-[var(--color-accent-hover)] transition-colors cursor-pointer"
+                      >
+                        Apply
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Active Filter Chips */}
+              {(searchParams.get("license") || searchParams.get("country") || searchParams.get("owner")) && (
+                <div className="flex flex-wrap items-center gap-1.5 mt-3 justify-center animate-in fade-in duration-200">
+                  {searchParams.get("owner") && (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold bg-[var(--color-bg-secondary)] border border-[var(--color-border)] text-[var(--color-ink)] uppercase">
+                      Owner: {searchParams.get("owner")}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const params = new URLSearchParams(searchParams.toString());
+                          params.delete("owner");
+                          params.delete("page");
+                          router.push(`${pathname}?${params.toString()}`);
+                        }}
+                        className="hover:bg-[var(--color-divider-soft)] rounded p-0.5"
+                      >
+                        ✕
+                      </button>
+                    </span>
+                  )}
+                  {searchParams.get("country") && (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold bg-[var(--color-bg-secondary)] border border-[var(--color-border)] text-[var(--color-ink)] uppercase">
+                      Country: {searchParams.get("country")?.toUpperCase()}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const params = new URLSearchParams(searchParams.toString());
+                          params.delete("country");
+                          params.delete("page");
+                          router.push(`${pathname}?${params.toString()}`);
+                        }}
+                        className="hover:bg-[var(--color-divider-soft)] rounded p-0.5"
+                      >
+                        ✕
+                      </button>
+                    </span>
+                  )}
+                  {searchParams.get("license") && (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold bg-[var(--color-bg-secondary)] border border-[var(--color-border)] text-[var(--color-ink)] uppercase">
+                      License: {searchParams.get("license")}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const params = new URLSearchParams(searchParams.toString());
+                          params.delete("license");
+                          params.delete("page");
+                          router.push(`${pathname}?${params.toString()}`);
+                        }}
+                        className="hover:bg-[var(--color-divider-soft)] rounded p-0.5"
+                      >
+                        ✕
+                      </button>
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {/* Popular/Hot Topics Row */}
+              <div className="flex flex-wrap items-center justify-center gap-2 mt-4.5 text-xs animate-in fade-in duration-300">
+                <span className="text-[var(--color-ink-muted-80)] flex items-center gap-1 font-semibold select-none">
+                  <Flame className="h-3.5 w-3.5 text-amber-500" />
+                  Trending:
+                </span>
+                {(hashtags.length > 0 ? hashtags.slice(0, 5) : ["AI Agent", "MCP", "RAG", "LLM", "Rust"]).map((topic) => {
+                  const isActive = selectedTag === topic;
+                  return (
+                    <Link
+                      key={topic}
+                      href={isActive ? "/" : `/?tag=${encodeURIComponent(topic)}`}
+                      className={`inline-flex items-center rounded-full px-3 py-1.5 font-semibold transition-all duration-200 border cursor-pointer active:scale-95 ${
+                        isActive
+                          ? "bg-[var(--color-action-blue)] border-[var(--color-action-blue)] text-white shadow-md shadow-blue-500/10"
+                          : "border-[var(--color-divider-soft)] bg-[var(--color-surface-elevated)]/60 text-[var(--color-ink-muted-80)] hover:border-[var(--color-action-blue)]/40 hover:text-[var(--color-action-blue)] hover:bg-[var(--color-action-blue)]/[0.03] hover:shadow-sm"
+                      }`}
+                    >
+                      #{topic}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
           </div>
 
-          <div className="flex items-center justify-center divide-x divide-[var(--color-divider-soft)] bg-[var(--color-surface-pearl)] border border-[var(--color-border)] rounded-full px-6 py-3.5 shadow-sm max-w-xl w-full mx-auto">
+          <div className="flex items-center justify-center divide-x divide-[var(--color-divider-soft)] glass-card border border-[var(--color-divider-soft)] rounded-2xl px-6 py-4 shadow-md max-w-xl w-full mx-auto backdrop-blur-md">
             <div className="flex-1 flex flex-col items-center px-2">
               <div className="flex items-center gap-1.5 text-[var(--color-action-blue)] mb-0.5">
                 <TrendingUp className="h-4 w-4 shrink-0" />
@@ -441,6 +792,16 @@ export default function HomePage() {
                     />
                   )}
 
+                  {(!selectedSource || selectedSource === "github") && countryOptions.length > 0 && (
+                    <SearchableSelect
+                      options={countryOptions}
+                      value={selectedCountryName}
+                      onChange={handleCountryChange}
+                      placeholder={t("allCountries")}
+                      className="w-full sm:w-36 md:w-[130px] lg:w-36 xl:w-[150px]"
+                    />
+                  )}
+
                   {hashtags.length > 0 && (
                     <SearchableSelect
                       options={hashtags.includes(selectedTag) ? hashtags : [selectedTag, ...hashtags].filter(Boolean)}
@@ -495,6 +856,18 @@ export default function HomePage() {
                     </button>
                   </span>
                 )}
+                {selectedCountryCode && (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-[var(--color-action-blue)]/10 text-[var(--color-action-blue)] border border-[var(--color-action-blue)]/20 animate-in fade-in duration-200 select-none">
+                    {selectedCountryName}
+                    <button
+                      onClick={() => handleCountryChange("")}
+                      className="hover:bg-[var(--color-action-blue)]/20 rounded-full p-0.5 transition-colors cursor-pointer shrink-0"
+                      aria-label="Clear country filter"
+                    >
+                      <span className="text-[10px] font-bold">✕</span>
+                    </button>
+                  </span>
+                )}
               </div>
 
               {/* Sort Controls */}
@@ -522,6 +895,7 @@ export default function HomePage() {
                   <option value="stars-desc">{t("sortStarsDesc")}</option>
                   <option value="stars-asc">{t("sortStarsAsc")}</option>
                   <option value="updated-desc">{t("sortUpdatedDesc")}</option>
+                  <option value="views-desc">{t("sortViewsDesc")}</option>
                 </select>
               </div>
             </div>
@@ -529,9 +903,24 @@ export default function HomePage() {
             <div className={`transition-opacity duration-300 ${isPending ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
               {view === "card" ? (
                 <div className="flex flex-col gap-4">
-                  {paginatedProjects.map((project, i) => (
-                    <ProjectCard key={project.id} project={project} index={i} days={days} />
-                  ))}
+                  {currentPage === 1 ? (
+                    <>
+                      {/* Top 3 Premium Grid */}
+                      <TopRankedGrid 
+                        projects={paginatedProjects.slice(0, 3)} 
+                        days={days} 
+                      />
+                      
+                      {/* Vị trí thứ 4 trở đi */}
+                      {paginatedProjects.slice(3).map((project, i) => (
+                        <ProjectCard key={project.id} project={project} index={i + 3} days={days} />
+                      ))}
+                    </>
+                  ) : (
+                    paginatedProjects.map((project, i) => (
+                      <ProjectCard key={project.id} project={project} index={i} days={days} />
+                    ))
+                  )}
                 </div>
               ) : view === "table" ? (
                 <div className="apple-utility-card overflow-hidden p-0">
@@ -720,27 +1109,41 @@ export default function HomePage() {
             </div>
 
             {/* Trending Topics */}
-            <div className="apple-utility-card p-6">
-              <h2 className="text-apple-body-strong mb-6 flex items-center gap-2">
-                <Zap className="h-4 w-4 text-amber-500" />
+            <div className="apple-utility-card p-6 relative overflow-hidden group/widget">
+              <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-amber-500/5 blur-xl transition-all duration-500 group-hover/widget:bg-amber-500/10 pointer-events-none" />
+              <h2 className="text-apple-body-strong mb-5 flex items-center gap-2 font-bold text-[var(--color-ink)]">
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-500/10 text-amber-500 shadow-[0_0_12px_rgba(245,158,11,0.1)]">
+                  <Zap className="h-4 w-4 animate-pulse" />
+                </div>
                 {t("hotTopicsWidget")}
               </h2>
               <div className="flex flex-wrap gap-2">
-                {(hashtags.length > 0 ? hashtags : ["AI Agent", "MCP", "RAG", "LLM", "Coding Assistant", "Open Source", "Rust", "Agentic", "Multi-modal", "Edge AI"]).map((topic) => (
-                  <Link
-                    key={topic}
-                    href={`/?tag=${encodeURIComponent(topic)}`}
-                    className="inline-flex items-center rounded-full border border-[var(--color-hairline)] bg-[var(--color-canvas)] px-3 py-1 text-apple-caption text-[var(--color-ink-muted-80)] transition-colors hover:border-[var(--color-action-blue)] hover:text-[var(--color-action-blue)] cursor-pointer"
-                  >
-                    #{topic}
-                  </Link>
-                ))}
+                {(hashtags.length > 0 ? hashtags : ["AI Agent", "MCP", "RAG", "LLM", "Coding Assistant", "Open Source", "Rust", "Agentic", "Multi-modal", "Edge AI"]).map((topic) => {
+                  const isActive = selectedTag === topic;
+                  return (
+                    <Link
+                      key={topic}
+                      href={isActive ? "/" : `/?tag=${encodeURIComponent(topic)}`}
+                      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold border transition-all duration-300 transform hover:scale-[1.03] active:scale-[0.97] cursor-pointer ${
+                        isActive
+                          ? "bg-gradient-to-r from-blue-600 to-indigo-600 border-blue-600 text-white shadow-md shadow-blue-500/10"
+                          : "border-[var(--color-hairline)] bg-[var(--color-canvas)] text-[var(--color-ink-muted-80)] hover:border-blue-500/40 hover:text-[var(--color-action-blue)] hover:bg-gradient-to-r hover:from-blue-500/[0.02] hover:to-indigo-500/[0.02] hover:shadow-sm"
+                      }`}
+                    >
+                      <span className={`text-[10px] ${isActive ? "text-white/80" : "text-[var(--color-ink-muted-48)] font-bold"}`}>#</span>
+                      {topic}
+                      {isActive && (
+                        <span className="ml-1 text-[9px] hover:bg-white/20 rounded-full h-3.5 w-3.5 flex items-center justify-center transition-colors">✕</span>
+                      )}
+                    </Link>
+                  );
+                })}
               </div>
             </div>
 
             {/* About Widget */}
-            <div className="apple-utility-card p-6 bg-[var(--color-surface-tile-1)] text-[var(--color-body-on-dark)] border-none">
-              <h2 className="text-apple-body-strong mb-3 text-white">
+            <div className="apple-utility-card hover-spring glow-interactive p-6">
+              <h2 className="text-apple-body-strong mb-3 text-[var(--color-ink)]">
                 {t("aboutWidgetTitle")}
               </h2>
               <p className="text-apple-caption text-[var(--color-ink-muted-80)] leading-relaxed mb-6">
@@ -748,7 +1151,7 @@ export default function HomePage() {
               </p>
               <Link
                 href="/submit"
-                className="apple-btn-secondary border-white/20 text-white hover:bg-white/10 w-full flex justify-center items-center gap-2"
+                className="apple-btn-secondary w-full flex justify-center items-center gap-2 bg-[var(--color-canvas)]"
               >
                 {t("submitBtn")}
                 <ChevronRight className="h-4 w-4" />

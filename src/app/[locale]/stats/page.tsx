@@ -1,8 +1,9 @@
 import { fetchGlobalStats, fetchCategoryStats } from "@/app/actions";
-import { Database, TrendingUp, Layers } from "lucide-react";
+import { Layers } from "lucide-react";
 import type { Category } from "@/types";
 import { getTranslations } from "next-intl/server";
 import { CategoryIcon } from "@/components/common/category-icon";
+import { StatsCards } from "@/components/stats/stats-cards";
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
@@ -28,35 +29,12 @@ export default async function StatsPage() {
           {t("subtitle")}
         </p>
  
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
-          <div className="apple-utility-card p-6 flex items-center gap-6">
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-500/10 text-blue-500">
-              <Database className="h-8 w-8" />
-            </div>
-            <div>
-              <p className="text-apple-caption text-[var(--color-ink-muted-80)] uppercase tracking-wider mb-1">
-                {t("totalProjects")}
-              </p>
-              <p className="text-4xl font-bold text-[var(--color-ink)] tabular-nums">
-                {globalStats.totalProjects.toLocaleString()}
-              </p>
-            </div>
-          </div>
- 
-          <div className="apple-utility-card p-6 flex items-center gap-6">
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-500">
-              <TrendingUp className="h-8 w-8" />
-            </div>
-            <div>
-              <p className="text-apple-caption text-[var(--color-ink-muted-80)] uppercase tracking-wider mb-1">
-                {t("trending")}
-              </p>
-              <p className="text-4xl font-bold text-[var(--color-ink)] tabular-nums">
-                {globalStats.trendingProjects.toLocaleString()}
-              </p>
-            </div>
-          </div>
-        </div>
+        <StatsCards
+          totalProjects={globalStats.totalProjects}
+          trendingProjects={globalStats.trendingProjects}
+          totalProjectsLabel={t("totalProjects")}
+          trendingProjectsLabel={t("trending")}
+        />
  
         <h2 className="text-2xl font-bold text-[var(--color-ink)] mb-6 flex items-center gap-2">
           <Layers className="h-6 w-6 text-emerald-500" />

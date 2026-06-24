@@ -1,5 +1,6 @@
 import { db } from "./db";
 import { categories as categoriesTable } from "./db/schema";
+import { sql } from "drizzle-orm";
 
 interface CategoryConfig {
   id: string;
@@ -203,6 +204,18 @@ export const DEFAULT_CATEGORIES: CategoryConfig[] = [
     "embedded", "bluetooth", "mqtt",
     "slam", "sensor", "home-assistant", "operating-system"
   ]},
+  { id: "Video & Media", icon: "🎥", color: "#f43f5e", keywords: [
+    "video", "media", "multimedia", "ffmpeg", "video-processing", "video-editing",
+    "streaming", "mp4", "obs", "obs-studio", "audio-video", "subtitles", "captions",
+    "video-generation", "screencast", "player", "codec", "gstreamer", "vlc", "h264", "h265",
+    "hls", "dash", "webrtc"
+  ]},
+  { id: "Marketing & Growth", icon: "📈", color: "#10b981", keywords: [
+    "marketing", "seo", "email-marketing", "ads", "crm", "lead-generation", "growth",
+    "analytics", "funnel", "conversion", "campaign", "newsletter", "social-media",
+    "adwords", "adshield", "analytics-dashboard", "growth-hacking", "customer-feedback",
+    "ab-testing", "web-analytics", "metrics", "newsletter-sender", "subscribers"
+  ]},
 ];
 
 export const CATEGORY_MAP: Record<string, string[]> = {};
@@ -235,24 +248,28 @@ export async function ensureCategoriesLoaded(force = false) {
 
 async function reloadCategories() {
   try {
-    const dbCategories = await db.select().from(categoriesTable);
+    console.log("[Categorizer] Syncing default categories to database...");
+    const values = DEFAULT_CATEGORIES.map(cat => ({
+      id: cat.id,
+      icon: cat.icon,
+      color: cat.color,
+      keywords: cat.keywords,
+    }));
     
-    // Seed DB if empty
-    if (dbCategories.length === 0) {
-      console.log("[Categorizer] Categories table is empty. Seeding defaults...");
-      const values = DEFAULT_CATEGORIES.map(cat => ({
-        id: cat.id,
-        icon: cat.icon,
-        color: cat.color,
-        keywords: cat.keywords,
-      }));
-      await db.insert(categoriesTable).values(values).onConflictDoNothing();
-      // Reload again after seeding
-      const reloaded = await db.select().from(categoriesTable);
-      updateInMemoryMaps(reloaded);
-    } else {
-      updateInMemoryMaps(dbCategories);
-    }
+    await db.insert(categoriesTable)
+      .values(values)
+      .onConflictDoUpdate({
+        target: categoriesTable.id,
+        set: {
+          icon: sql`excluded.icon`,
+          color: sql`excluded.color`,
+          keywords: sql`excluded.keywords`,
+          updatedAt: new Date()
+        }
+      });
+
+    const dbCategories = await db.select().from(categoriesTable);
+    updateInMemoryMaps(dbCategories);
     
     cacheLoadedAt = Date.now();
   } catch (err) {

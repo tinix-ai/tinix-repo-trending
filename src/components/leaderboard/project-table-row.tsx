@@ -6,9 +6,10 @@ import { formatNumber, timeAgo } from "@/lib/utils";
 import { Sparkline } from "@/components/common/sparkline";
 import { SourceBadge } from "@/components/common/source-badge";
 import { CategoryIcon } from "@/components/common/category-icon";
+import { Eye } from "lucide-react";
 
 import { useState, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useParams } from "next/navigation";
 
 interface ProjectTableRowProps {
   project: RankedProject;
@@ -18,9 +19,21 @@ interface ProjectTableRowProps {
 
 export function ProjectTableRow({ project, index, days: _days }: ProjectTableRowProps) {
   const searchParams = useSearchParams();
+  const params = useParams();
   const router = useRouter();
   const currentFilter = searchParams.get("filter");
   const [isNew, setIsNew] = useState(false);
+  const locale = (params?.locale as string) || "vi";
+
+  let countryName = "";
+  if (project.countryCode) {
+    try {
+      const displayNames = new Intl.DisplayNames([locale], { type: "region" });
+      countryName = displayNames.of(project.countryCode.toUpperCase()) || project.countryCode;
+    } catch {
+      countryName = project.countryCode;
+    }
+  }
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -87,6 +100,14 @@ export function ProjectTableRow({ project, index, days: _days }: ProjectTableRow
           >
             {project.fullName}
           </Link>
+          {project.countryCode && (
+            <img
+              src={`https://flagcdn.com/w20/${project.countryCode.toLowerCase()}.png`}
+              alt={project.countryCode}
+              title={countryName + (project.location ? ` (${project.location})` : "")}
+              className="w-4.5 h-3.5 object-cover rounded-sm shadow-sm border border-[var(--color-divider-soft)] select-none shrink-0 hover:scale-110 transition-transform cursor-help"
+            />
+          )}
           <SourceBadge source={project.source} projectType={project.projectType} />
           {isNew && (
             <span className="text-[9px] font-bold tracking-wider uppercase text-emerald-500 bg-emerald-500/10 px-1 py-0.5 rounded shrink-0">
@@ -95,9 +116,15 @@ export function ProjectTableRow({ project, index, days: _days }: ProjectTableRow
           )}
         </div>
         <div className="flex items-center gap-2 mt-0.5">
-          <p className="text-[13px] text-[var(--color-ink-muted-80)] line-clamp-1 break-words">
+          <p className="text-[13px] text-[var(--color-ink-muted-80)] line-clamp-1 break-words flex-1">
             {project.description}
           </p>
+          {project.views !== undefined && project.views > 0 && (
+            <span className="inline-flex items-center gap-1 text-[11px] text-[var(--color-ink-muted-48)] shrink-0 select-none ml-2" title={`${formatNumber(project.views)} views`}>
+              <Eye className="h-3 w-3" />
+              <span>{formatNumber(project.views)}</span>
+            </span>
+          )}
         </div>
       </td>
 

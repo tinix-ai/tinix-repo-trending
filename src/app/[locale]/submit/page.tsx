@@ -39,7 +39,7 @@ export default function SubmitPage() {
       {/* Form Section */}
       <section className="py-16">
         <div className="page-container max-w-xl">
-          <div className="bg-[var(--color-surface-elevated)] border border-[var(--color-hairline)] rounded-[var(--radius-lg)] p-6 sm:p-10">
+          <div className="glass-card hover-spring p-6 sm:p-10">
             <form action={formAction} className="flex flex-col gap-6">
               
               <div className="flex flex-col gap-2">

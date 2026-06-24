@@ -1,5 +1,7 @@
 "use client";
 
+import { useState, useEffect } from "react";
+
 interface SparklineProps {
   data: number[];
   width?: number;
@@ -13,6 +15,15 @@ export function Sparkline({
   height = 28,
   color = "#22c55e",
 }: SparklineProps) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setMounted(true);
+    }, 50);
+    return () => clearTimeout(timer);
+  }, []);
+
   if (!data || data.length === 0) return null;
 
   const max = Math.max(...data);
@@ -41,13 +52,17 @@ export function Sparkline({
       {/* Gradient fill */}
       <defs>
         <linearGradient id={`spark-grad-${data.length}`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity="0.15" />
+          <stop offset="0%" stopColor={color} stopOpacity="0.2" />
           <stop offset="100%" stopColor={color} stopOpacity="0" />
         </linearGradient>
       </defs>
       <path
         d={areaD}
         fill={`url(#spark-grad-${data.length})`}
+        style={{
+          opacity: mounted ? 1 : 0,
+          transition: "opacity 1s ease-out 0.4s",
+        }}
       />
       <path
         d={pathD}
@@ -57,6 +72,11 @@ export function Sparkline({
         strokeLinecap="round"
         strokeLinejoin="round"
         vectorEffect="non-scaling-stroke"
+        style={{
+          strokeDasharray: 200,
+          strokeDashoffset: mounted ? 0 : 200,
+          transition: "stroke-dashoffset 1s cubic-bezier(0.25, 1, 0.5, 1)",
+        }}
       />
       {/* End dot */}
       <circle
@@ -64,7 +84,14 @@ export function Sparkline({
         cy={height - ((data[data.length - 1] - min) / range) * (height - 4) - 2}
         r="2"
         fill={color}
+        style={{
+          opacity: mounted ? 1 : 0,
+          transform: mounted ? "scale(1)" : "scale(0)",
+          transformOrigin: `${data.length > 1 ? width : width / 2}px ${height - ((data[data.length - 1] - min) / range) * (height - 4) - 2}px`,
+          transition: "opacity 0.3s ease-out 0.8s, transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.8s",
+        }}
       />
     </svg>
   );
 }
+

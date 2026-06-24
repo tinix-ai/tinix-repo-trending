@@ -1,13 +1,15 @@
 import 'dotenv/config';
 import { crawlerQueue, githubUpdaterQueue, hfUpdaterQueue, socialCrawlerQueue } from './queue';
 import { db } from '../lib/db';
-import { projects, projectMentions } from '../lib/db/schema';
+import { projects, projectSnapshots, projectTrends, githubUsers } from '../lib/db/schema';
 import { discoverNewRepos } from '../lib/crawlers/github-discovery';
+import { discoverGithubTrendingRepos } from '../lib/crawlers/github-trending-scraper';
 import { discoverHFTrending } from '../lib/crawlers/hf-discovery';
-import { eq, lte, or, isNull, sql, asc } from 'drizzle-orm';
-import { crawlHNMentions } from '../lib/crawlers/hn';
-import { crawlRedditMentions } from '../lib/crawlers/reddit';
-import { crawlTwitterMentions } from '../lib/crawlers/twitter';
+import { eq, lte, or, and, isNull, sql, asc } from 'drizzle-orm';
+import { fetchGitHubBatch } from '../lib/crawlers/github-graphql';
+import { parseCountryFromProfile } from '../lib/location-parser';
+import { updateProjectCrawlSchedule } from '../lib/crawlers/scheduler';
+import { categorizeProject } from '../lib/categorizer';
 
 /**
  * Job 1: Daily Discovery
@@ -18,8 +20,36 @@ export async function runDailyDiscovery(source?: 'github' | 'huggingface') {
   
   // 1. GitHub Discovery
   if (!source || source === 'github') {
-    const newRepos = await discoverNewRepos();
-    console.log(`[Cron] Discovered ${newRepos.length} trending repos from Search.`);
+    const searchRepos = await discoverNewRepos();
+    console.log(`[Cron] Discovered ${searchRepos.length} trending repos from Search API.`);
+
+    let htmlRepos: { owner: string; repo: string; stars: number }[] = [];
+    try {
+      htmlRepos = await discoverGithubTrendingRepos();
+      console.log(`[Cron] Discovered ${htmlRepos.length} trending repos from HTML Trending Scraper.`);
+    } catch (htmlErr) {
+      console.error(`[Cron] HTML Trending Scraper failed, falling back to Search API only:`, htmlErr);
+    }
+
+    // Combine and deduplicate
+    const combinedReposMap = new Map<string, { owner: string; repo: string; stars: number }>();
+    
+    // Add Search API results
+    for (const repo of searchRepos) {
+      const key = `${repo.owner.toLowerCase()}/${repo.repo.toLowerCase()}`;
+      combinedReposMap.set(key, repo);
+    }
+
+    // Add HTML Scraper results
+    for (const repo of htmlRepos) {
+      const key = `${repo.owner.toLowerCase()}/${repo.repo.toLowerCase()}`;
+      if (!combinedReposMap.has(key)) {
+        combinedReposMap.set(key, repo);
+      }
+    }
+
+    const newRepos = Array.from(combinedReposMap.values());
+    console.log(`[Cron] Combined unique GitHub repositories for crawling: ${newRepos.length}`);
 
     const existingGitHub = await db.select({ id: projects.id, sourceId: projects.sourceId }).from(projects).where(eq(projects.source, 'github'));
     const existingGHMap = new Map(existingGitHub.map(p => [p.sourceId, p.id]));
@@ -52,7 +82,7 @@ export async function runDailyDiscovery(source?: 'github' | 'huggingface') {
           repo: repo.repo,
           projectId: existingId,
         }, {
-          jobId: `discovery-update-gh-${existingId}-${new Date().toISOString().split('T')[0]}`,
+          jobId: `discovery-update-gh-${existingId}-${new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().split('T')[0]}`,
         });
         queuedCount++;
       }
@@ -97,9 +127,11 @@ export async function runDailyUpdate(force = false) {
     source: projects.source,
     sourceUrl: projects.sourceUrl,
     crawlInterval: projects.crawlInterval,
+    nextCrawlAt: projects.nextCrawlAt,
+    countryCode: projects.countryCode,
   };
 
-  // Order by crawlInterval ASC so hot projects are enqueued first,
+  // Order by crawlInterval ASC so hot projects are enqueued/updated first,
   // then by nextCrawlAt ASC so the most overdue come before the just-due.
   const trackedProjects = force
     ? await db.select(selectFields).from(projects)
@@ -107,67 +139,195 @@ export async function runDailyUpdate(force = false) {
     : await db.select(selectFields).from(projects)
         .where(or(
           isNull(projects.nextCrawlAt),
-          lte(projects.nextCrawlAt, new Date())
+          lte(projects.nextCrawlAt, new Date()),
+          and(eq(projects.source, 'github'), isNull(projects.countryCode))
         ))
         .orderBy(asc(projects.crawlInterval), asc(projects.nextCrawlAt));
+
+  const githubProjects = trackedProjects.filter(p => p.source === 'github');
+  const huggingFaceProjects = trackedProjects.filter(p => p.source === 'huggingface');
 
   let ghCount = 0;
   let hfCount = 0;
 
-  const ghJobs: { name: string; data: Record<string, unknown>; opts: { jobId?: string; priority?: number } }[] = [];
-  const hfJobs: { name: string; data: Record<string, unknown>; opts: { jobId?: string; priority?: number } }[] = [];
+  // 1. Process GitHub projects using GraphQL batching (100 repos per request)
+  const GITHUB_BATCH_SIZE = 100;
+  for (let i = 0; i < githubProjects.length; i += GITHUB_BATCH_SIZE) {
+    const batch = githubProjects.slice(i, i + GITHUB_BATCH_SIZE);
+    console.log(`[Cron Batch] Updating GitHub repositories batch ${Math.floor(i / GITHUB_BATCH_SIZE) + 1}/${Math.ceil(githubProjects.length / GITHUB_BATCH_SIZE)} (size: ${batch.length})...`);
+    
+    const repoCoords = batch.map(p => {
+      const [owner, name] = p.sourceId.split('/');
+      return { owner, name };
+    });
 
-  for (const project of trackedProjects) {
-    if (project.source === 'github') {
-      const [owner, repo] = project.sourceId.split('/');
-      if (owner && repo) {
-        const dateSuffix = force ? `force-${Date.now()}` : new Date().toISOString().split('T')[0];
-        ghJobs.push({
-          name: 'crawl-repo',
-          data: {
+    try {
+      const batchResults = await fetchGitHubBatch(repoCoords);
+      
+      for (let j = 0; j < batchResults.length; j++) {
+        const result = batchResults[j];
+        const project = batch[j];
+        const [owner, repo] = project.sourceId.split('/');
+
+        if (!result.exists) {
+          console.warn(`[Cron Batch] Project ${project.sourceId} not found on GitHub. Removing from database.`);
+          try {
+            await db.delete(projectTrends).where(eq(projectTrends.projectId, project.id));
+            await db.delete(projectSnapshots).where(eq(projectSnapshots.projectId, project.id));
+            await db.delete(projects).where(eq(projects.id, project.id));
+          } catch (delErr) {
+            console.error(`[Cron Batch] Failed to delete non-existent project ${project.sourceId}:`, delErr);
+          }
+          continue;
+        }
+
+        const data = result.data;
+        if (!data) continue;
+
+        // Check rename
+        const isRenamed = data.fullName.toLowerCase() !== project.sourceId.toLowerCase();
+        if (isRenamed) {
+          // If renamed, fall back to single job in githubUpdaterQueue to handle rename merges properly
+          console.log(`[Cron Batch] Rename detected for ${project.sourceId} -> ${data.fullName}. Enqueuing to single updater queue.`);
+          const dateSuffix = force ? `force-${Date.now()}` : new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().split('T')[0];
+          await githubUpdaterQueue.add('crawl-repo', {
             owner,
             repo,
             projectId: project.id,
-          },
-          opts: {
-            jobId: `update-gh-${project.id}-${dateSuffix}`,
-            priority: force ? 1 : crawlIntervalToPriority(project.crawlInterval),
-          }
-        });
-        ghCount++;
-      }
-    } else if (project.source === 'huggingface') {
-      const isDataset = project.sourceUrl?.includes('huggingface.co/datasets/');
-      const type = isDataset ? 'datasets' : 'models';
-      const jobName = isDataset ? 'crawl-hf-dataset' : 'crawl-hf-model';
-      
-      const dateSuffix = force ? `force-${Date.now()}` : new Date().toISOString().split('T')[0];
-      hfJobs.push({
-        name: jobName,
-        data: {
-          id: project.sourceId,
-          type
-        },
-        opts: {
-          jobId: `update-hf-${project.id}-${dateSuffix}`,
-          priority: force ? 1 : crawlIntervalToPriority(project.crawlInterval),
+          }, {
+            jobId: `update-gh-rename-${project.id}-${dateSuffix}`,
+            priority: 1, // High priority for renames
+          });
+          continue;
         }
-      });
-      hfCount++;
+
+        // Process categories & location
+        const canonicalCategories = await categorizeProject(data.topics, 'repository');
+        
+        const ownerLocation = data.location;
+        let ownerCountryCode = null;
+        if (ownerLocation) {
+          const parsedCountry = parseCountryFromProfile({
+            location: ownerLocation,
+            email: data.email || undefined,
+            blog: data.blog || undefined,
+            company: data.company || undefined
+          });
+          ownerCountryCode = parsedCountry || null;
+        }
+
+        // Update cache in github_users
+        try {
+          await db.insert(githubUsers)
+            .values({
+              username: data.ownerName,
+              location: ownerLocation,
+              countryCode: ownerCountryCode || 'UNKNOWN',
+              updatedAt: new Date()
+            })
+            .onConflictDoUpdate({
+              target: githubUsers.username,
+              set: {
+                location: ownerLocation,
+                countryCode: ownerCountryCode || 'UNKNOWN',
+                updatedAt: new Date()
+              }
+            });
+        } catch (cacheErr) {
+          console.warn(`[Cron Batch] Failed to update owner cache for ${data.ownerName}:`, cacheErr);
+        }
+
+        // Update project info
+        try {
+          await db.update(projects)
+            .set({
+              name: data.name,
+              fullName: data.fullName,
+              description: data.description || '',
+              homepageUrl: data.homepageUrl,
+              primaryLanguage: data.primaryLanguage,
+              license: data.license,
+              topics: data.topics,
+              categories: canonicalCategories,
+              location: ownerLocation,
+              countryCode: ownerCountryCode,
+              stars: data.stars,
+              forks: data.forks,
+              watchers: data.watchers,
+              openIssues: data.openIssues,
+              sourceUpdatedAt: data.sourceUpdatedAt,
+              lastCrawledAt: new Date(),
+            })
+            .where(eq(projects.id, project.id));
+
+          // Record snapshot
+          const snapshotDateStr = new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().split('T')[0];
+          const [existingSnap] = await db
+            .select({ id: projectSnapshots.id })
+            .from(projectSnapshots)
+            .where(
+              and(
+                eq(projectSnapshots.projectId, project.id),
+                eq(projectSnapshots.snapshotDate, snapshotDateStr)
+              )
+            )
+            .limit(1);
+
+          if (existingSnap) {
+            await db.update(projectSnapshots)
+              .set({
+                stars: data.stars,
+                forks: data.forks,
+                openIssues: data.openIssues,
+                watchers: data.watchers,
+              })
+              .where(eq(projectSnapshots.id, existingSnap.id));
+          } else {
+            await db.insert(projectSnapshots).values({
+              projectId: project.id,
+              stars: data.stars,
+              forks: data.forks,
+              openIssues: data.openIssues,
+              watchers: data.watchers,
+              snapshotDate: snapshotDateStr,
+            });
+          }
+
+          // Recalculate schedule
+          await updateProjectCrawlSchedule(project.id, 'github');
+          ghCount++;
+        } catch (dbErr) {
+          console.error(`[Cron Batch] Failed to update project db for ${project.sourceId}:`, dbErr);
+        }
+      }
+    } catch (batchErr) {
+      console.error(`[Cron Batch] Failed to process batch for ${repoCoords.map(r => `${r.owner}/${r.name}`).join(', ')}:`, batchErr);
     }
   }
 
-  // Enqueue in chunks of 500 using addBulk
+  // 2. Process HuggingFace projects using single jobs enqueued to hfUpdaterQueue
+  const hfJobs: { name: string; data: Record<string, unknown>; opts: { jobId?: string; priority?: number } }[] = [];
+  for (const project of huggingFaceProjects) {
+    const isDataset = project.sourceUrl?.includes('huggingface.co/datasets/');
+    const type = isDataset ? 'datasets' : 'models';
+    const jobName = isDataset ? 'crawl-hf-dataset' : 'crawl-hf-model';
+    
+    const dateSuffix = force ? `force-${Date.now()}` : new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().split('T')[0];
+    hfJobs.push({
+      name: jobName,
+      data: {
+        id: project.sourceId,
+        type
+      },
+      opts: {
+        jobId: `update-hf-${project.id}-${dateSuffix}`,
+        priority: force ? 1 : crawlIntervalToPriority(project.crawlInterval),
+      }
+    });
+    hfCount++;
+  }
+
   const CHUNK_SIZE = 500;
-
-  if (ghJobs.length > 0) {
-    console.log(`[Cron] Enqueuing ${ghJobs.length} GitHub updater jobs in bulk...`);
-    for (let i = 0; i < ghJobs.length; i += CHUNK_SIZE) {
-      const chunk = ghJobs.slice(i, i + CHUNK_SIZE);
-      await githubUpdaterQueue.addBulk(chunk);
-    }
-  }
-
   if (hfJobs.length > 0) {
     console.log(`[Cron] Enqueuing ${hfJobs.length} HuggingFace updater jobs in bulk...`);
     for (let i = 0; i < hfJobs.length; i += CHUNK_SIZE) {
@@ -176,7 +336,7 @@ export async function runDailyUpdate(force = false) {
     }
   }
 
-  console.log(`[Cron] Bulk enqueued ${ghCount} GitHub repos and ${hfCount} HuggingFace models for daily update (force: ${force}).`);
+  console.log(`[Cron] Completed Daily Update. Batch updated ${ghCount}/${githubProjects.length} GitHub repos, bulk enqueued ${hfCount} HuggingFace models (force: ${force}).`);
 }
 
 /**
@@ -260,7 +420,7 @@ export async function calculateProjectTrendInline(projectId: string) {
       SELECT snapshot_date::text, COALESCE(stars, likes, 0) as stars, downloads
       FROM project_snapshots
       WHERE project_id = ${projectId}::uuid
-        AND snapshot_date >= CURRENT_DATE - INTERVAL '31 days'
+        AND snapshot_date >= (timezone('Asia/Ho_Chi_Minh', now()))::date - INTERVAL '31 days'
       ORDER BY snapshot_date DESC
     `) as unknown as { snapshot_date: string; stars: number; downloads: number }[];
 
@@ -349,7 +509,7 @@ export async function runDailySocialMentions() {
     const activeProjects = result as unknown as { id: string; fullName: string; source: string }[];
     console.log(`[Cron] Found ${activeProjects.length} projects with >= 100 stars/likes for social update.`);
 
-    const dateSuffix = new Date().toISOString().split('T')[0];
+    const dateSuffix = new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().split('T')[0];
     const jobs = activeProjects.map(project => ({
       name: 'crawl-social',
       data: {

@@ -1002,5 +1002,17 @@ export async function fetchDatabaseGrowthStats() {
   }
 }
 
-
-
+export async function incrementProjectViews(projectId: string) {
+  try {
+    await db
+      .update(projects)
+      .set({
+        views: sql`COALESCE(${projects.views}, 0) + 1`,
+      })
+      .where(eq(projects.id, projectId));
+    return { success: true };
+  } catch (error) {
+    console.error(`Error incrementing views for project ${projectId}:`, error);
+    return { success: false };
+  }
+}

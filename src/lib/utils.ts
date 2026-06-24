@@ -16,6 +16,7 @@ export function formatDate(date: string | Date): string {
     year: "numeric",
     month: "short",
     day: "numeric",
+    timeZone: "Asia/Ho_Chi_Minh"
   });
 }
 

@@ -36,8 +36,11 @@ export interface ProjectQueryParams {
   limit?: number;
   offset?: number;
   filterType?: "trending" | "all" | "new";
-  sortBy?: "project" | "stars" | "trend" | "updated";
+  sortBy?: "project" | "stars" | "trend" | "updated" | "views";
   sortOrder?: "asc" | "desc";
+  license?: string;
+  country?: string;
+  owner?: string;
 }
 
 export async function getDynamicTrendingProjects(params: ProjectQueryParams): Promise<{ projects: RankedProject[], total: number }> {
@@ -49,23 +52,51 @@ export async function getDynamicTrendingProjects(params: ProjectQueryParams): Pr
   const offset = params.offset ?? 0;
   const filterType = params.filterType ?? "trending";
 
+  let finalSearchQuery = params.searchQuery;
+  let parsedLicense = params.license;
+  let parsedCountry = params.country;
+  let parsedOwner = params.owner;
+
+  if (finalSearchQuery) {
+    const licenseMatch = finalSearchQuery.match(/license:([^\s]+)/i);
+    if (licenseMatch) {
+      parsedLicense = licenseMatch[1];
+      finalSearchQuery = finalSearchQuery.replace(/license:[^\s]+/i, "");
+    }
+    const countryMatch = finalSearchQuery.match(/country:([^\s]+)/i);
+    if (countryMatch) {
+      parsedCountry = countryMatch[1];
+      finalSearchQuery = finalSearchQuery.replace(/country:[^\s]+/i, "");
+    }
+    const ownerMatch = finalSearchQuery.match(/owner:([^\s]+)/i);
+    if (ownerMatch) {
+      parsedOwner = ownerMatch[1];
+      finalSearchQuery = finalSearchQuery.replace(/owner:[^\s]+/i, "");
+    }
+    finalSearchQuery = finalSearchQuery.trim();
+  }
+
+  const hasActiveSearch = !!(finalSearchQuery || parsedLicense || parsedCountry || parsedOwner);
+
   const filters = [];
 
   if (filterType === "trending") {
-    // Exclude projects with zero growth
-    filters.push(sql`momentum_score > 0`);
+    if (!hasActiveSearch) {
+      // Exclude projects with zero growth
+      filters.push(sql`momentum_score > 0`);
 
-    // Apply dynamic noise filtering based on the time window
-    if (days === 7) {
-      filters.push(sql`((source = 'github' AND stars_gained >= 2) OR (source = 'huggingface' AND downloads_gained >= 20) OR (source NOT IN ('github', 'huggingface')))`);
-    } else if (days >= 30) {
-      filters.push(sql`((source = 'github' AND stars_gained >= 5) OR (source = 'huggingface' AND downloads_gained >= 50) OR (source NOT IN ('github', 'huggingface')))`);
+      // Apply dynamic noise filtering based on the time window
+      if (days === 7) {
+        filters.push(sql`((source = 'github' AND stars_gained >= 2) OR (source = 'huggingface' AND downloads_gained >= 20) OR (source NOT IN ('github', 'huggingface')))`);
+      } else if (days >= 30) {
+        filters.push(sql`((source = 'github' AND stars_gained >= 5) OR (source = 'huggingface' AND downloads_gained >= 50) OR (source NOT IN ('github', 'huggingface')))`);
+      }
+
+      filters.push(sql`((source = 'github' AND stars >= ${minStars}) OR (source = 'huggingface' AND downloads >= ${minDownloads}) OR (source NOT IN ('github', 'huggingface')))`);
+      // Exclude newly discovered projects (less than 24 hours in the system) from trending
+      // to ensure they have at least one overnight snapshot for accurate momentum calculation.
+      filters.push(sql`created_at <= NOW() - INTERVAL '24 hours'`);
     }
-
-    filters.push(sql`((source = 'github' AND stars >= ${minStars}) OR (source = 'huggingface' AND downloads >= ${minDownloads}) OR (source NOT IN ('github', 'huggingface')))`);
-    // Exclude newly discovered projects (less than 24 hours in the system) from trending
-    // to ensure they have at least one overnight snapshot for accurate momentum calculation.
-    filters.push(sql`created_at <= NOW() - INTERVAL '24 hours'`);
   }
 
   if (params.category) {
@@ -80,8 +111,22 @@ export async function getDynamicTrendingProjects(params: ProjectQueryParams): Pr
     filters.push(sql`primary_language = ${params.language}`);
   }
 
-  if (params.searchQuery) {
-    const search = `%${params.searchQuery}%`;
+  if (parsedLicense) {
+    const lic = `%${parsedLicense}%`;
+    filters.push(sql`license ILIKE ${lic}`);
+  }
+
+  if (parsedCountry) {
+    filters.push(sql`country_code = ${parsedCountry.toUpperCase()}`);
+  }
+
+  if (parsedOwner) {
+    const own = `%${parsedOwner}%`;
+    filters.push(sql`owner_name ILIKE ${own}`);
+  }
+
+  if (finalSearchQuery) {
+    const search = `%${finalSearchQuery}%`;
     filters.push(sql`(name ILIKE ${search} OR description ILIKE ${search} OR owner_name ILIKE ${search})`);
   }
 
@@ -108,13 +153,16 @@ export async function getDynamicTrendingProjects(params: ProjectQueryParams): Pr
       case "updated":
         orderFragment = isAsc ? sql`ORDER BY last_crawled_at ASC NULLS FIRST` : sql`ORDER BY last_crawled_at DESC NULLS LAST`;
         break;
+      case "views":
+        orderFragment = isAsc ? sql`ORDER BY COALESCE(views, 0) ASC NULLS FIRST` : sql`ORDER BY COALESCE(views, 0) DESC NULLS LAST`;
+        break;
     }
   } else {
     orderFragment = filterType === "new"
       ? sql`ORDER BY source_created_at DESC NULLS LAST`
       : filterType === "all"
       ? sql`ORDER BY (CASE WHEN source = 'github' THEN COALESCE(stars, 0) ELSE COALESCE(likes, 0) * 5.0 + (COALESCE(downloads, 0) / 1000.0) END) DESC NULLS LAST`
-      : sql`ORDER BY momentum_score DESC`;
+      : sql`ORDER BY momentum_score DESC, (CASE WHEN source = 'github' THEN COALESCE(stars, 0) ELSE COALESCE(likes, 0) * 5.0 + (COALESCE(downloads, 0) / 1000.0) END) DESC NULLS LAST`;
   }
 
   let result;
@@ -148,6 +196,8 @@ export async function getDynamicTrendingProjects(params: ProjectQueryParams): Pr
           p.source_created_at,
           p.source_updated_at,
           p.categories,
+          p.location,
+          p.country_code,
           GREATEST(COALESCE(
             CASE 
               WHEN p.source = 'github' THEN ${starsGainedCol}
@@ -163,7 +213,7 @@ export async function getDynamicTrendingProjects(params: ProjectQueryParams): Pr
             END, 0
           ), 0) as likes_gained,
           GREATEST(COALESCE(${downloadsGainedCol}, 0), 0) as downloads_gained,
-          p.stars, p.forks, p.downloads, p.likes, p.open_issues, p.contributors_count as current_contributors_count
+          p.stars, p.forks, p.downloads, p.likes, p.open_issues, p.views, p.contributors_count as current_contributors_count
         FROM projects p
         LEFT JOIN project_trends t ON p.id = t.project_id
       ),
@@ -198,7 +248,7 @@ export async function getDynamicTrendingProjects(params: ProjectQueryParams): Pr
             SELECT stars, likes, snapshot_date
             FROM project_snapshots
             WHERE project_id = pg.project_id
-              AND snapshot_date >= CURRENT_DATE - INTERVAL '14 days'
+              AND snapshot_date >= (timezone('Asia/Ho_Chi_Minh', now()))::date - INTERVAL '14 days'
             ORDER BY snapshot_date ASC
           ) s
         ) as sparkline_data,
@@ -211,7 +261,7 @@ export async function getDynamicTrendingProjects(params: ProjectQueryParams): Pr
       WITH previous_snapshots AS (
         SELECT DISTINCT ON (project_id) project_id, stars, forks, contributors_count, open_issues, likes, downloads, snapshot_date
         FROM project_snapshots
-        WHERE snapshot_date <= CURRENT_DATE - ${days} * INTERVAL '1 day'
+        WHERE snapshot_date <= (timezone('Asia/Ho_Chi_Minh', now()))::date - ${days} * INTERVAL '1 day'
         ORDER BY project_id, snapshot_date DESC
       ),
       earliest_snapshots AS (
@@ -244,12 +294,14 @@ export async function getDynamicTrendingProjects(params: ProjectQueryParams): Pr
           p.source_created_at,
           p.source_updated_at,
           p.categories,
+          p.location,
+          p.country_code,
           GREATEST(p.stars - COALESCE(prev.stars, earliest.stars, p.stars), 0) as stars_gained,
           GREATEST(p.forks - COALESCE(prev.forks, earliest.forks, p.forks), 0) as forks_gained,
           GREATEST(p.contributors_count - COALESCE(prev.contributors_count, earliest.contributors_count, p.contributors_count), 0) as contributors_gained,
           GREATEST(p.likes - COALESCE(prev.likes, earliest.likes, p.likes), 0) as likes_gained,
           GREATEST(p.downloads - COALESCE(prev.downloads, earliest.downloads, p.downloads), 0) as downloads_gained,
-          p.stars, p.forks, p.downloads, p.likes, p.open_issues, p.contributors_count as current_contributors_count
+          p.stars, p.forks, p.downloads, p.likes, p.open_issues, p.views, p.contributors_count as current_contributors_count
         FROM projects p
         LEFT JOIN previous_snapshots prev ON p.id = prev.project_id
         LEFT JOIN earliest_snapshots earliest ON p.id = earliest.project_id
@@ -285,7 +337,7 @@ export async function getDynamicTrendingProjects(params: ProjectQueryParams): Pr
             SELECT stars, likes, snapshot_date
             FROM project_snapshots
             WHERE project_id = pg.project_id
-              AND snapshot_date >= CURRENT_DATE - INTERVAL '14 days'
+              AND snapshot_date >= (timezone('Asia/Ho_Chi_Minh', now()))::date - INTERVAL '14 days'
             ORDER BY snapshot_date ASC
           ) s
         ) as sparkline_data,
@@ -322,6 +374,8 @@ export async function getDynamicTrendingProjects(params: ProjectQueryParams): Pr
       sourceCreatedAt: typeof r.source_created_at === 'string' ? r.source_created_at : ((r.source_created_at as Date)?.toISOString() || new Date().toISOString()),
       sourceUpdatedAt: r.source_updated_at ? (typeof r.source_updated_at === 'string' ? r.source_updated_at : (r.source_updated_at as Date).toISOString()) : undefined,
       lastCrawledAt: typeof r.last_crawled_at === 'string' ? r.last_crawled_at : ((r.last_crawled_at as Date)?.toISOString() || new Date().toISOString()),
+      location: (r.location as string) || null,
+      countryCode: (r.country_code as string) || null,
       
       rank: Number(r.rank),
       score: Number(r.momentum_score),
@@ -336,6 +390,7 @@ export async function getDynamicTrendingProjects(params: ProjectQueryParams): Pr
       forks: Number(r.forks || 0),
       openIssues: Number(r.open_issues || 0),
       downloads: Number(r.downloads || 0),
+      views: Number(r.views || 0),
       watchers: 0,
       contributorsCount: Number(r.current_contributors_count || 0),
       tags: [],
@@ -370,7 +425,7 @@ export async function getGlobalStats() {
             (p.source = 'huggingface' AND p.downloads >= 1000) OR
             (p.source NOT IN ('github', 'huggingface'))
         ) as trending_projects,
-        (SELECT COUNT(*) FROM projects WHERE source_created_at >= CURRENT_DATE - INTERVAL '30 days') as new_projects
+        (SELECT COUNT(*) FROM projects WHERE source_created_at >= (timezone('Asia/Ho_Chi_Minh', now()))::date - INTERVAL '30 days') as new_projects
     `);
     return {
       totalProjects: Number(result[0]?.total_projects || 0),
@@ -440,13 +495,23 @@ export async function getPopularLanguagesAndHashtags() {
       LIMIT 10;
     `);
 
+    const countries = await db.execute(sql`
+      SELECT country_code as name, COUNT(*) as count
+      FROM projects
+      WHERE country_code IS NOT NULL AND country_code != ''
+      GROUP BY country_code
+      ORDER BY count DESC
+      LIMIT 15;
+    `);
+
     return {
       languages: langs.map(r => String(r.name)),
-      hashtags: tags.map(r => String(r.name))
+      hashtags: tags.map(r => String(r.name)),
+      countries: countries.map(r => String(r.name).toLowerCase())
     };
   } catch (error) {
     console.error("Error fetching popular languages/hashtags:", error);
-    return { languages: [], hashtags: [] };
+    return { languages: [], hashtags: [], countries: [] };
   }
 }
 
@@ -494,11 +559,14 @@ export async function getProjectById(id: string) {
       updatedAt: typeof r.updated_at === 'string' ? r.updated_at : ((r.updated_at as Date)?.toISOString() || new Date().toISOString()),
       sourceCreatedAt: typeof r.source_created_at === 'string' ? r.source_created_at : ((r.source_created_at as Date)?.toISOString() || new Date().toISOString()),
       lastCrawledAt: typeof r.last_crawled_at === 'string' ? r.last_crawled_at : ((r.last_crawled_at as Date)?.toISOString() || new Date().toISOString()),
+      location: (r.location as string) || null,
+      countryCode: (r.country_code as string) || null,
       // Metrics
       stars: r.source === 'huggingface' ? Number(r.current_likes) : Number(r.current_stars),
       forks: Number(r.current_forks),
       openIssues: Number(r.current_issues),
       downloads: Number(r.current_downloads),
+      views: Number(r.views || 0),
     };
   } catch (error) {
     console.error("Error fetching project by ID:", error);
@@ -549,11 +617,13 @@ export async function getProjectBySlug(slug: string) {
       updatedAt: typeof r.updated_at === 'string' ? r.updated_at : ((r.updated_at as Date)?.toISOString() || new Date().toISOString()),
       sourceCreatedAt: typeof r.source_created_at === 'string' ? r.source_created_at : ((r.source_created_at as Date)?.toISOString() || new Date().toISOString()),
       lastCrawledAt: typeof r.last_crawled_at === 'string' ? r.last_crawled_at : ((r.last_crawled_at as Date)?.toISOString() || new Date().toISOString()),
-      // Metrics
+      location: (r.location as string) || null,
+      countryCode: (r.country_code as string) || null,
       stars: r.source === 'huggingface' ? Number(r.current_likes) : Number(r.current_stars),
       forks: Number(r.current_forks),
       openIssues: Number(r.current_issues),
       downloads: Number(r.current_downloads),
+      views: Number(r.views || 0),
     };
   } catch (error) {
     console.error("Error fetching project by slug:", error);
@@ -572,14 +642,14 @@ export async function getProjectHistory(projectId: string, days: number = 30) {
         likes
       FROM project_snapshots
       WHERE project_id = ${projectId}
-        AND snapshot_date >= CURRENT_DATE - ${days} * INTERVAL '1 day'
+        AND snapshot_date >= (timezone('Asia/Ho_Chi_Minh', now()))::date - ${days} * INTERVAL '1 day'
       ORDER BY snapshot_date ASC, created_at DESC
     `);
     
     return result.map(row => {
       const r = row as Record<string, unknown>;
       return {
-        date: new Date(r.snapshot_date as string).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        date: new Date(r.snapshot_date as string).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'Asia/Ho_Chi_Minh' }),
         stars: Number(r.stars),
         forks: Number(r.forks),
         downloads: Number(r.downloads),
@@ -712,20 +782,20 @@ export async function getDatabaseGrowthStats() {
   try {
     const result = await db.execute(sql`
       SELECT 
-        (SELECT COUNT(*) FROM projects WHERE created_at < CURRENT_DATE - INTERVAL '6 days') as base_count,
+        (SELECT COUNT(*) FROM projects WHERE created_at < (timezone('Asia/Ho_Chi_Minh', now()))::date - INTERVAL '6 days') as base_count,
         TO_CHAR(d.day, 'YYYY-MM-DD') as date,
         COALESCE(p.count, 0) as new_count
       FROM (
         SELECT generate_series(
-          CURRENT_DATE - INTERVAL '6 days',
-          CURRENT_DATE,
+          (timezone('Asia/Ho_Chi_Minh', now()))::date - INTERVAL '6 days',
+          (timezone('Asia/Ho_Chi_Minh', now()))::date,
           '1 day'::interval
         )::date as day
       ) d
       LEFT JOIN (
         SELECT DATE(created_at) as day, COUNT(*) as count
         FROM projects
-        WHERE created_at >= CURRENT_DATE - INTERVAL '6 days'
+        WHERE created_at >= (timezone('Asia/Ho_Chi_Minh', now()))::date - INTERVAL '6 days'
         GROUP BY DATE(created_at)
       ) p ON d.day = p.day
       ORDER BY d.day ASC;
@@ -740,7 +810,7 @@ export async function getDatabaseGrowthStats() {
       const r = row as Record<string, unknown>;
       cumulative += Number(r.new_count || 0);
       return {
-        date: new Date(r.date as string).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        date: new Date(r.date as string).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'Asia/Ho_Chi_Minh' }),
         count: cumulative
       };
     });
@@ -866,6 +936,8 @@ export async function getSimilarProjects(projectId: string, limit: number = 3): 
           p.source_created_at,
           p.source_updated_at,
           p.categories,
+          p.location,
+          p.country_code,
           p.stars, p.forks, p.downloads, p.likes, p.open_issues, p.contributors_count as current_contributors_count,
           (
             CASE WHEN ${categoriesArray} THEN 10 ELSE 0 END +
@@ -891,7 +963,7 @@ export async function getSimilarProjects(projectId: string, limit: number = 3): 
             SELECT stars, likes, snapshot_date
             FROM project_snapshots
             WHERE project_id = pg.project_id
-              AND snapshot_date >= CURRENT_DATE - INTERVAL '14 days'
+              AND snapshot_date >= (timezone('Asia/Ho_Chi_Minh', now()))::date - INTERVAL '14 days'
             ORDER BY snapshot_date ASC
           ) s
         ) as sparkline_data
@@ -923,6 +995,8 @@ export async function getSimilarProjects(projectId: string, limit: number = 3): 
         sourceCreatedAt: typeof r.source_created_at === 'string' ? r.source_created_at : ((r.source_created_at as Date)?.toISOString() || new Date().toISOString()),
         sourceUpdatedAt: r.source_updated_at ? (typeof r.source_updated_at === 'string' ? r.source_updated_at : (r.source_updated_at as Date).toISOString()) : undefined,
         lastCrawledAt: typeof r.last_crawled_at === 'string' ? r.last_crawled_at : ((r.last_crawled_at as Date)?.toISOString() || new Date().toISOString()),
+        location: (r.location as string) || null,
+        countryCode: (r.country_code as string) || null,
         
         rank: 0,
         score: Number(r.similarity_score || 0),

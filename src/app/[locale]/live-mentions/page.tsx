@@ -144,7 +144,7 @@ export default async function LiveMentionsPage({ params, searchParams }: PagePro
                 return (
                   <div 
                     key={mention.id}
-                    className="apple-utility-card p-6 flex flex-col justify-between hover:-translate-y-0.5 hover:shadow-md transition-all duration-200"
+                    className="apple-utility-card hover-spring p-6 flex flex-col justify-between"
                   >
                     {/* Header: Project name & Source */}
                     <div className="flex items-start justify-between gap-4 mb-4">

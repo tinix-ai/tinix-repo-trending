@@ -29,6 +29,7 @@ export const projects = pgTable("projects", {
   fullName: text("full_name").notNull(),
   description: text("description"),
   readme: bytea("readme"), // stored as compressed gzip bytea binary
+  readmeSha: text("readme_sha"),
   aiSummary: text("ai_summary"),
   homepageUrl: text("homepage_url"),
   sourceUrl: text("source_url").notNull(),
@@ -37,8 +38,8 @@ export const projects = pgTable("projects", {
   ownerName: text("owner_name").notNull(),
   ownerAvatarUrl: text("owner_avatar_url"),
   ownerType: text("owner_type"), // 'user' | 'org'
-  topics: jsonb("topics").default([]),
-  categories: jsonb("categories").default([]),
+  topics: jsonb("topics").$type<string[]>().default([]),
+  categories: jsonb("categories").$type<string[]>().default([]),
   stars: integer("stars").default(0),
   forks: integer("forks").default(0),
   watchers: integer("watchers").default(0),
@@ -47,6 +48,10 @@ export const projects = pgTable("projects", {
   likes: integer("likes").default(0),
   contributorsCount: integer("contributors_count").default(0),
   extraMetadata: jsonb("extra_metadata").default({}),
+  location: text("location"),
+  countryCode: text("country_code"),
+  etag: text("etag"),
+  views: integer("views").default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
   sourceCreatedAt: timestamp("source_created_at"),
@@ -112,3 +117,11 @@ export const projectMentions = pgTable("project_mentions", {
   index("project_mentions_source_idx").on(table.source),
   index("project_mentions_mentioned_at_idx").on(table.mentionedAt),
 ]);
+
+export const githubUsers = pgTable("github_users", {
+  username: text("username").primaryKey(),
+  location: text("location"),
+  countryCode: text("country_code"),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+

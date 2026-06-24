@@ -1,7 +1,8 @@
 import { setTimeout } from "timers/promises";
+import { sql } from "drizzle-orm";
 import { redisConnection } from "../../workers/queue";
-import { githubPool } from "./github-pool";
-import { proxyManager } from "./proxy";
+import { db } from "../db";
+import { searchGitHubRepos } from "./github-graphql";
 
 interface DiscoveredRepo {
   owner: string;
@@ -10,16 +11,55 @@ interface DiscoveredRepo {
 }
 
 /**
- * Discovers new AI/ML repositories using GitHub Search API.
- * Uses a cautious delay to respect the 30 req/min limit of the Search API.
- * Tracks checkpoint in Redis via { topicIndex, page } to support multi-process resume.
+ * Fetches popular topics from database and applies a generic term filter.
+ */
+async function getPopularDatabaseTopics(limit = 30): Promise<string[]> {
+  try {
+    const rawResult = await db.execute(sql`
+      SELECT LOWER(key::text) as topic, COUNT(*) as count 
+      FROM projects, jsonb_array_elements_text(topics) as key 
+      WHERE source = 'github'
+      GROUP BY topic 
+      ORDER BY count DESC 
+      LIMIT 100
+    `) as unknown as { topic: string; count: number }[];
+
+    const blacklist = new Set([
+      // Languages
+      'javascript', 'typescript', 'python', 'html', 'css', 'rust', 'go', 'golang', 'cpp',
+      'c', 'csharp', 'java', 'swift', 'kotlin', 'php', 'ruby', 'objective-c', 'objc',
+      'clojure', 'elixir', 'erlang', 'haskell', 'scala', 'perl', 'assembly',
+      // Frameworks / Web
+      'react', 'vue', 'nextjs', 'angular', 'nodejs', 'laravel', 'django', 'flask',
+      // Platforms / OS
+      'android', 'ios', 'macos', 'windows', 'linux',
+      // Generic terms
+      'open-source', 'opensource', 'hacktoberfest', 'awesome', 'git', 'github', 'dev'
+    ]);
+
+    const topics: string[] = [];
+    for (const row of rawResult) {
+      const topic = row.topic.replace(/"/g, '').trim();
+      if (topic && !blacklist.has(topic) && topic.length > 2) {
+        topics.push(topic);
+        if (topics.length >= limit) break;
+      }
+    }
+    return topics;
+  } catch (err) {
+    console.warn('[Discovery] Failed to fetch popular database topics:', err);
+    return [];
+  }
+}
+
+/**
+ * Discovers new AI/ML repositories using GitHub GraphQL Search API.
+ * Tracks checkpoint in Redis via { topicIndex, page, endCursor } to support multi-process resume.
  */
 export async function discoverNewRepos(maxPages: number = 10): Promise<DiscoveredRepo[]> {
   const checkpointKey = "crawler:checkpoint:github-discovery";
-  const sort = "updated"; // Get most recently active
-  const order = "desc";
   
-  const topics = [
+  const staticTopics = [
     // Existing AI/ML topics
     'ai', 'machine-learning', 'llm', 'deep-learning',
     // Vibe Coding & AI Coding Tools
@@ -30,14 +70,23 @@ export async function discoverNewRepos(maxPages: number = 10): Promise<Discovere
     'data-science', 'database', 'vector-database', 'data-engineering', 'data-analysis', 'analytics', 'vector-search',
     // Developer Tools & Utilities
     'developer-tools', 'self-hosted', 'productivity',
-    // General Tech, Web, Languages & Infrastructure (Expanded for 50k scaling)
+    // General Tech, Web, Languages & Infrastructure
     'react', 'vue', 'nextjs', 'typescript', 'nodejs', 'deno', 'bun',
     'rust', 'go', 'webassembly', 'docker', 'kubernetes', 'terraform',
-    'redis', 'postgresql', 'sqlite', 'security', 'linux'
+    'redis', 'postgresql', 'sqlite', 'security', 'linux',
+    // Newly added static keywords from missing trending repos
+    'tui', 'terminal', 'markdown-editor', 'mesh-network', 'edge-computing', 
+    'mental-health', 'whatsapp-crm', 'crm-system', 'ide-integration', 
+    'model-serving', 'inference-engine', 'git-client', 'nlp', 'sandboxing',
+    'note-taking', 'knowledge-base', 'ai-agent', 'llm-agent'
   ];
+
+  const dbTopics = await getPopularDatabaseTopics(30);
+  const topics = Array.from(new Set([...staticTopics, ...dbTopics]));
 
   let startTopicIndex = 0;
   let startPage = 1;
+  let startCursor: string | null = null;
   
   try {
     const lastSavedCheckpoint = await redisConnection.get(checkpointKey);
@@ -49,7 +98,8 @@ export async function discoverNewRepos(maxPages: number = 10): Promise<Discovere
       if (savedTopicIndex !== -1 && savedTopicIndex !== undefined) {
         startTopicIndex = savedTopicIndex;
         startPage = (parsed.page || 0) + 1; // Resume from the next page
-        console.log(`[Discovery] Resuming GitHub Discovery from checkpoint. TopicIndex: ${startTopicIndex} (${topics[startTopicIndex]}), Start page: ${startPage}`);
+        startCursor = parsed.endCursor || null;
+        console.log(`[Discovery] Resuming GitHub Discovery from checkpoint. TopicIndex: ${startTopicIndex} (${topics[startTopicIndex]}), page: ${startPage}, cursor: ${startCursor}`);
       } else {
         console.log(`[Discovery] Saved checkpoint topic "${savedTopic || parsed.topicIndex}" not found in current topics. Starting from beginning.`);
       }
@@ -63,6 +113,7 @@ export async function discoverNewRepos(maxPages: number = 10): Promise<Discovere
     console.log(`[Discovery] Checkpoint state exceeds max bounds (Topic: ${startTopicIndex}/${topics.length}, Page: ${startPage}/${maxPages}). Resetting.`);
     startTopicIndex = 0;
     startPage = 1;
+    startCursor = null;
     try {
       await redisConnection.del(checkpointKey);
     } catch {}
@@ -71,93 +122,21 @@ export async function discoverNewRepos(maxPages: number = 10): Promise<Discovere
   const discoveredMap = new Map<string, DiscoveredRepo>();
   let completedAll = true;
 
-  // Helper for Token Rotation (shared across all pages)
-  const fetchWithTokenRotation = async (url: string) => {
-    let maxRetries = 5;
-    while (maxRetries > 0) {
-      let currentToken: string | null = null;
-      let tokenExhaustedError = false;
-
-      try {
-        currentToken = await githubPool.getAvailableToken();
-      } catch (err: unknown) {
-        const error = err as Error;
-        if (error.message.includes('ALL tokens are currently exhausted')) {
-          tokenExhaustedError = true;
-        } else {
-          throw err;
-        }
-      }
-
-      const hasProxies = (process.env.PROXY_URLS || '').split(',').map(p => p.trim()).filter(Boolean).length > 0;
-      if (tokenExhaustedError && !hasProxies) {
-        const nextTime = await githubPool.getNextAvailableTime();
-        const sleepMs = Math.max(5000, nextTime - Date.now() + 5000);
-        const resetMinutes = Math.ceil(sleepMs / 60000);
-        console.warn(`[Discovery] All tokens exhausted and no proxies configured. Sleeping for ${resetMinutes} minute(s) before retry...`);
-        await setTimeout(sleepMs);
-        continue;
-      }
-
-      const headers: Record<string, string> = {
-        "Accept": "application/vnd.github.v3+json",
-      };
-      if (currentToken) headers["Authorization"] = `Bearer ${currentToken}`;
-
-      const dispatcher = proxyManager.getRandomDispatcher();
-      const fetchOptions: RequestInit & { dispatcher?: unknown } = { headers };
-      if (dispatcher) {
-        fetchOptions.dispatcher = dispatcher;
-      }
-
-      const response = await fetch(url, fetchOptions);
-      const reset = response.headers.get('x-ratelimit-reset');
-
-      if (!response.ok) {
-        if (response.status === 403 || response.status === 429) {
-          if (currentToken) {
-            await githubPool.markTokenExhausted(currentToken, reset);
-            console.warn(`[Discovery] Rate limit hit. Rotated token. Retries left: ${maxRetries - 1}`);
-            maxRetries--;
-            continue;
-          } else if (hasProxies) {
-            console.warn(`[Discovery] 403/429 caught on proxy/direct connection. Rotating proxy. Retries left: ${maxRetries - 1}`);
-            maxRetries--;
-            await setTimeout(2000);
-            continue;
-          } else {
-            const sleepMs = reset 
-              ? Math.max(5000, (parseInt(reset) * 1000) - Date.now() + 5000)
-              : 60000;
-            console.warn(`[Discovery] IP rate limited. Sleeping for ${Math.ceil(sleepMs / 1000)}s...`);
-            await setTimeout(sleepMs);
-            maxRetries--;
-            continue;
-          }
-        }
-        throw new Error(`GitHub API Error: ${response.status} ${response.statusText}`);
-      }
-      return await response.json();
-    }
-    throw new Error('Failed to fetch after max retries due to rate limiting.');
-  };
-
   for (let t = startTopicIndex; t < topics.length; t++) {
     const topic = topics[t];
     let completedTopic = false;
     
-    // Determine page to start for this specific topic
+    // Determine page and cursor to start for this specific topic
     const pageStart = (t === startTopicIndex) ? startPage : 1;
+    let cursor: string | null = (t === startTopicIndex) ? startCursor : null;
 
     for (let page = pageStart; page <= maxPages; page++) {
-      console.log(`[Discovery] Fetching page ${page} of GitHub Search for topic:${topic}...`);
+      console.log(`[Discovery] Fetching page ${page} of GitHub GraphQL Search for topic:${topic} using cursor: ${cursor || 'null'}...`);
       
       try {
-        const query = encodeURIComponent(`topic:${topic} stars:>100`);
-        const data = await fetchWithTokenRotation(
-          `https://api.github.com/search/repositories?q=${query}&sort=${sort}&order=${order}&per_page=100&page=${page}`
-        );
-        const items = data.items || [];
+        const query = `topic:${topic} stars:>100 sort:updated-desc`;
+        const data = await searchGitHubRepos(query, 100, cursor);
+        const items = data.nodes || [];
         
         if (items.length === 0) {
           completedTopic = true;
@@ -165,29 +144,36 @@ export async function discoverNewRepos(maxPages: number = 10): Promise<Discovere
         }
 
         for (const item of items) {
-          const key = `${item.owner.login}/${item.name}`;
+          const key = `${item.owner}/${item.name}`;
           discoveredMap.set(key, {
-            owner: item.owner.login,
+            owner: item.owner,
             repo: item.name,
-            stars: item.stargazers_count,
+            stars: item.stars,
           });
         }
 
-        // Save checkpoint page, topicIndex and topic to Redis
+        cursor = data.endCursor;
+        const hasNextPage = data.hasNextPage;
+
+        // Save checkpoint page, topicIndex, topic, and cursor to Redis
         try {
-          await redisConnection.set(checkpointKey, JSON.stringify({ topicIndex: t, topic, page }));
+          await redisConnection.set(checkpointKey, JSON.stringify({ 
+            topicIndex: t, 
+            topic, 
+            page, 
+            endCursor: cursor 
+          }));
         } catch (err) {
-          console.warn(`[Discovery] Failed to save checkpoint {topicIndex:${t}, topic:${topic}, page:${page}} in Redis`, err);
+          console.warn(`[Discovery] Failed to save checkpoint in Redis`, err);
         }
 
-        if (page === maxPages) {
+        if (!hasNextPage || page === maxPages) {
           completedTopic = true;
+          break;
         }
 
-        // Safe delay (2.5 seconds) to avoid hitting 30 req/min rate limit (which is 1 req every 2s)
-        if (page < maxPages) {
-          await setTimeout(2500);
-        }
+        // Safe delay to respect API guidelines/courtesy
+        await setTimeout(2500);
 
       } catch (error) {
         console.error(`[Discovery] Error during GitHub Search for topic:${topic} page:${page}:`, error);

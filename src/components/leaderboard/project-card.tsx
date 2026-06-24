@@ -3,13 +3,14 @@
 import { Link, useRouter } from "@/i18n/routing";
 import type { RankedProject } from "@/types";
 import { formatNumber, timeAgo } from "@/lib/utils";
-import { Star, GitFork, Download, ArrowUpRight, ExternalLink } from "lucide-react";
+import { Star, GitFork, Download, ArrowUpRight, ExternalLink, Eye } from "lucide-react";
 import { Sparkline } from "@/components/common/sparkline";
 import { SourceBadge } from "@/components/common/source-badge";
 import { CategoryIcon } from "@/components/common/category-icon";
+import { ProjectAvatar } from "@/components/common/project-avatar";
 
 import { useState, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useComparison } from "@/hooks/use-comparison";
 
@@ -43,17 +44,37 @@ export function ProjectCard({ project, index, days: _days }: ProjectCardProps) {
   const t = useTranslations("HomePage");
   const tSocial = useTranslations("SocialListening");
   const searchParams = useSearchParams();
+  const params = useParams();
   const router = useRouter();
   const currentFilter = searchParams.get("filter");
   const [isNew, setIsNew] = useState(false);
+  const locale = (params?.locale as string) || "vi";
+
+  let countryName = "";
+  if (project.countryCode) {
+    try {
+      const displayNames = new Intl.DisplayNames([locale], { type: "region" });
+      countryName = displayNames.of(project.countryCode.toUpperCase()) || project.countryCode;
+    } catch {
+      countryName = project.countryCode;
+    }
+  }
   const { selectedProjects, addProject, removeProject } = useComparison();
   const isCompared = selectedProjects.some((p) => p.id === project.id);
+  const [coords, setCoords] = useState({ x: 0, y: 0 });
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    setCoords({ x, y });
+  };
 
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsNew(
-        new Date(project.sourceCreatedAt).getTime() >
-        Date.now() - 30 * 24 * 60 * 60 * 1000
+          new Date(project.sourceCreatedAt).getTime() >
+          Date.now() - 30 * 24 * 60 * 60 * 1000
       );
     }, 0);
     return () => clearTimeout(timer);
@@ -86,12 +107,25 @@ export function ProjectCard({ project, index, days: _days }: ProjectCardProps) {
   return (
     <div
       onClick={handleCardClick}
-      className={`card group relative overflow-hidden cursor-pointer hover:-translate-y-0.5 hover:shadow-md transition-all duration-255 ease-in-out animate-fade-in-up animate-stagger-${Math.min(index + 1, 12)}`}
+      onMouseMove={handleMouseMove}
+      className={`glass-card glow-interactive hover-spring group relative overflow-hidden cursor-pointer animate-fade-in-up animate-stagger-${Math.min(index + 1, 12)}`}
+      style={{
+        "--mouse-x": `${coords.x}px`,
+        "--mouse-y": `${coords.y}px`,
+      } as React.CSSProperties}
     >
       <div className="p-5">
         <div className="flex items-start gap-4">
           {/* Rank */}
           <RankBadge rank={project.rank} />
+
+          {/* Project Avatar */}
+          <ProjectAvatar 
+            src={project.ownerAvatarUrl} 
+            name={project.fullName} 
+            size={40} 
+            className="group-hover:scale-[1.05] transition-transform duration-300 relative z-10 shrink-0" 
+          />
 
           {/* Main Content */}
           <div className="min-w-0 flex-1">
@@ -107,6 +141,14 @@ export function ProjectCard({ project, index, days: _days }: ProjectCardProps) {
                 <ArrowUpRight className="h-3.5 w-3.5 text-[var(--color-text-muted)] opacity-0 group-hover/link:opacity-100 transition-all group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5 shrink-0" />
               </Link>
               <SourceBadge source={project.source} projectType={project.projectType} />
+              {project.countryCode && (
+                <img
+                  src={`https://flagcdn.com/w20/${project.countryCode.toLowerCase()}.png`}
+                  alt={project.countryCode}
+                  title={countryName + (project.location ? ` (${project.location})` : "")}
+                  className="w-4.5 h-3.5 object-cover rounded-sm shadow-sm border border-[var(--color-border)] select-none shrink-0 hover:scale-110 transition-transform cursor-help"
+                />
+              )}
               
               {project.mentionsCount !== undefined && project.mentionsCount > 0 && (
                 <span className="text-[10px] font-bold tracking-wider uppercase bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 px-1.5 py-0.5 rounded shrink-0 flex items-center gap-1 select-none">
@@ -227,6 +269,14 @@ export function ProjectCard({ project, index, days: _days }: ProjectCardProps) {
                   </span>
                 </span>
               )}
+              {project.views !== undefined && (
+                <span className="metric-badge" title={`${formatNumber(project.views)} views`}>
+                  <Eye className="text-[var(--color-text-tertiary)]" />
+                  <span className="text-[var(--color-text-primary)] font-medium">
+                    {formatNumber(project.views)}
+                  </span>
+                </span>
+              )}
             </div>
 
             {/* Updated time info */}
@@ -257,6 +307,14 @@ export function ProjectCard({ project, index, days: _days }: ProjectCardProps) {
                 <Download className="text-[var(--color-info)]" />
                 <span className="text-[var(--color-text-primary)] font-medium">
                   {formatNumber(project.downloads || 0)}
+                </span>
+              </span>
+            )}
+            {project.views !== undefined && (
+              <span className="metric-badge" title={`${formatNumber(project.views)} views`}>
+                <Eye className="text-[var(--color-text-tertiary)]" />
+                <span className="text-[var(--color-text-primary)] font-medium">
+                  {formatNumber(project.views)}
                 </span>
               </span>
             )}

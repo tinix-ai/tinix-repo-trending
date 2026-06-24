@@ -2,16 +2,18 @@ import 'dotenv/config';
 import { Worker, Job } from 'bullmq';
 import Redis from 'ioredis';
 import { db } from '../lib/db';
-import { projects, projectSnapshots, projectTrends, projectMentions } from '../lib/db/schema';
+import { projects, projectSnapshots, projectTrends, projectMentions, githubUsers } from '../lib/db/schema';
 import { crawlHNMentions } from '../lib/crawlers/hn';
 import { crawlRedditMentions } from '../lib/crawlers/reddit';
 import { crawlTwitterMentions } from '../lib/crawlers/twitter';
 import * as zlib from 'zlib';
-import { sql, eq } from 'drizzle-orm';
+import { sql, eq, and, isNotNull } from 'drizzle-orm';
 import { categorizeProject } from '../lib/categorizer';
+import { parseCountryFromProfile } from '../lib/location-parser';
 import { updateProjectCrawlSchedule } from '../lib/crawlers/scheduler';
 import { githubPool } from '../lib/crawlers/github-pool';
 import { proxyManager } from '../lib/crawlers/proxy';
+import { fetchSingleGitHubRepo } from '../lib/crawlers/github-graphql';
 import { setTimeout } from 'timers/promises';
 import { crawlerQueue, githubUpdaterQueue, socialCrawlerQueue } from './queue';
 import { setupQueueAutoRecovery } from './recovery';
@@ -46,113 +48,65 @@ export async function handleGithubCrawlJob(job: Job<CrawlJobData>) {
   console.log(`${logPrefix} Starting crawl for ${owner}/${repo}`);
 
   try {
-    // Helper function to fetch from Github with Token Rotation, Proxy Rotation, and Smart Rate-Limit Waiting
-    const fetchWithTokenRotation = async (url: string, isReadme = false) => {
-      let maxRetries = 5; // Allow more retries to try multiple proxies/tokens
-      while (maxRetries > 0) {
-        let currentToken: string | null = null;
-        let tokenExhaustedError = false;
+    let existingProject: {
+      id: string;
+      sourceUpdatedAt: Date | null;
+      readme: Buffer | string | null;
+      readmeSha: string | null;
+      description: string | null;
+      etag: string | null;
+      stars: number | null;
+      forks: number | null;
+      openIssues: number | null;
+      watchers: number | null;
+      downloads: number | null;
+    } | undefined = undefined;
+    if (job.data.projectId) {
+      const [res] = await db.select({
+        id: projects.id,
+        sourceUpdatedAt: projects.sourceUpdatedAt,
+        readme: projects.readme,
+        readmeSha: projects.readmeSha,
+        description: projects.description,
+        etag: projects.etag,
+        stars: projects.stars,
+        forks: projects.forks,
+        openIssues: projects.openIssues,
+        watchers: projects.watchers,
+        downloads: projects.downloads
+      })
+      .from(projects)
+      .where(eq(projects.id, job.data.projectId))
+      .limit(1);
+      existingProject = res;
+    }
 
-        try {
-          currentToken = await githubPool.getAvailableToken();
-        } catch (err: unknown) {
-          const error = err as Error;
-          if (error.message.includes('ALL tokens are currently exhausted')) {
-            tokenExhaustedError = true;
-          } else {
-            throw err;
-          }
-        }
+    if (!existingProject) {
+      const targetSlug = `${owner.toLowerCase()}-${repo.toLowerCase()}`;
+      const [res] = await db.select({
+        id: projects.id,
+        sourceUpdatedAt: projects.sourceUpdatedAt,
+        readme: projects.readme,
+        readmeSha: projects.readmeSha,
+        description: projects.description,
+        etag: projects.etag,
+        stars: projects.stars,
+        forks: projects.forks,
+        openIssues: projects.openIssues,
+        watchers: projects.watchers,
+        downloads: projects.downloads
+      })
+      .from(projects)
+      .where(eq(projects.slug, targetSlug))
+      .limit(1);
+      existingProject = res;
+    }
 
-        // Case: All tokens exhausted, but we have proxies to fall back on for unauthenticated requests
-        const hasProxies = (process.env.PROXY_URLS || '').split(',').map(p => p.trim()).filter(Boolean).length > 0;
-        if (tokenExhaustedError && !hasProxies) {
-          const nextTime = await githubPool.getNextAvailableTime();
-          const sleepMs = Math.max(5000, nextTime - Date.now() + 5000);
-          const resetMinutes = Math.ceil(sleepMs / 60000);
-          
-          if (!pauseScheduledMap[job.queueName]) {
-            pauseScheduledMap[job.queueName] = true;
-            console.log(`${logPrefix} All GitHub tokens exhausted. Automatically pausing queue...`);
-            try {
-              await redisConnection.set(`crawler:rate-limit-reset:${job.queueName}`, 'true', 'PX', sleepMs);
-              await currentQueue.pause();
-              console.log(`${logPrefix} Queue paused successfully. Will resume in ${resetMinutes} minute(s).`);
-              
-              (async () => {
-                await setTimeout(sleepMs);
-                try {
-                  await currentQueue.resume();
-                  await redisConnection.del(`crawler:rate-limit-reset:${job.queueName}`);
-                  pauseScheduledMap[job.queueName] = false;
-                  console.log(`${logPrefix} Automatically resumed queue after rate limit reset.`);
-                } catch (resumeErr) {
-                  pauseScheduledMap[job.queueName] = false;
-                  console.error(`${logPrefix} Failed to automatically resume queue:`, resumeErr);
-                }
-              })();
-            } catch (pauseErr) {
-              pauseScheduledMap[job.queueName] = false;
-              console.error(`${logPrefix} Failed to pause queue:`, pauseErr);
-            }
-          }
 
-          throw new Error(`[RateLimitError] All GitHub tokens exhausted. Next available in ${resetMinutes} minute(s).`);
-        }
-
-        const headers: Record<string, string> = {
-          'Accept': isReadme ? 'application/vnd.github.v3.raw' : 'application/vnd.github.v3+json',
-        };
-        if (currentToken) {
-          headers['Authorization'] = `Bearer ${currentToken}`;
-        }
-
-        const dispatcher = proxyManager.getRandomDispatcher();
-        const fetchOptions: RequestInit & { dispatcher?: unknown } = { headers };
-        if (dispatcher) {
-          fetchOptions.dispatcher = dispatcher;
-        }
-
-        const response = await fetch(url, fetchOptions);
-        
-        // Check limits
-        const reset = response.headers.get('x-ratelimit-reset');
-        
-        if (!response.ok) {
-          if (response.status === 403 || response.status === 429) {
-            if (currentToken) {
-              // Token-based limit
-              await githubPool.markTokenExhausted(currentToken, reset);
-              console.log(`${logPrefix} 403/429 caught. Rotated token. Retries left: ${maxRetries - 1}`);
-              maxRetries--;
-              continue; // Retry with next token
-            } else if (hasProxies) {
-              // IP-based limit when using proxies
-              console.log(`${logPrefix} 403/429 caught on proxy/direct connection. Rotating proxy. Retries left: ${maxRetries - 1}`);
-              maxRetries--;
-              await setTimeout(2000); // 2 seconds delay
-              continue; // Retry with next random proxy
-            } else {
-              // No token and no proxies -> We hit IP rate limit on host.
-              console.log(`${logPrefix} IP rate limited on host with no tokens/proxies. Throwing RateLimitError...`);
-              throw new Error(`[RateLimitError] IP rate limited on host. No tokens or proxies configured.`);
-            }
-          }
-          if (response.status === 404) {
-            return { status: 404, data: null };
-          }
-          throw new Error(`GitHub API Error: ${response.status} ${response.statusText}`);
-        }
-
-        return { status: 200, data: isReadme ? await response.text() : await response.json() };
-      }
-      throw new Error('Failed to fetch after max retries due to rate limiting.');
-    };
-
-    // 1. Fetch data from GitHub API
-    const result = await fetchWithTokenRotation(`https://api.github.com/repos/${owner}/${repo}`);
+    // 1. Fetch data from GitHub API via GraphQL
+    const result = await fetchSingleGitHubRepo(owner, repo);
     
-    if (result.status === 404) {
+    if (!result.exists) {
       console.warn(`${logPrefix} Project ${owner}/${repo} not found on GitHub. Removing from database.`);
       if (job.data.projectId) {
         await db.delete(projectTrends).where(eq(projectTrends.projectId, job.data.projectId));
@@ -162,10 +116,10 @@ export async function handleGithubCrawlJob(job: Job<CrawlJobData>) {
       return;
     }
 
-    const data = result.data;
+    const data = result.data!;
 
     // Detect if the repository has been renamed or transferred
-    const actualFullName = data.full_name || `${owner}/${repo}`;
+    const actualFullName = data.fullName;
     const [actualOwner, actualRepo] = actualFullName.split('/');
     const isRenamed = actualFullName.toLowerCase() !== `${owner.toLowerCase()}/${repo.toLowerCase()}`;
 
@@ -248,15 +202,25 @@ export async function handleGithubCrawlJob(job: Job<CrawlJobData>) {
     // 2. Process data and update database
     const slug = `${owner.toLowerCase()}-${repo.toLowerCase()}`;
     
-    let readme: Buffer | null = null;
-    let finalDescription = data.description || '';
-    try {
-      const readmeRes = await fetchWithTokenRotation(`https://api.github.com/repos/${owner}/${repo}/readme`, true);
-      if (readmeRes.status === 200 && readmeRes.data) {
-        const rawReadme = readmeRes.data;
-        readme = zlib.gzipSync(Buffer.from(rawReadme, 'utf-8'));
-        if (!finalDescription && rawReadme) {
-          let clean = rawReadme.trim();
+    let readme: Buffer | string | null = existingProject?.readme || null;
+    let readmeSha: string | null = existingProject?.readmeSha || null;
+    let finalDescription = data.description || existingProject?.description || '';
+
+    const apiPushedAt = data.sourceUpdatedAt.getTime();
+    const dbPushedAt = existingProject?.sourceUpdatedAt ? new Date(existingProject.sourceUpdatedAt).getTime() : 0;
+    const canSkipReadmeCompress = apiPushedAt > 0 && dbPushedAt > 0 && apiPushedAt === dbPushedAt && existingProject?.readme !== null;
+
+    if (canSkipReadmeCompress) {
+      console.log(`${logPrefix} pushed_at unchanged (${data.sourceUpdatedAt.toISOString()}). Skipping README compression.`);
+      readme = existingProject.readme;
+      readmeSha = existingProject.readmeSha;
+    } else {
+      if (data.readmeText) {
+        readme = zlib.gzipSync(Buffer.from(data.readmeText, 'utf-8'));
+        readmeSha = data.readmeSha;
+
+        if (!finalDescription && data.readmeText) {
+          let clean = data.readmeText.trim();
           if (clean.startsWith('---')) {
             const secondIndex = clean.indexOf('---', 3);
             if (secondIndex !== -1) {
@@ -267,13 +231,99 @@ export async function handleGithubCrawlJob(job: Job<CrawlJobData>) {
           finalDescription = clean.substring(0, 250).trim() + '...';
         }
       }
-    } catch {
-      console.warn(`${logPrefix} Failed to fetch README for ${owner}/${repo}`);
     }
 
     // Use Categorizer for GitHub repos
-    const rawTags = data.topics || [];
+    const rawTags = data.topics;
     const canonicalCategories = await categorizeProject(rawTags, 'repository');
+
+    // Retrieve owner's profile location to identify country
+    let ownerLocation: string | null = null;
+    let ownerCountryCode: string | null = null;
+
+    try {
+      // 1. Check in github_users table (the new owner cache table)
+      const [cachedUser] = await db.select({
+        location: githubUsers.location,
+        countryCode: githubUsers.countryCode
+      })
+      .from(githubUsers)
+      .where(eq(githubUsers.username, owner))
+      .limit(1);
+
+      if (cachedUser) {
+        if (cachedUser.countryCode === 'UNKNOWN') {
+          console.log(`${logPrefix} Found cached owner ${owner} in githubUsers but has UNKNOWN country (negative cached)`);
+          ownerLocation = cachedUser.location;
+          ownerCountryCode = null;
+        } else {
+          ownerLocation = cachedUser.location;
+          ownerCountryCode = cachedUser.countryCode;
+          console.log(`${logPrefix} Found cached location for owner ${owner} in githubUsers: ${ownerLocation} (${ownerCountryCode})`);
+        }
+      } else {
+        // Fallback to legacy projects table search just in case
+        const existingOwner = await db.select({
+          location: projects.location,
+          countryCode: projects.countryCode
+        })
+        .from(projects)
+        .where(and(eq(projects.ownerName, owner), isNotNull(projects.countryCode)))
+        .limit(1);
+
+        if (existingOwner.length > 0 && existingOwner[0].countryCode) {
+          ownerLocation = existingOwner[0].location;
+          ownerCountryCode = existingOwner[0].countryCode;
+          console.log(`${logPrefix} Found cached location for owner ${owner} in legacy projects search: ${ownerLocation} (${ownerCountryCode})`);
+          
+          // Backport to github_users
+          await db.insert(githubUsers)
+            .values({
+              username: owner,
+              location: ownerLocation,
+              countryCode: ownerCountryCode
+            })
+            .onConflictDoNothing();
+        }
+      }
+    } catch (dbErr) {
+      console.warn(`${logPrefix} Failed to check cached owner location in DB:`, dbErr);
+    }
+
+    // 2. Fallback to parse location from retrieved GraphQL data if not cached
+    if (!ownerCountryCode) {
+      ownerLocation = data.location;
+      const parsedCountry = parseCountryFromProfile({
+        location: data.location,
+        email: data.email,
+        blog: data.blog,
+        company: data.company
+      });
+      ownerCountryCode = parsedCountry || null;
+
+      console.log(`${logPrefix} Detected location for owner ${owner} from GraphQL payload: location="${ownerLocation || ''}", email="${data.email || ''}", blog="${data.blog || ''}", company="${data.company || ''}" -> countryCode=${ownerCountryCode || 'unknown'}`);
+      
+      // Insert or update into cache table
+      try {
+        await db.insert(githubUsers)
+          .values({
+            username: owner,
+            location: ownerLocation,
+            countryCode: ownerCountryCode || 'UNKNOWN',
+            updatedAt: new Date()
+          })
+          .onConflictDoUpdate({
+            target: githubUsers.username,
+            set: {
+              location: ownerLocation,
+              countryCode: ownerCountryCode || 'UNKNOWN',
+              updatedAt: new Date()
+            }
+          });
+      } catch (cacheErr) {
+        console.warn(`${logPrefix} Failed to cache owner info:`, cacheErr);
+      }
+    }
     
     // Upsert into projects
     const [project] = await db.insert(projects)
@@ -283,24 +333,28 @@ export async function handleGithubCrawlJob(job: Job<CrawlJobData>) {
         sourceId: `${owner}/${repo}`,
         slug,
         name: data.name,
-        fullName: data.full_name,
+        fullName: data.fullName,
         description: finalDescription,
         readme: readme,
-        homepageUrl: data.homepage,
-        sourceUrl: data.html_url,
-        primaryLanguage: data.language,
-        license: data.license?.name,
+        readmeSha: readmeSha,
+        homepageUrl: data.homepageUrl,
+        sourceUrl: data.sourceUrl,
+        primaryLanguage: data.primaryLanguage,
+        license: data.license,
         ownerName: owner,
-        ownerAvatarUrl: data.owner?.avatar_url,
-        ownerType: data.owner?.type?.toLowerCase(),
-        topics: data.topics || [],
+        ownerAvatarUrl: data.ownerAvatarUrl,
+        ownerType: data.ownerType,
+        topics: rawTags,
         categories: canonicalCategories,
-        stars: data.stargazers_count || 0,
-        forks: data.forks_count || 0,
-        watchers: data.subscribers_count || 0,
-        openIssues: data.open_issues_count || 0,
-        sourceCreatedAt: new Date(data.created_at),
-        sourceUpdatedAt: new Date(data.pushed_at || data.updated_at || data.created_at),
+        location: ownerLocation,
+        countryCode: ownerCountryCode,
+        etag: null,
+        stars: data.stars,
+        forks: data.forks,
+        watchers: data.watchers,
+        openIssues: data.openIssues,
+        sourceCreatedAt: data.sourceCreatedAt,
+        sourceUpdatedAt: data.sourceUpdatedAt,
         lastCrawledAt: new Date(),
       })
       .onConflictDoUpdate({
@@ -308,21 +362,26 @@ export async function handleGithubCrawlJob(job: Job<CrawlJobData>) {
         set: {
           description: finalDescription,
           readme: readme,
-          homepageUrl: data.homepage,
-          primaryLanguage: data.language,
-          topics: data.topics || [],
+          readmeSha: readmeSha,
+          homepageUrl: data.homepageUrl,
+          primaryLanguage: data.primaryLanguage,
+          topics: rawTags,
           categories: canonicalCategories,
-          stars: data.stargazers_count || 0,
-          forks: data.forks_count || 0,
-          watchers: data.subscribers_count || 0,
-          openIssues: data.open_issues_count || 0,
+          location: ownerLocation,
+          countryCode: ownerCountryCode,
+          etag: null,
+          stars: data.stars,
+          forks: data.forks,
+          watchers: data.watchers,
+          openIssues: data.openIssues,
+          sourceUpdatedAt: data.sourceUpdatedAt,
           lastCrawledAt: new Date(),
         }
       })
       .returning({ id: projects.id });
 
-    // Insert snapshot (deduplicate: update if same project+date already exists today, else insert)
-    const snapshotDate = new Date().toISOString().split('T')[0];
+    // Insert snapshot
+    const snapshotDate = new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().split('T')[0];
     const existing = await db.select({ id: projectSnapshots.id })
       .from(projectSnapshots)
       .where(sql`${projectSnapshots.projectId} = ${project.id} AND ${projectSnapshots.snapshotDate} = ${snapshotDate}`)
@@ -331,19 +390,19 @@ export async function handleGithubCrawlJob(job: Job<CrawlJobData>) {
     if (existing.length > 0) {
       await db.update(projectSnapshots)
         .set({
-          stars: data.stargazers_count,
-          forks: data.forks_count,
-          openIssues: data.open_issues_count,
-          watchers: data.subscribers_count,
+          stars: data.stars,
+          forks: data.forks,
+          openIssues: data.openIssues,
+          watchers: data.watchers,
         })
         .where(eq(projectSnapshots.id, existing[0].id));
     } else {
       await db.insert(projectSnapshots).values({
         projectId: project.id,
-        stars: data.stargazers_count,
-        forks: data.forks_count,
-        openIssues: data.open_issues_count,
-        watchers: data.subscribers_count,
+        stars: data.stars,
+        forks: data.forks,
+        openIssues: data.openIssues,
+        watchers: data.watchers,
         snapshotDate,
       });
     }
@@ -351,13 +410,13 @@ export async function handleGithubCrawlJob(job: Job<CrawlJobData>) {
     // Recalculate and update the next crawl schedule
     await updateProjectCrawlSchedule(project.id, 'github');
 
-    console.log(`${logPrefix} Successfully fetched & saved ${owner}/${repo}: ${data.stargazers_count} stars`);
+    console.log(`${logPrefix} Successfully fetched & saved ${owner}/${repo}: ${data.stars} stars`);
 
     return { 
       status: 'success', 
       projectId: project.id,
-      stars: data.stargazers_count,
-      forks: data.forks_count 
+      stars: data.stars,
+      forks: data.forks 
     };
 
   } catch (err: unknown) {

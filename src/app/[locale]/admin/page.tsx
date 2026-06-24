@@ -51,7 +51,7 @@ export default async function AdminPage(props: AdminPageProps) {
       </header>
       
       {/* Tabs Navigation */}
-      <div className="flex items-center gap-1 p-1 bg-[var(--color-surface-tile-1)] rounded-xl w-fit border border-[var(--color-divider-soft)]">
+      <div className="flex items-center gap-1 p-1 bg-[var(--color-bg-secondary)] rounded-xl w-fit border border-[var(--color-divider-soft)]">
         <Link
           href="/admin?tab=overview"
           className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${currentTab === 'overview' ? 'bg-[var(--color-canvas)] text-[var(--color-ink)] shadow-sm' : 'text-[var(--color-ink-muted-48)] hover:text-[var(--color-ink)]'}`}

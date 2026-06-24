@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Link } from "@/i18n/routing";
+import { Link, useRouter } from "@/i18n/routing";
 import type { RankedProject } from "@/types";
 import { formatNumber } from "@/lib/utils";
 import { Star, Download, BarChart3, Code2 } from "lucide-react";
@@ -16,6 +16,31 @@ interface SimilarProjectsProps {
 export function SimilarProjects({ projects }: SimilarProjectsProps) {
   const t = useTranslations("ProjectDetail");
   const { selectedProjects, addProject, removeProject } = useComparison();
+  const router = useRouter();
+  const [hoveredCoords, setHoveredCoords] = React.useState<Record<string, { x: number; y: number }>>({});
+
+  const handleMouseMove = (projectId: string, e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    setHoveredCoords((prev) => ({
+      ...prev,
+      [projectId]: { x, y },
+    }));
+  };
+
+  const handleCardClick = (projectId: string, slug: string, e: React.MouseEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement;
+    if (
+      target.closest("a") || 
+      target.closest("button") || 
+      target.tagName === "A" || 
+      target.tagName === "BUTTON"
+    ) {
+      return;
+    }
+    router.push(`/project/${slug.replace(/\//g, '-')}-${projectId}`);
+  };
 
   if (!projects || projects.length === 0) return null;
 
@@ -38,7 +63,13 @@ export function SimilarProjects({ projects }: SimilarProjectsProps) {
           return (
             <div
               key={project.id}
-              className="bg-[var(--color-canvas)] border border-[var(--color-border)] rounded-[2px] p-5 flex flex-col justify-between hover:border-[var(--color-action-blue)]/50 hover:shadow-lg transition-all duration-300 ease-out group"
+              onMouseMove={(e) => handleMouseMove(project.id, e)}
+              onClick={(e) => handleCardClick(project.id, project.slug, e)}
+              className="apple-utility-card hover-spring glow-interactive p-5 flex flex-col justify-between relative overflow-hidden group cursor-pointer"
+              style={{
+                "--mouse-x": `${hoveredCoords[project.id]?.x || 0}px`,
+                "--mouse-y": `${hoveredCoords[project.id]?.y || 0}px`,
+              } as React.CSSProperties}
             >
               <div className="flex flex-col gap-3">
                 {/* Header info */}

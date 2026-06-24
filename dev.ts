@@ -11,7 +11,7 @@ interface ProcessInfo {
   instance?: ChildProcess;
 }
 
-// MEMORY BUDGET: ~4GB total (Next.js 2048 + 3 workers × 512 = 3584MB)
+// MEMORY BUDGET: Optimized for dev server stability (Next.js 4096 + 1 Combined Worker 2048 = 6144MB max)
 const processes: ProcessInfo[] = [
   {
     name: 'Next.js',
@@ -20,25 +20,11 @@ const processes: ProcessInfo[] = [
     color: '\x1b[36m', // Cyan
   },
   {
-    name: 'GH Worker',
+    name: 'Combined Worker',
     command: 'npx',
-    args: ['tsx', 'src/workers/crawler-worker.ts'],
+    args: ['tsx', 'src/workers/combined-worker.ts'],
     color: '\x1b[32m', // Green
   },
-  {
-    name: 'HF Worker',
-    command: 'npx',
-    args: ['tsx', 'src/workers/hf-worker.ts'],
-    color: '\x1b[33m', // Yellow
-  },
-  {
-    name: 'Scheduler',
-    command: 'npx',
-    args: ['tsx', 'src/workers/scheduler-worker.ts'],
-    color: '\x1b[34m', // Blue
-  },
-  // NOTE: GH Updater and HF Updater workers are now handled by
-  // crawler-worker.ts and hf-worker.ts respectively (merged)
 ];
 
 let isExiting = false;
@@ -48,14 +34,18 @@ function logSystem(msg: string) {
 }
 
 function getProcessEnv(procName: string): NodeJS.ProcessEnv {
+  const existingOptions = process.env.NODE_OPTIONS || '';
   if (procName === 'Next.js') {
-    return { ...process.env, NODE_OPTIONS: '--max-old-space-size=2048' };
+    return { 
+      ...process.env, 
+      NODE_OPTIONS: `${existingOptions} --max-old-space-size=4096`.trim() 
+    };
   }
-  // Workers: limit heap to 512MB + limit DB connections
+  // Combined Worker: runs crawler + hf + scheduler. Limit heap to 2048MB.
   return {
     ...process.env,
-    NODE_OPTIONS: '--max-old-space-size=512',
-    DB_MAX_CONNECTIONS: '2',
+    NODE_OPTIONS: `${existingOptions} --max-old-space-size=2048`.trim(),
+    DB_MAX_CONNECTIONS: '4',
   };
 }
 

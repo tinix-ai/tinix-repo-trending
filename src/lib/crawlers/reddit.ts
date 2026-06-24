@@ -1,4 +1,3 @@
-import { proxyManager } from './proxy';
 import { SocialMentionInput } from './hn';
 
 interface RedditChild {
@@ -75,6 +74,14 @@ export async function crawlRedditMentions(
   sourceUrl: string,
   homepageUrl: string | null
 ): Promise<SocialMentionInput[]> {
+  const clientId = process.env.REDDIT_CLIENT_ID;
+  const clientSecret = process.env.REDDIT_CLIENT_SECRET;
+
+  if (!clientId || !clientSecret) {
+    console.warn('[Reddit Crawler] Reddit client credentials not configured. Reddit crawling is temporarily disabled.');
+    return [];
+  }
+
   console.log(`[Reddit Crawler] Searching mentions for: ${fullName}`);
 
   // Try OAuth2 authenticated flow first
@@ -83,9 +90,8 @@ export async function crawlRedditMentions(
     return crawlWithOAuth(token, fullName, projectName, sourceUrl, homepageUrl);
   }
 
-  // Fallback: unauthenticated .json endpoint (often blocked from server IPs)
-  console.warn('[Reddit Crawler] No REDDIT_CLIENT_ID/REDDIT_CLIENT_SECRET configured. Using unauthenticated fallback (may be blocked).');
-  return crawlUnauthenticated(fullName, projectName, sourceUrl, homepageUrl);
+  console.warn('[Reddit Crawler] Reddit credentials configured but token generation failed.');
+  return [];
 }
 
 async function crawlWithOAuth(
@@ -129,49 +135,6 @@ async function crawlWithOAuth(
     return parseRedditResults(data);
   } catch (error) {
     console.error(`[Reddit Crawler] OAuth search error for ${fullName}:`, error);
-    return [];
-  }
-}
-
-async function crawlUnauthenticated(
-  fullName: string,
-  projectName: string,
-  sourceUrl: string,
-  homepageUrl: string | null
-): Promise<SocialMentionInput[]> {
-  const queries = [
-    `"${projectName}"`,
-    `"${sourceUrl.replace(/^https?:\/\/(www\.)?/, '')}"`,
-  ];
-  if (homepageUrl) {
-    queries.push(`"${homepageUrl.replace(/^https?:\/\/(www\.)?/, '')}"`);
-  }
-
-  const query = queries.join(' OR ');
-  const apiUrl = `https://www.reddit.com/search.json?q=${encodeURIComponent(query)}&sort=new&limit=10`;
-
-  try {
-    const dispatcher = proxyManager.getRandomDispatcher();
-    const fetchOptions: RequestInit & { dispatcher?: unknown } = {
-      headers: {
-        'Accept': 'application/json',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 TinixTrending/1.0',
-      },
-    };
-    if (dispatcher) {
-      fetchOptions.dispatcher = dispatcher;
-    }
-
-    const response = await fetch(apiUrl, fetchOptions);
-    if (!response.ok) {
-      console.warn(`[Reddit Crawler] Unauthenticated search returned status ${response.status}`);
-      return [];
-    }
-
-    const data = await response.json();
-    return parseRedditResults(data);
-  } catch (error) {
-    console.error(`[Reddit Crawler] Unauthenticated error for ${fullName}:`, error);
     return [];
   }
 }

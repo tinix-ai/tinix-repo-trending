@@ -20,10 +20,10 @@ export default async function CategoriesPage() {
   return (
     <div className="page-container py-8 lg:py-12">
       <div className="max-w-3xl mb-10">
-        <h1 className="text-3xl font-extrabold tracking-tight text-zinc-50 mb-3">
+        <h1 className="text-3xl font-extrabold tracking-tight text-[var(--color-ink)] mb-3">
           {t("header")}
         </h1>
-        <p className="text-sm text-zinc-500 leading-relaxed">
+        <p className="text-sm text-[var(--color-ink-muted-80)] leading-relaxed">
           {t("subtitle")}
         </p>
       </div>
@@ -33,7 +33,7 @@ export default async function CategoriesPage() {
           <Link
             key={cat.id}
             href={`/?category=${cat.slug}`}
-            className={`card group p-6 animate-fade-in-up animate-stagger-${Math.min(i + 1, 12)}`}
+            className={`glass-card hover-spring group p-6 animate-fade-in-up animate-stagger-${Math.min(i + 1, 12)}`}
           >
             <div className="flex items-start justify-between mb-4">
               <div
@@ -42,17 +42,17 @@ export default async function CategoriesPage() {
               >
                 <CategoryIcon icon={cat.icon} name={cat.name} className="h-5 w-5" />
               </div>
-              <ChevronRight className="h-4 w-4 text-zinc-700 group-hover:text-zinc-400 group-hover:translate-x-0.5 transition-all" />
+              <ChevronRight className="h-4 w-4 text-[var(--color-ink-muted-80)] group-hover:text-[var(--color-action-blue)] group-hover:translate-x-0.5 transition-all" />
             </div>
 
             <h2
-              className="text-base font-semibold mb-1 transition-colors group-hover:text-emerald-400"
+              className="text-base font-semibold mb-1 transition-colors group-hover:text-[var(--color-action-blue)]"
               style={{ color: cat.color }}
             >
               {cat.name}
             </h2>
 
-            <p className="text-xs text-zinc-600 mb-3">
+            <p className="text-xs text-[var(--color-ink-muted-48)] mb-3">
               {t("projectsTracked", { count: cat.projectCount })}
             </p>
 

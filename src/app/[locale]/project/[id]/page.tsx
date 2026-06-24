@@ -14,17 +14,13 @@ import {
   Code2, 
   LayoutGrid,
   ArrowLeft,
-  Calendar
+  Calendar,
+  Eye
 } from "lucide-react";
+import { ViewTracker } from "@/components/project/view-tracker";
 import { Link as PageLink } from "@/i18n/routing";
 const Anchor = "a";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import remarkToc from "remark-toc";
-import rehypeHighlight from "rehype-highlight";
-import rehypeSlug from "rehype-slug";
-import rehypeRaw from "rehype-raw";
-import "highlight.js/styles/github-dark.css";
+import { ProjectTabs } from "@/components/project/project-tabs";
 import { ProjectHistoryChart } from "@/components/project/history-chart";
 import { TopicsList } from "@/components/project/topics-list";
 import { SimilarProjects } from "@/components/project/similar-projects";
@@ -46,31 +42,6 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   };
 }
 
-function resolveRelativeUrl(url: string, sourceUrl: string | undefined, source: string, isImage: boolean): string {
-  if (!url || !sourceUrl) return url;
-  if (/^(https?:\/\/|mailto:|tel:|#|data:)/i.test(url) || url.startsWith("//")) return url;
-
-  // Clean leading ./ or /
-  const cleanUrl = url.replace(/^\.?\//, "");
-  const base = sourceUrl.replace(/\/$/, "");
-
-  if (source === "github") {
-    if (isImage) {
-      const rawBase = base.replace("github.com", "raw.githubusercontent.com");
-      return `${rawBase}/main/${cleanUrl}`;
-    } else {
-      return `${base}/blob/main/${cleanUrl}`;
-    }
-  } else if (source === "huggingface") {
-    if (isImage) {
-      return `${base}/resolve/main/${cleanUrl}`;
-    } else {
-      return `${base}/blob/main/${cleanUrl}`;
-    }
-  }
-  return url;
-}
-
 export default async function ProjectDetailPage({ params }: { params: Promise<{ id: string; locale: string }> }) {
   const resolvedParams = await params;
   const { id: paramId, locale } = resolvedParams;
@@ -81,6 +52,16 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
     notFound();
   }
 
+  let countryName = "";
+  if (project.countryCode) {
+    try {
+      const displayNames = new Intl.DisplayNames([locale], { type: "region" });
+      countryName = displayNames.of(project.countryCode.toUpperCase()) || project.countryCode;
+    } catch {
+      countryName = project.countryCode;
+    }
+  }
+
   const t = await getTranslations("ProjectDetail");
   const tNav = await getTranslations("Navigation");
   const historyData = await fetchProjectHistory(project.id, 30);
@@ -89,6 +70,11 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
   const isGithub = project.source === "github";
   const isHuggingFace = project.source === "huggingface";
   const cleanedReadme = cleanReadme(project.readme);
+
+  // Sắp xếp bài thảo luận theo thời gian mới nhất (giảm dần)
+  const sortedMentions = [...socialMentions].sort(
+    (a, b) => new Date(b.mentionedAt).getTime() - new Date(a.mentionedAt).getTime()
+  );
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -122,6 +108,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 
   return (
     <div className="w-full min-h-screen bg-[var(--color-bg-primary)]">
+      <ViewTracker projectId={project.id} />
       {/* JSON-LD Structured Data for SEO */}
       <script
         type="application/ld+json"
@@ -173,6 +160,16 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                 <span className="flex items-center gap-1.5 text-[12px] font-semibold tracking-wider uppercase text-[var(--color-ink-muted-80)] bg-[var(--color-bg-secondary)] px-2.5 py-1 rounded-md border border-[var(--color-border)]">
                   <Code2 className="h-3.5 w-3.5" />
                   {project.primaryLanguage}
+                </span>
+              )}
+              {project.countryCode && (
+                <span className="flex items-center gap-1.5 text-[12px] font-semibold tracking-wider uppercase text-[var(--color-ink-muted-80)] bg-[var(--color-bg-secondary)] px-2.5 py-1 rounded-md border border-[var(--color-border)]" title={project.location || undefined}>
+                  <img
+                    src={`https://flagcdn.com/w20/${project.countryCode.toLowerCase()}.png`}
+                    alt={project.countryCode}
+                    className="w-4.5 h-3.5 object-cover rounded-sm shadow-sm border border-[var(--color-border)] select-none shrink-0"
+                  />
+                  {countryName}
                 </span>
               )}
             </div>
@@ -230,6 +227,13 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                   </div>
                 </>
               )}
+              {project.views !== undefined && (
+                <div className="flex items-center gap-1.5" title={`${formatNumber(project.views)} views`}>
+                  <Eye className="h-4 w-4 text-[var(--color-ink-muted-80)]" />
+                  <span className="text-sm font-semibold text-[var(--color-ink)] tabular-nums">{formatNumber(project.views)}</span>
+                  <span className="text-xs text-[var(--color-ink-muted-80)] uppercase tracking-wider font-medium">{t("views")}</span>
+                </div>
+              )}
             </div>
 
             {/* Action Buttons */}
@@ -265,61 +269,20 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
           {/* Left Column: Chart & README */}
           <div className="min-w-0 space-y-8">
             
-            {/* README */}
-            {cleanedReadme ? (
-              <div className="apple-utility-card p-8 sm:p-10 overflow-hidden">
-                <div className="prose max-w-none prose-headings:font-semibold prose-a:text-[var(--color-action-blue)] hover:prose-a:text-[var(--color-action-blue-focus)] prose-img:rounded-xl">
-                  <ReactMarkdown 
-                    remarkPlugins={[remarkGfm, [remarkToc, { heading: 'table of contents|toc|mục lục', tight: true }]]}
-                    rehypePlugins={[rehypeRaw, rehypeSlug, rehypeHighlight]}
-                    components={{
-                      a: ({ href, children, ...props }) => (
-                        <Anchor 
-                          href={resolveRelativeUrl(typeof href === "string" ? href : "", project.sourceUrl, project.source, false)} 
-                          target="_blank" 
-                          rel="noopener noreferrer" 
-                          {...props}
-                        >
-                          {children}
-                        </Anchor>
-                      ),
-                      img: ({ src, alt, ...props }) => (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img 
-                          src={resolveRelativeUrl(typeof src === "string" ? src : "", project.sourceUrl, project.source, true)} 
-                          alt={alt || ""} 
-                          {...props} 
-                        />
-                      ),
-                      /* eslint-disable @typescript-eslint/no-unused-vars */
-                      td: ({ node, vAlign, valign, ...props }: React.ComponentPropsWithoutRef<"td"> & { node?: unknown; vAlign?: unknown; valign?: unknown }) => <td {...props} />,
-                      th: ({ node, vAlign, valign, ...props }: React.ComponentPropsWithoutRef<"th"> & { node?: unknown; vAlign?: unknown; valign?: unknown }) => <th {...props} />,
-                      tr: ({ node, vAlign, valign, ...props }: React.ComponentPropsWithoutRef<"tr"> & { node?: unknown; vAlign?: unknown; valign?: unknown }) => <tr {...props} />
-                      /* eslint-enable @typescript-eslint/no-unused-vars */
-                    }}
-                  >
-                    {cleanedReadme}
-                  </ReactMarkdown>
-                </div>
-              </div>
-            ) : (
-              <div className="apple-utility-card p-12 text-center flex flex-col items-center justify-center border-dashed">
-                <div className="w-16 h-16 rounded-full bg-[var(--color-bg-secondary)] flex items-center justify-center mb-4">
-                  <Code2 className="h-8 w-8 text-[var(--color-ink-muted-48)]" />
-                </div>
-                <h3 className="text-apple-body-strong text-[var(--color-ink)] mb-2">{t("noReadme")}</h3>
-                <p className="text-[var(--color-ink-muted-80)] text-sm max-w-sm">
-                  {t("noReadmeDesc")}
-                </p>
-              </div>
-            )}
+            {/* Tabs Component (README & Social Mentions) */}
+            <ProjectTabs 
+              cleanedReadme={cleanedReadme} 
+              socialMentions={sortedMentions} 
+              sourceUrl={project.sourceUrl || undefined} 
+              source={project.source} 
+            />
           </div>
 
           {/* Right Column: Sidebar */}
           <aside className="space-y-6">
             
             {/* Historical Chart Widget */}
-            <div className="apple-utility-card p-5 overflow-hidden">
+            <div className="apple-utility-card hover-spring p-5 overflow-hidden">
               <h3 className="text-apple-body-strong mb-4 text-[var(--color-ink)] flex items-center gap-2 text-sm">
                 <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[var(--color-bg-secondary)] border border-[var(--color-border)] text-xs">📈</span>
                 {t("growthHistory")}
@@ -330,15 +293,15 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
             </div>
 
             {/* Social Discussions & Mentions Widget */}
-            <div className="apple-utility-card p-6">
+            <div className="apple-utility-card hover-spring p-6">
               <h3 className="text-apple-body-strong mb-4 flex items-center gap-2 text-sm text-[var(--color-ink)]">
                 <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[var(--color-bg-secondary)] border border-[var(--color-border)] text-xs">💬</span>
                 {t("socialDiscussions")}
               </h3>
               
-              {socialMentions && socialMentions.length > 0 ? (
+              {sortedMentions && sortedMentions.length > 0 ? (
                 <div className="space-y-4 divide-y divide-[var(--color-divider-soft)]">
-                  {socialMentions.map((mention: ProjectMention, idx: number) => (
+                  {sortedMentions.slice(0, 5).map((mention: ProjectMention, idx: number) => (
                     <div key={mention.id} className={`flex flex-col gap-1.5 ${idx > 0 ? 'pt-4' : ''}`}>
                       <div className="flex items-center justify-between text-xs">
                         <span className="font-bold text-[var(--color-ink)]">
@@ -375,7 +338,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 
             {/* AI Summary Widget */}
             {project.aiSummary && (
-              <div className="apple-utility-card p-6 bg-[var(--color-canvas)] border border-[var(--color-action-blue)]/20">
+              <div className="apple-utility-card hover-spring p-6 bg-[var(--color-canvas)] border border-[var(--color-action-blue)]/20">
                 <h3 className="text-apple-body-strong mb-3 flex items-center gap-2">
                   <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[var(--color-action-blue)] text-white">✨</span>
                   {t("aiSummary")}
@@ -388,7 +351,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 
             {/* Categories & Topics */}
             {(project.categories?.length > 0 || project.topics?.length > 0) && (
-              <div className="apple-utility-card p-6">
+              <div className="apple-utility-card hover-spring p-6">
                 <h3 className="text-apple-body-strong mb-4 flex items-center gap-2">
                   <LayoutGrid className="h-4 w-4 text-[var(--color-ink-muted-48)]" />
                   {t("classification")}
@@ -424,7 +387,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
             )}
 
             {/* Timeline */}
-            <div className="apple-utility-card p-6">
+            <div className="apple-utility-card hover-spring p-6">
               <h3 className="text-apple-body-strong mb-4 flex items-center gap-2">
                 <Calendar className="h-4 w-4 text-[var(--color-ink-muted-48)]" />
                 {t("timeline")}
@@ -433,26 +396,26 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                 <div className="flex justify-between items-center text-sm">
                   <span className="text-[var(--color-ink-muted-80)]">{t("created")}</span>
                   <span className="text-[var(--color-ink)] font-medium">
-                    {new Date(project.sourceCreatedAt).toLocaleDateString(locale, { year: 'numeric', month: 'short', day: 'numeric' })}
+                    {new Date(project.sourceCreatedAt).toLocaleDateString(locale, { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'Asia/Ho_Chi_Minh' })}
                   </span>
                 </div>
                 <div className="flex justify-between items-center text-sm">
                   <span className="text-[var(--color-ink-muted-80)]">{t("lastUpdated")}</span>
                   <span className="text-[var(--color-ink)] font-medium">
-                    {new Date(project.updatedAt).toLocaleDateString(locale, { year: 'numeric', month: 'short', day: 'numeric' })}
+                    {new Date(project.updatedAt).toLocaleDateString(locale, { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'Asia/Ho_Chi_Minh' })}
                   </span>
                 </div>
                 <div className="flex justify-between items-center text-sm border-t border-[var(--color-divider-soft)] pt-3">
                   <span className="text-[var(--color-ink-muted-80)]">{t("lastCrawled")}</span>
                   <span className="text-[var(--color-ink)] font-medium">
-                    {new Date(project.lastCrawledAt).toLocaleDateString(locale, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                    {new Date(project.lastCrawledAt).toLocaleDateString(locale, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Ho_Chi_Minh' })}
                   </span>
                 </div>
               </div>
             </div>
 
             {/* Meta Info */}
-            <div className="apple-utility-card p-6">
+            <div className="apple-utility-card hover-spring p-6">
               <h3 className="text-apple-body-strong mb-4 flex items-center gap-2">
                 <Clock className="h-4 w-4 text-[var(--color-ink-muted-48)]" />
                 {t("metaInfo")}
@@ -461,9 +424,25 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                 <li className="flex flex-col gap-1">
                   <span className="text-[var(--color-ink-muted-80)] text-xs uppercase tracking-wider font-medium">{t("createdOn")}</span>
                   <span className="text-[var(--color-ink)] font-medium">
-                    {project.sourceCreatedAt ? new Date(project.sourceCreatedAt).toLocaleDateString(locale, { year: 'numeric', month: 'long', day: 'numeric' }) : 'Unknown'}
+                    {project.sourceCreatedAt ? new Date(project.sourceCreatedAt).toLocaleDateString(locale, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Ho_Chi_Minh' }) : 'Unknown'}
                   </span>
                 </li>
+                {project.countryCode && (
+                  <li className="flex flex-col gap-1">
+                    <span className="text-[var(--color-ink-muted-80)] text-xs uppercase tracking-wider font-medium">{t("origin")}</span>
+                    <div className="flex items-center gap-1.5 font-medium text-[var(--color-ink)]">
+                      <img
+                        src={`https://flagcdn.com/w20/${project.countryCode.toLowerCase()}.png`}
+                        alt={project.countryCode}
+                        className="w-5 h-3.5 object-cover rounded-sm shadow-sm border border-[var(--color-border)] select-none shrink-0"
+                      />
+                      <span>{countryName}</span>
+                      {project.location && (
+                        <span className="text-xs text-[var(--color-ink-muted-80)] font-normal">({project.location})</span>
+                      )}
+                    </div>
+                  </li>
+                )}
                 {project.license && (
                   <li className="flex flex-col gap-1">
                     <span className="text-[var(--color-ink-muted-80)] text-xs uppercase tracking-wider font-medium">{t("license")}</span>
@@ -473,7 +452,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                 <li className="flex flex-col gap-1">
                   <span className="text-[var(--color-ink-muted-80)] text-xs uppercase tracking-wider font-medium">{t("lastCrawled")}</span>
                   <span className="text-[var(--color-ink)] font-medium">
-                    {project.lastCrawledAt ? new Date(project.lastCrawledAt).toLocaleDateString(locale, { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Recently'}
+                    {project.lastCrawledAt ? new Date(project.lastCrawledAt).toLocaleDateString(locale, { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Ho_Chi_Minh' }) : 'Recently'}
                   </span>
                 </li>
               </ul>

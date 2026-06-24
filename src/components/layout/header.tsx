@@ -1,6 +1,6 @@
 "use client";
 
-import { Link, useRouter } from "@/i18n/routing";
+import { Link, useRouter, usePathname } from "@/i18n/routing";
 import { useState, FormEvent, useEffect, useRef } from "react";
 import { useTranslations } from "next-intl";
 import {
@@ -24,7 +24,29 @@ export function Header() {
   const [searchFocused, setSearchFocused] = useState(false);
   const t = useTranslations("Navigation");
   const router = useRouter();
+  const pathname = usePathname();
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const [showSearch, setShowSearch] = useState(true);
+
+  useEffect(() => {
+    const isHome = pathname === "/" || pathname === "/en" || pathname === "/vi";
+    if (!isHome) {
+      Promise.resolve().then(() => setShowSearch(true));
+      return;
+    }
+
+    const handleScroll = () => {
+      if (window.scrollY > 250) {
+        setShowSearch(true);
+      } else {
+        setShowSearch(false);
+      }
+    };
+
+    Promise.resolve().then(() => handleScroll());
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [pathname]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -82,7 +104,14 @@ export function Header() {
           </Link>
 
           {/* Search Bar */}
-          <form onSubmit={handleSearch} className="relative flex-1 max-w-xl mx-auto hidden sm:block">
+          <form 
+            onSubmit={handleSearch} 
+            className={`relative flex-1 max-w-xl mx-auto hidden sm:block transition-all duration-300 ${
+              showSearch 
+                ? "opacity-100 translate-y-0 pointer-events-auto" 
+                : "opacity-0 -translate-y-1 pointer-events-none"
+            }`}
+          >
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--color-ink-muted-48)]" />
             <input
               ref={searchInputRef}

@@ -109,6 +109,12 @@ async function setupRepeatableJobs() {
     jobId: 'repeat-social-mentions'
   });
 
+  // 4. Trend Calculation: Run at 01:30 every day GMT+7
+  await schedulerQueue.add('trend-calculation', {}, {
+    repeat: { pattern: '30 1 * * *', tz: 'Asia/Ho_Chi_Minh' },
+    jobId: 'repeat-trend-calculation'
+  });
+
   console.log('[Scheduler Worker] Repeatable jobs synced successfully.');
 }
 

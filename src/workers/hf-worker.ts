@@ -245,7 +245,7 @@ export async function handleHFCrawlJob(job: Job<HFCrawlJobData>) {
       .returning({ id: projects.id });
 
     // Insert snapshot (deduplicate: update if same project+date already exists today, else insert)
-    const snapshotDate = new Date().toISOString().split('T')[0];
+    const snapshotDate = new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().split('T')[0];
     const existing = await db.select({ id: projectSnapshots.id })
       .from(projectSnapshots)
       .where(sql`${projectSnapshots.projectId} = ${project.id} AND ${projectSnapshots.snapshotDate} = ${snapshotDate}`)

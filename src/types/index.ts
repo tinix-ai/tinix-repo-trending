@@ -29,6 +29,10 @@ export interface Project {
   sourceCreatedAt: string;
   sourceUpdatedAt?: string;
   lastCrawledAt: string;
+  location?: string | null;
+  countryCode?: string | null;
+  etag?: string | null;
+  views?: number;
 }
 
 export interface ProjectSnapshot {
@@ -105,7 +109,7 @@ export interface RankedProject extends Project {
 
 export type RankingPeriod = "daily" | "weekly" | "monthly" | "yearly";
 export type ViewMode = "card" | "table" | "compact";
-export type SortField = "rank" | "stars" | "starsGained" | "forks" | "score";
+export type SortField = "rank" | "stars" | "starsGained" | "forks" | "score" | "views";
 
 export interface ProjectMention {
   id: string;
