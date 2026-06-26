@@ -1,7 +1,8 @@
 "use server";
 
 import { Queue } from "bullmq";
-import { getDynamicTrendingProjects, ProjectQueryParams, getGlobalStats, getProjectBySlug, getProjectHistory, getProjectById, getCategoryStats, getPopularLanguagesAndHashtags, getDatabaseStorageStats, getLanguageStats, getDataStalenessStats, getDatabaseGrowthStats, getProjectMentions, getRecentSocialMentions, getSimilarProjects } from "@/lib/db/queries";
+import { getDynamicTrendingProjects, ProjectQueryParams, getGlobalStats, getProjectBySlug, getProjectHistory, getProjectById, getCategoryStats, getPopularLanguagesAndHashtags, getDatabaseStorageStats, getLanguageStats, getDataStalenessStats, getDatabaseGrowthStats, getProjectMentions, getRecentSocialMentions, getPaginatedSocialMentions, getSimilarProjects, createCollection, getCollectionBySlug, getRecentCollections } from "@/lib/db/queries";
+import type { PaginatedMentionsParams } from "@/lib/db/queries";
 import os from "os";
 
 import type { RankedProject } from "@/types";
@@ -29,8 +30,8 @@ export async function fetchCategoryStats() {
   return await getCategoryStats();
 }
 
-export async function fetchPopularFilters() {
-  return await getPopularLanguagesAndHashtags();
+export async function fetchPopularFilters(source?: string) {
+  return await getPopularLanguagesAndHashtags(source);
 }
 
 export async function fetchProjectDetails(slug: string) {
@@ -53,6 +54,10 @@ export async function fetchRecentSocialMentions(limit: number = 30) {
   return await getRecentSocialMentions(limit);
 }
 
+export async function fetchPaginatedMentions(params: PaginatedMentionsParams) {
+  return await getPaginatedSocialMentions(params);
+}
+
 export async function triggerCrawlerSync(source: 'github' | 'huggingface') {
   console.log(`[Admin] Triggering sync for ${source} via scheduler queue...`);
   try {
@@ -64,7 +69,13 @@ export async function triggerCrawlerSync(source: 'github' | 'huggingface') {
 
     // Auto-resume downstream crawler queues so jobs get processed immediately
     if (source === 'github') {
-      await crawlerQueue.resume();
+      await githubPool.resetTokenExhaustion();
+      await redisConnection.del('crawler:rate-limit-reset:github-crawler');
+      await redisConnection.del('crawler:rate-limit-reset:github-updater');
+      await Promise.all([
+        crawlerQueue.resume(),
+        githubUpdaterQueue.resume()
+      ]);
     } else {
       await hfQueue.resume();
     }
@@ -612,6 +623,10 @@ export async function forceRecrawlProject(projectId: string) {
     if (project.source === 'github') {
       const [owner, repo] = project.sourceId.split('/');
       if (owner && repo) {
+        await githubPool.resetTokenExhaustion();
+        await redisConnection.del('crawler:rate-limit-reset:github-crawler');
+        await crawlerQueue.resume();
+
         await crawlerQueue.add('crawl-repo', {
           owner,
           repo,
@@ -696,6 +711,12 @@ export async function getScheduledJobs(): Promise<ScheduledJob[]> {
 export async function triggerJobNow(name: string) {
   try {
     if (!schedulerQueue) throw new Error('Scheduler queue not initialized');
+    if (name === 'daily-update' || name === 'daily-discovery') {
+      await githubPool.resetTokenExhaustion();
+      await redisConnection.del('crawler:rate-limit-reset:github-crawler');
+      await redisConnection.del('crawler:rate-limit-reset:github-updater');
+    }
+
     // Add the job directly to the queue for immediate execution
     await schedulerQueue.add(name, { force: true }, { jobId: `manual-${name}-${Date.now()}` });
 
@@ -1015,4 +1036,16 @@ export async function incrementProjectViews(projectId: string) {
     console.error(`Error incrementing views for project ${projectId}:`, error);
     return { success: false };
   }
+}
+
+export async function actionCreateCollection(title: string, description: string, projectIds: string[], notes: string[]) {
+  return await createCollection(title, description, projectIds, notes);
+}
+
+export async function actionGetCollectionBySlug(slug: string) {
+  return await getCollectionBySlug(slug);
+}
+
+export async function actionGetRecentCollections(limit: number = 10) {
+  return await getRecentCollections(limit);
 }

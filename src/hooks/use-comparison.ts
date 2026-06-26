@@ -47,7 +47,7 @@ export function useComparison() {
   const addProject = (project: RankedProject) => {
     const saved = localStorage.getItem(STORAGE_KEY);
     const list: RankedProject[] = saved ? JSON.parse(saved) : [];
-    if (list.length >= 3) {
+    if (list.length >= 10) {
       return false;
     }
     if (!list.some((p) => p.id === project.id)) {
@@ -76,6 +76,6 @@ export function useComparison() {
     addProject,
     removeProject,
     clearProjects,
-    isMaxReached: selectedProjects.length >= 3,
+    isMaxReached: selectedProjects.length >= 10,
   };
 }

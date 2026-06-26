@@ -6,10 +6,12 @@ import { formatNumber, timeAgo } from "@/lib/utils";
 import { Sparkline } from "@/components/common/sparkline";
 import { SourceBadge } from "@/components/common/source-badge";
 import { CategoryIcon } from "@/components/common/category-icon";
-import { Eye } from "lucide-react";
+import { Eye, Share2 } from "lucide-react";
 
 import { useState, useEffect } from "react";
 import { useSearchParams, useParams } from "next/navigation";
+import { evaluateProjectBadges } from "@/lib/badge-evaluator";
+import { ShareModal } from "@/components/leaderboard/share-modal";
 
 interface ProjectTableRowProps {
   project: RankedProject;
@@ -24,6 +26,8 @@ export function ProjectTableRow({ project, index, days: _days }: ProjectTableRow
   const currentFilter = searchParams.get("filter");
   const [isNew, setIsNew] = useState(false);
   const locale = (params?.locale as string) || "vi";
+  const [isShareOpen, setIsShareOpen] = useState(false);
+  const badges = evaluateProjectBadges(project);
 
   let countryName = "";
   if (project.countryCode) {
@@ -109,11 +113,27 @@ export function ProjectTableRow({ project, index, days: _days }: ProjectTableRow
             />
           )}
           <SourceBadge source={project.source} projectType={project.projectType} />
-          {isNew && (
-            <span className="text-[9px] font-bold tracking-wider uppercase text-emerald-500 bg-emerald-500/10 px-1 py-0.5 rounded shrink-0">
-              NEW
+          {badges.map((badge) => (
+            <span
+              key={badge.id}
+              className={`text-[9px] font-bold tracking-wider uppercase px-1 py-0.5 rounded shrink-0 flex items-center gap-0.5 select-none ${badge.colorClass}`}
+              title={badge.label}
+            >
+              <span>{badge.icon}</span>
+              <span className="hidden lg:inline">{badge.label}</span>
             </span>
-          )}
+          ))}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsShareOpen(true);
+            }}
+            className="text-[9px] font-bold tracking-wider px-1.5 py-0.5 rounded bg-[var(--color-surface-pearl)] text-[var(--color-action-blue)] border border-[var(--color-border)] hover:bg-[var(--color-divider-soft)] transition-all cursor-pointer select-none shrink-0 flex items-center gap-0.5"
+            title="Share & PR"
+          >
+            <Share2 className="h-2.5 w-2.5" />
+            <span className="hidden sm:inline">Share</span>
+          </button>
         </div>
         <div className="flex items-center gap-2 mt-0.5">
           <p className="text-[13px] text-[var(--color-ink-muted-80)] line-clamp-1 break-words flex-1">
@@ -165,7 +185,7 @@ export function ProjectTableRow({ project, index, days: _days }: ProjectTableRow
           <div className="flex flex-col items-end gap-0.5 justify-center select-none">
             <span className="text-sm font-semibold text-rose-500 tabular-nums flex items-center gap-0.5">
               <span>♥</span>
-              {formatNumber(project.stars)}
+              {formatNumber(project.likes || 0)}
             </span>
             <span className="text-[11px] font-medium text-[var(--color-ink-muted-80)] tabular-nums flex items-center gap-0.5">
               <span>↓</span>
@@ -200,6 +220,14 @@ export function ProjectTableRow({ project, index, days: _days }: ProjectTableRow
             <Sparkline data={project.sparklineData} width={64} height={22} />
           </div>
         )}
+      </td>
+      <td className="hidden">
+        <ShareModal
+          project={project}
+          days={_days}
+          isOpen={isShareOpen}
+          onClose={() => setIsShareOpen(false)}
+        />
       </td>
     </tr>
   );

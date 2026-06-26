@@ -75,7 +75,8 @@
     "searchPlaceholder": "Search projects, models, datasets...",
     "source": "Source",
     "tracker": "Open Source Project Tracker",
-    "liveMentions": "Discussions"
+    "liveMentions": "Discussions",
+    "collections": "Collections"
   },
   "Submit": {
     "title": "Submit Project",

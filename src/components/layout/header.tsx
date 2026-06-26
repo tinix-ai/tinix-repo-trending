@@ -14,7 +14,8 @@ import {
   TrendingUp,
   Github,
   Settings,
-  MessageSquare
+  MessageSquare,
+  FolderHeart
 } from "lucide-react";
 import { ThemeToggle } from "./theme-toggle";
 import { LanguageSwitcher } from "./language-switcher";
@@ -73,6 +74,7 @@ export function Header() {
 
   const NAV_ITEMS = [
     { href: "/", label: t("trending"), icon: Flame },
+    { href: "/collection", label: t("collections"), icon: FolderHeart },
     { href: "/live-mentions", label: t("liveMentions"), icon: MessageSquare },
     { href: "/categories", label: t("categories"), icon: Hash },
     { href: "/stats", label: t("stats"), icon: BarChart3 },

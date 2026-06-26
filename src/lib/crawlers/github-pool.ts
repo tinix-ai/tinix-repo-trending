@@ -42,8 +42,9 @@ class GithubTokenPool {
   }
 
   private getMaskedTokenKey(token: string): string {
-    // A safe prefix/hash of the token to use as Redis key without leaking the whole token in Redis
-    return `crawler:token:exhausted:${token.substring(0, 15)}`;
+    // A safe suffix/hash of the token to use as Redis key without leaking the whole token in Redis
+    // We use the last 15 chars because GitHub fine-grained PATs often share the same 15-char prefix.
+    return `crawler:token:exhausted:${token.slice(-15)}`;
   }
 
   /**
@@ -84,7 +85,7 @@ class GithubTokenPool {
       attempts++;
     }
 
-    throw new Error('[GithubTokenPool] ALL tokens are currently exhausted due to Rate Limit. Please wait.');
+    throw new Error('[RateLimitError] [GithubTokenPool] ALL tokens are currently exhausted due to Rate Limit. Please wait.');
   }
 
   /**
@@ -198,6 +199,9 @@ class GithubTokenPool {
             searchLimit: 0,
             searchRemaining: 0,
             searchResetTime: 0,
+            graphqlLimit: 0,
+            graphqlRemaining: 0,
+            graphqlResetTime: 0,
           };
         }
 
@@ -208,8 +212,9 @@ class GithubTokenPool {
         const data = await response.json();
         const core = data.resources?.core || { limit: 0, remaining: 0, reset: 0 };
         const search = data.resources?.search || { limit: 0, remaining: 0, reset: 0 };
+        const graphql = data.resources?.graphql || { limit: 0, remaining: 0, reset: 0 };
 
-        const isExhausted = core.remaining === 0 || exhaustedUntil > now;
+        const isExhausted = core.remaining === 0 || graphql.remaining === 0 || exhaustedUntil > now;
 
         return {
           index,
@@ -221,6 +226,9 @@ class GithubTokenPool {
           searchLimit: search.limit,
           searchRemaining: search.remaining,
           searchResetTime: search.reset * 1000, // convert to ms
+          graphqlLimit: graphql.limit,
+          graphqlRemaining: graphql.remaining,
+          graphqlResetTime: graphql.reset * 1000, // convert to ms
         };
       } catch (err) {
         console.error(`[GithubTokenPool] Health check failed for token index ${index}:`, err);
@@ -234,11 +242,30 @@ class GithubTokenPool {
           searchLimit: 0,
           searchRemaining: 0,
           searchResetTime: 0,
+          graphqlLimit: 0,
+          graphqlRemaining: 0,
+          graphqlResetTime: 0,
         };
       }
     });
 
     return await Promise.all(healthPromises);
+  }
+
+  /**
+   * Resets all exhaustion states (both local memory and Redis keys) to force-retry tokens.
+   */
+  public async resetTokenExhaustion(): Promise<void> {
+    for (const state of this.tokens) {
+      state.exhaustedUntil = 0;
+      try {
+        const key = this.getMaskedTokenKey(state.token);
+        await redisConnection.del(key);
+      } catch (err) {
+        console.warn('[GithubTokenPool] Failed to clear token key on reset:', err);
+      }
+    }
+    console.log('[GithubTokenPool] Reset all token exhaustion states.');
   }
 }
 
@@ -252,6 +279,9 @@ export interface TokenHealthInfo {
   searchLimit: number;
   searchRemaining: number;
   searchResetTime: number;
+  graphqlLimit: number;
+  graphqlRemaining: number;
+  graphqlResetTime: number;
 }
 
 const globalForGithubPool = globalThis as unknown as {

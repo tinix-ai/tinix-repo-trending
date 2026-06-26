@@ -6,6 +6,7 @@ export interface GraphQLRepoResult {
   owner: string;
   name: string;
   exists: boolean;
+  permissionDenied?: boolean;
   data?: {
     name: string;
     fullName: string;
@@ -33,6 +34,7 @@ export interface GraphQLRepoResult {
 
 export interface GraphQLSingleRepoResult {
   exists: boolean;
+  permissionDenied?: boolean;
   data?: {
     name: string;
     fullName: string;
@@ -76,7 +78,7 @@ export interface GraphQLSearchResult {
 async function runGraphQLQuery(
   query: string,
   variables?: Record<string, any>
-): Promise<any> {
+): Promise<{ data: any; errors?: any[] }> {
   let maxRetries = 5;
   while (maxRetries > 0) {
     let currentToken: string | null = null;
@@ -117,27 +119,55 @@ async function runGraphQLQuery(
 
       if (!response.ok) {
         if (response.status === 403 || response.status === 429) {
-          if (currentToken) {
-            await githubPool.markTokenExhausted(currentToken, reset);
-            console.log(`[GraphQL API] 403/429 status. Rotated token. Retries left: ${maxRetries - 1}`);
-            maxRetries--;
-            continue;
+          const remaining = response.headers.get("x-ratelimit-remaining");
+          const isRateLimit = response.status === 429 || remaining === "0" || response.headers.has("retry-after");
+
+          if (isRateLimit) {
+            if (currentToken) {
+              await githubPool.markTokenExhausted(currentToken, reset);
+              console.log(`[GraphQL API] Rate limit hit (403/429). Rotated token. Retries left: ${maxRetries - 1}`);
+              maxRetries--;
+              continue;
+            }
+          } else {
+            throw new Error(`GitHub API Permission Error (403): ${response.statusText}. Please verify token scopes or SSO permissions.`);
           }
         }
         throw new Error(`GitHub GraphQL API Error: ${response.status} ${response.statusText}`);
       }
 
       const body = (await response.json()) as {
-        errors?: Array<{ message: string }>;
+        errors?: Array<{ message: string; type?: string }>;
         data?: Record<string, any>;
       };
       
-      if (body.errors && !body.data) {
-        throw new Error(`GraphQL Errors: ${JSON.stringify(body.errors)}`);
+      if (body.errors) {
+        const isRateLimit = body.errors.some((e: any) => e.type === 'RATE_LIMIT' || e.message.includes('rate limit'));
+        
+        if (isRateLimit) {
+          if (currentToken) {
+            await githubPool.markTokenExhausted(currentToken, reset);
+            console.log(`[GraphQL API] Rate limit hit in response body. Rotated token. Retries left: ${maxRetries - 1}`);
+            maxRetries--;
+            continue; // Retry with new token
+          } else {
+            throw new Error("[RateLimitError] GitHub GraphQL API rate limit exceeded.");
+          }
+        }
+
+        if (!body.data) {
+          throw new Error(`GraphQL Errors: ${JSON.stringify(body.errors)}`);
+        }
       }
 
-      return body.data || {};
+      return { data: body.data || {}, errors: body.errors };
     } catch (err) {
+      const errorStr = String(err);
+      if (maxRetries === 1 && (errorStr.includes('RATE_LIMIT') || errorStr.includes('rate limit') || errorStr.includes('403') || errorStr.includes('429'))) {
+        // If this is the last retry and it's a rate limit, throw with [RateLimitError] tag
+        throw new Error(`[RateLimitError] GitHub API rate limit exhausted after retries. Last error: ${errorStr}`);
+      }
+      
       console.warn(`[GraphQL API] Retry ${6 - maxRetries} failed:`, err);
       maxRetries--;
       if (maxRetries === 0) {
@@ -151,14 +181,14 @@ async function runGraphQLQuery(
 }
 
 /**
- * Executes a batched GraphQL query to retrieve info for up to 100 GitHub repositories at once.
+ * Executes a batched GraphQL query to retrieve info for up to 50 GitHub repositories at once.
  */
 export async function fetchGitHubBatch(
   repos: { owner: string; name: string }[]
 ): Promise<GraphQLRepoResult[]> {
   if (repos.length === 0) return [];
-  if (repos.length > 100) {
-    throw new Error("Batch size exceeds limit of 100 repositories");
+  if (repos.length > 50) {
+    throw new Error("Batch size exceeds limit of 50 repositories");
   }
 
   // Construct the GraphQL query dynamically using aliases
@@ -219,10 +249,46 @@ export async function fetchGitHubBatch(
   });
 
   const query = `query { ${queryFields} }`;
-  const data = await runGraphQLQuery(query);
+  const { data, errors } = await runGraphQLQuery(query);
 
   const results: GraphQLRepoResult[] = repos.map((repo, index) => {
     const repoData = data[`repo_${index}`];
+
+    // Check if there was an error associated with this specific repo
+    const repoError = errors?.find((e: any) => 
+      e.path?.includes(`repo_${index}`)
+    );
+
+    if (repoError) {
+      const isNotFound = repoError.type === 'NOT_FOUND' || repoError.message?.toLowerCase().includes('could not resolve');
+      const isPermission = repoError.type === 'FORBIDDEN' || repoError.message?.toLowerCase().includes('saml') || repoError.message?.toLowerCase().includes('permission');
+
+      if (isPermission) {
+        console.warn(`[GitHub GraphQL Batch] Permission/SSO error for ${repo.owner}/${repo.name}: ${repoError.message}`);
+        return {
+          owner: repo.owner,
+          name: repo.name,
+          exists: true,
+          permissionDenied: true,
+        };
+      }
+
+      if (isNotFound) {
+        return {
+          owner: repo.owner,
+          name: repo.name,
+          exists: false,
+        };
+      }
+
+      console.warn(`[GitHub GraphQL Batch] Error for ${repo.owner}/${repo.name}: ${repoError.message} (Type: ${repoError.type})`);
+      return {
+        owner: repo.owner,
+        name: repo.name,
+        exists: true,
+      };
+    }
+
     if (!repoData) {
       return {
         owner: repo.owner,
@@ -353,9 +419,28 @@ export async function fetchSingleGitHubRepo(
     }
   `;
 
-  const data = await runGraphQLQuery(query, { owner, name });
+  const { data, errors } = await runGraphQLQuery(query, { owner, name });
   const repoData = data.repository;
   if (!repoData) {
+    const permissionError = errors?.find((e: any) => 
+      e.path?.includes('repository') && 
+      (e.type === 'FORBIDDEN' || e.message?.toLowerCase().includes('saml') || e.message?.toLowerCase().includes('permission'))
+    );
+    if (permissionError) {
+      console.warn(`[GitHub GraphQL] Permission/SSO error for ${owner}/${name}: ${permissionError.message}. Attempting anonymous REST fallback...`);
+      const restResult = await fetchPublicRepoREST(owner, name);
+      if (restResult.exists && restResult.data) {
+        console.log(`[GitHub GraphQL] REST fallback succeeded for public repo ${owner}/${name}.`);
+        return {
+          exists: true,
+          data: restResult.data,
+        };
+      }
+      return {
+        exists: true,
+        permissionDenied: true,
+      };
+    }
     return { exists: false };
   }
 
@@ -427,7 +512,7 @@ export async function searchGitHubRepos(
     }
   `;
 
-  const data = await runGraphQLQuery(query, { queryString, first, after });
+  const { data } = await runGraphQLQuery(query, { queryString, first, after });
   const searchData = data.search || {};
   const pageInfo = searchData.pageInfo || {};
   const nodes = (searchData.nodes || [])
@@ -443,4 +528,60 @@ export async function searchGitHubRepos(
     hasNextPage: pageInfo.hasNextPage || false,
     nodes,
   };
+}
+
+/**
+ * Fallback to fetch public repository data via REST API without token.
+ */
+export async function fetchPublicRepoREST(
+  owner: string,
+  name: string
+): Promise<{ exists: boolean; data?: any }> {
+  try {
+    const res = await fetch(`https://api.github.com/repos/${owner}/${name}`, {
+      headers: {
+        "Accept": "application/vnd.github+json",
+        "User-Agent": "TiniX-Repo-Trending",
+      }
+    });
+    if (res.status === 404) {
+      return { exists: false };
+    }
+    if (!res.ok) {
+      console.warn(`[GitHub REST Fallback] HTTP error for ${owner}/${name}: ${res.status} ${res.statusText}`);
+      return { exists: true };
+    }
+    const data = (await res.json()) as any;
+    return {
+      exists: true,
+      data: {
+        name: data.name,
+        fullName: data.full_name,
+        description: data.description || null,
+        homepageUrl: data.homepage || null,
+        sourceUrl: data.html_url,
+        primaryLanguage: data.language || null,
+        license: data.license?.spdx_id || data.license?.name || null,
+        ownerName: data.owner?.login,
+        ownerAvatarUrl: data.owner?.avatar_url || "",
+        ownerType: data.owner?.type?.toLowerCase() === "organization" ? "org" : "user",
+        topics: data.topics || [],
+        stars: data.stargazers_count || 0,
+        forks: data.forks_count || 0,
+        watchers: data.watchers_count || 0,
+        openIssues: data.open_issues_count || 0,
+        sourceCreatedAt: new Date(data.created_at),
+        sourceUpdatedAt: new Date(data.pushed_at || data.created_at),
+        location: null,
+        email: null,
+        blog: null,
+        company: null,
+        readmeText: null,
+        readmeSha: null,
+      }
+    };
+  } catch (err) {
+    console.warn(`[GitHub REST Fallback] Failed to fetch ${owner}/${name}:`, err);
+    return { exists: true };
+  }
 }

@@ -108,9 +108,9 @@ export function SimilarProjects({ projects }: SimilarProjectsProps) {
                     </div>
                   ) : (
                     <>
-                      <div className="flex items-center gap-1 text-xs text-[var(--color-ink)] font-semibold select-none">
-                        <Star className="h-3.5 w-3.5 text-[var(--color-warning)]" />
-                        <span>{formatNumber(project.stars)}</span>
+                      <div className="flex items-center gap-1 text-xs text-rose-500 font-semibold select-none">
+                        <span className="text-xs">♥</span>
+                        <span>{formatNumber(project.likes || 0)}</span>
                       </div>
                       <div className="flex items-center gap-1 text-xs text-[var(--color-ink-muted-80)] select-none">
                         <Download className="h-3.5 w-3.5 text-[var(--color-info)]" />

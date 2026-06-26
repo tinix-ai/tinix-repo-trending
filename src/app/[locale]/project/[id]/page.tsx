@@ -26,6 +26,7 @@ import { TopicsList } from "@/components/project/topics-list";
 import { SimilarProjects } from "@/components/project/similar-projects";
 import { getTranslations } from "next-intl/server";
 import type { ProjectMention } from "@/types";
+import { ShareButton } from "@/components/project/share-button";
 
 // Metadata generation
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
@@ -36,9 +37,27 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   
   if (!project) return { title: "Not Found" };
 
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://trending.tinix.ai';
+  const ogImageUrl = `${baseUrl}/api/og/project?id=${project.id}`;
+  const projectUrl = `${baseUrl}/project/${project.slug}-${project.id}`;
+
   return {
     title: `${project.fullName} - Tinix`,
     description: project.description,
+    openGraph: {
+      title: project.fullName,
+      description: project.description || 'Trending open source project on TiniX',
+      url: projectUrl,
+      siteName: 'TiniX Repo Trending',
+      images: [{ url: ogImageUrl, width: 1200, height: 630, alt: project.fullName }],
+      type: 'article',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: project.fullName,
+      description: project.description || 'Trending open source project on TiniX',
+      images: [ogImageUrl],
+    },
   };
 }
 
@@ -256,6 +275,11 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                   {t("homepage")} <ExternalLink className="h-3.5 w-3.5" />
                 </Anchor>
               )}
+              <ShareButton
+                projectId={project.id}
+                projectName={project.fullName}
+                projectDescription={project.description}
+              />
             </div>
           </div>
         </div>

@@ -187,7 +187,7 @@ export function CategoriesManager({ initialCategories }: CategoriesManagerProps)
   return (
     <div className="space-y-6">
       {/* Top Banner Control Panel */}
-      <div className="apple-utility-card flex flex-col md:flex-row md:items-center justify-between gap-4 bg-[var(--color-surface-tile-1)] border border-[var(--color-divider-soft)]">
+      <div className="apple-utility-card flex flex-col md:flex-row md:items-center justify-between gap-4 bg-[var(--color-bg-secondary)] border border-[var(--color-divider-soft)]">
         <div>
           <h3 className="text-apple-body-strong text-[var(--color-ink)] flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-amber-500 animate-pulse" />
@@ -234,7 +234,7 @@ export function CategoriesManager({ initialCategories }: CategoriesManagerProps)
                   className={`apple-utility-card relative flex flex-col justify-between p-5 border cursor-pointer transition-all hover:translate-y-[-2px] hover:shadow-md ${
                     isSelected 
                       ? "bg-[var(--color-canvas)]" 
-                      : "bg-[var(--color-surface-tile-1)]"
+                      : "bg-[var(--color-bg-secondary)]"
                   }`}
                   style={{ 
                     borderColor: isSelected ? cat.color : "var(--color-divider-soft)",
@@ -281,7 +281,7 @@ export function CategoriesManager({ initialCategories }: CategoriesManagerProps)
                         cat.keywords.map((kw, i) => (
                           <span
                             key={i}
-                            className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-[var(--color-surface-tile-2)] text-[var(--color-ink-muted-80)] border border-[var(--color-divider-soft)]"
+                            className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-zinc-100 dark:bg-zinc-800 text-[var(--color-ink-muted-80)] border border-zinc-200 dark:border-zinc-700"
                           >
                             {kw}
                           </span>
@@ -305,7 +305,7 @@ export function CategoriesManager({ initialCategories }: CategoriesManagerProps)
 
         {/* Right Column: Editor Form */}
         <div className="lg:col-span-5">
-          <div className="apple-utility-card bg-[var(--color-surface-tile-1)] border border-[var(--color-divider-soft)] p-6">
+          <div className="apple-utility-card bg-[var(--color-bg-secondary)] border border-[var(--color-divider-soft)] p-6">
             <div className="flex items-center justify-between mb-6 pb-4 border-b border-[var(--color-divider-soft)]">
               <h3 className="text-apple-body-strong text-[var(--color-ink)] flex items-center gap-2">
                 <Edit className="w-4 h-4 text-blue-500" />
@@ -365,7 +365,7 @@ export function CategoriesManager({ initialCategories }: CategoriesManagerProps)
                         key={emoji}
                         type="button"
                         onClick={() => setIcon(emoji)}
-                        className="w-6 h-6 flex items-center justify-center text-sm rounded hover:bg-[var(--color-surface-tile-2)] cursor-pointer select-none"
+                        className="w-6 h-6 flex items-center justify-center text-sm rounded hover:bg-zinc-200 dark:hover:bg-zinc-700 cursor-pointer select-none"
                       >
                         {emoji}
                       </button>
@@ -433,7 +433,7 @@ export function CategoriesManager({ initialCategories }: CategoriesManagerProps)
                   <button
                     type="button"
                     onClick={handleAddTag}
-                    className="px-4 py-2 bg-[var(--color-surface-tile-2)] hover:bg-[var(--color-surface-tile-3)] border border-[var(--color-divider-soft)] text-sm font-medium rounded-lg text-[var(--color-ink)] transition-colors cursor-pointer"
+                    className="px-4 py-2 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 border border-[var(--color-divider-soft)] text-sm font-medium rounded-lg text-[var(--color-ink)] transition-colors cursor-pointer"
                   >
                     Add
                   </button>
@@ -444,13 +444,13 @@ export function CategoriesManager({ initialCategories }: CategoriesManagerProps)
                     keywords.map((kw) => (
                       <span
                         key={kw}
-                        className="inline-flex items-center gap-1 pl-2 pr-1 py-0.5 rounded text-xs font-medium bg-[var(--color-surface-tile-1)] text-[var(--color-ink)] border border-[var(--color-divider-soft)]"
+                        className="inline-flex items-center gap-1 pl-2 pr-1 py-0.5 rounded text-xs font-medium bg-zinc-100 dark:bg-zinc-800 text-[var(--color-ink)] border border-zinc-200 dark:border-zinc-700"
                       >
                         <span className="font-mono">{kw}</span>
                         <button
                           type="button"
                           onClick={() => handleRemoveTag(kw)}
-                          className="w-3.5 h-3.5 rounded-full hover:bg-[var(--color-surface-tile-3)] flex items-center justify-center text-[var(--color-ink-muted-48)] hover:text-red-500 font-semibold select-none cursor-pointer"
+                          className="w-3.5 h-3.5 rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-700 flex items-center justify-center text-[var(--color-ink-muted-48)] hover:text-red-500 font-semibold select-none cursor-pointer"
                         >
                           &times;
                         </button>
@@ -478,7 +478,7 @@ export function CategoriesManager({ initialCategories }: CategoriesManagerProps)
                   <button
                     type="button"
                     onClick={handleCreateNew}
-                    className="px-4 py-2.5 bg-[var(--color-surface-tile-2)] hover:bg-[var(--color-surface-tile-3)] border border-[var(--color-divider-soft)] text-sm font-medium rounded-lg text-[var(--color-ink)] transition-colors cursor-pointer"
+                    className="px-4 py-2.5 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 border border-[var(--color-divider-soft)] text-sm font-medium rounded-lg text-[var(--color-ink)] transition-colors cursor-pointer"
                   >
                     Cancel
                   </button>

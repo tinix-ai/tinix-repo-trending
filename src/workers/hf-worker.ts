@@ -8,6 +8,7 @@ import { sql, eq, and } from 'drizzle-orm';
 import { categorizeProject } from '../lib/categorizer';
 import { updateProjectCrawlSchedule } from '../lib/crawlers/scheduler';
 import { proxyManager } from '../lib/crawlers/proxy';
+import { calculateProjectTrendInline } from '../lib/db/trends';
 import { setTimeout } from 'timers/promises';
 import { hfQueue, hfUpdaterQueue } from './queue';
 import { setupQueueAutoRecovery } from './recovery';
@@ -273,6 +274,9 @@ export async function handleHFCrawlJob(job: Job<HFCrawlJobData>) {
 
     // Recalculate and update the next crawl schedule
     await updateProjectCrawlSchedule(project.id, 'huggingface');
+
+    // Calculate trends inline
+    await calculateProjectTrendInline(project.id);
 
     console.log(`${logPrefix} Successfully fetched & saved ${id}: ${likes} likes, ${downloads} downloads`);
 

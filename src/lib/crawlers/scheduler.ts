@@ -96,7 +96,9 @@ export async function updateProjectCrawlSchedule(
         }
       }
     } else {
-      console.log(`[Scheduler] Not enough snapshots (${snapshots.length}) for project ${projectId}. Scheduling next crawl in 1 day.`);
+      console.log(
+        `[Scheduler] Project ${projectId} has ${snapshots.length} snapshot(s) (requires at least 2 for growth velocity calculation). Scheduling next crawl in 1 day for initial data collection.`
+      );
     }
 
     const nextCrawlAt = new Date(Date.now() + crawlInterval * 24 * 60 * 60 * 1000);

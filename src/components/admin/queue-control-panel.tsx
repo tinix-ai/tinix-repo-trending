@@ -45,7 +45,9 @@ interface TokenHealthInfo {
   searchLimit: number;
   searchRemaining: number;
   searchResetTime: number;
-  searchResetTime_2?: number; // fallback type helper
+  graphqlLimit: number;
+  graphqlRemaining: number;
+  graphqlResetTime: number;
 }
 
 
@@ -667,6 +669,27 @@ export function QueueControlPanel() {
                             </div>
                           )}
                         </div>
+
+                        {/* GraphQL Rate Limit */}
+                        {token.graphqlLimit !== undefined && (
+                          <div className="space-y-1">
+                            <div className="flex justify-between text-[11px] text-[var(--color-ink-muted-80)]">
+                              <span>GraphQL (Crawler & Discovery)</span>
+                              <span className="font-mono tabular-nums">{token.graphqlRemaining.toLocaleString()} / {token.graphqlLimit.toLocaleString()}</span>
+                            </div>
+                            <div className="w-full h-2 bg-[var(--color-canvas)] rounded-full overflow-hidden border border-[var(--color-divider-soft)]">
+                              <div 
+                                className={`h-full transition-all duration-500 ${token.status === 'invalid' ? 'bg-red-500' : (token.graphqlRemaining / token.graphqlLimit * 100) < 15 ? 'bg-amber-500' : 'bg-teal-500'}`}
+                                style={{ width: `${token.graphqlLimit > 0 ? (token.graphqlRemaining / token.graphqlLimit) * 100 : 0}%` }}
+                              />
+                            </div>
+                            {token.graphqlRemaining < token.graphqlLimit && (
+                              <div className="text-[9px] text-[var(--color-ink-muted-48)] text-right mt-0.5 font-medium">
+                                {getResetText(token.graphqlResetTime)}
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
                   );

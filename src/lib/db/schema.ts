@@ -125,3 +125,50 @@ export const githubUsers = pgTable("github_users", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+export const collections = pgTable("collections", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  title: text("title").notNull(),
+  description: text("description"),
+  slug: text("slug").notNull().unique(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const collectionProjects = pgTable("collection_projects", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  collectionId: uuid("collection_id").references(() => collections.id, { onDelete: "cascade" }).notNull(),
+  projectId: uuid("project_id").references(() => projects.id, { onDelete: "cascade" }).notNull(),
+  sortOrder: integer("sort_order").notNull(),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const shareLinks = pgTable("share_links", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  code: text("code").notNull().unique(),
+  projectId: uuid("project_id").references(() => projects.id, { onDelete: "cascade" }).notNull(),
+  title: text("title"),
+  utmSource: text("utm_source"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  expiresAt: timestamp("expires_at"),
+}, (table) => [
+  index("share_links_code_idx").on(table.code),
+  index("share_links_project_idx").on(table.projectId),
+]);
+
+export const shareEvents = pgTable("share_events", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  linkCode: text("link_code").notNull(),
+  clickedAt: timestamp("clicked_at").defaultNow().notNull(),
+  referrer: text("referrer"),
+  userAgent: text("user_agent"),
+  ipHash: text("ip_hash"),
+  country: text("country"),
+  deviceType: text("device_type"),
+}, (table) => [
+  index("share_events_code_idx").on(table.linkCode),
+  index("share_events_clicked_at_idx").on(table.clickedAt),
+]);
+
+
+

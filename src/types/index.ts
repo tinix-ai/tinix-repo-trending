@@ -23,6 +23,7 @@ export interface Project {
   openIssues: number;
   watchers: number;
   downloads?: number;
+  likes?: number;
   contributorsCount?: number;
   createdAt: string;
   updatedAt: string;

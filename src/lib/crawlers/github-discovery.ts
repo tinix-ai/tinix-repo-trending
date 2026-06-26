@@ -175,12 +175,31 @@ export async function discoverNewRepos(maxPages: number = 10): Promise<Discovere
         // Safe delay to respect API guidelines/courtesy
         await setTimeout(2500);
 
-      } catch (error) {
-        console.error(`[Discovery] Error during GitHub Search for topic:${topic} page:${page}:`, error);
+      } catch (error: unknown) {
+        const err = error instanceof Error ? error : new Error(String(error));
+        if (err.message?.includes('[RateLimitError]')) {
+          console.warn(`[Discovery] GitHub API rate limit reached (all tokens exhausted). Stopping discovery and saving checkpoint.`);
+        } else {
+          console.error(`[Discovery] Error during GitHub Search for topic:${topic} page:${page}:`, error);
+        }
+        completedTopic = false;
         break; // Safe exit on error for this topic
       }
     }
-    if (!completedTopic) {
+    if (completedTopic) {
+      try {
+        if (t + 1 < topics.length) {
+          await redisConnection.set(checkpointKey, JSON.stringify({ 
+            topicIndex: t + 1, 
+            topic: topics[t + 1], 
+            page: 0, 
+            endCursor: null 
+          }));
+        }
+      } catch (err) {
+        console.warn(`[Discovery] Failed to save next topic checkpoint in Redis`, err);
+      }
+    } else {
       completedAll = false;
       break; // Stop loop and preserve checkpoint
     }

@@ -3,6 +3,7 @@ import { projects, projectSnapshots } from '../db/schema';
 import { eq, and } from 'drizzle-orm';
 import { hfQueue } from '../../workers/queue';
 import { updateProjectCrawlSchedule } from './scheduler';
+import { calculateProjectTrendInline } from '../db/trends';
 
 /**
  * Helper function to update HF project metrics directly in the DB when no full crawl is needed
@@ -47,6 +48,9 @@ async function updateHFProjectMetricsInline(
 
   // 3. Recalculate scheduler
   await updateProjectCrawlSchedule(projectId, 'huggingface');
+
+  // 4. Recalculate trends inline
+  await calculateProjectTrendInline(projectId);
 }
 
 /**
@@ -108,6 +112,12 @@ export async function discoverHFTrending() {
           await updateHFProjectMetricsInline(existing.id, model.likes || 0, model.downloads || 0);
           inlineUpdatedModels++;
         } else {
+          if (existing) {
+            // Set nextCrawlAt to tomorrow to prevent updater from double-queuing
+            await db.update(projects)
+              .set({ nextCrawlAt: new Date(Date.now() + 24 * 60 * 60 * 1000) })
+              .where(eq(projects.id, existing.id));
+          }
           await hfQueue.add('crawl-hf-model', {
             id: model.id,
             type: 'models'
@@ -151,6 +161,12 @@ export async function discoverHFTrending() {
           await updateHFProjectMetricsInline(existing.id, dataset.likes || 0, dataset.downloads || 0);
           inlineUpdatedDatasets++;
         } else {
+          if (existing) {
+            // Set nextCrawlAt to tomorrow to prevent updater from double-queuing
+            await db.update(projects)
+              .set({ nextCrawlAt: new Date(Date.now() + 24 * 60 * 60 * 1000) })
+              .where(eq(projects.id, existing.id));
+          }
           await hfQueue.add('crawl-hf-dataset', {
             id: dataset.id,
             type: 'datasets'

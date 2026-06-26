@@ -1,15 +1,18 @@
 import 'dotenv/config';
 import { crawlerQueue, githubUpdaterQueue, hfUpdaterQueue, socialCrawlerQueue } from './queue';
 import { db } from '../lib/db';
-import { projects, projectSnapshots, projectTrends, githubUsers } from '../lib/db/schema';
+import { projects, projectSnapshots, projectTrends, githubUsers, projectMentions } from '../lib/db/schema';
 import { discoverNewRepos } from '../lib/crawlers/github-discovery';
 import { discoverGithubTrendingRepos } from '../lib/crawlers/github-trending-scraper';
 import { discoverHFTrending } from '../lib/crawlers/hf-discovery';
 import { eq, lte, or, and, isNull, sql, asc } from 'drizzle-orm';
-import { fetchGitHubBatch } from '../lib/crawlers/github-graphql';
+import { fetchGitHubBatch, fetchPublicRepoREST } from '../lib/crawlers/github-graphql';
+import { fetchHFBatch } from '../lib/crawlers/hf-batch';
 import { parseCountryFromProfile } from '../lib/location-parser';
 import { updateProjectCrawlSchedule } from '../lib/crawlers/scheduler';
 import { categorizeProject } from '../lib/categorizer';
+import { crawlTwitterMentionsBatched, TwitterProjectTarget } from '../lib/crawlers/twitter';
+import { calculateProjectTrendInline } from '../lib/db/trends';
 
 /**
  * Job 1: Daily Discovery
@@ -51,15 +54,22 @@ export async function runDailyDiscovery(source?: 'github' | 'huggingface') {
     const newRepos = Array.from(combinedReposMap.values());
     console.log(`[Cron] Combined unique GitHub repositories for crawling: ${newRepos.length}`);
 
-    const existingGitHub = await db.select({ id: projects.id, sourceId: projects.sourceId }).from(projects).where(eq(projects.source, 'github'));
-    const existingGHMap = new Map(existingGitHub.map(p => [p.sourceId, p.id]));
+    const existingGitHub = await db.select({ 
+      id: projects.id, 
+      sourceId: projects.sourceId, 
+      crawlInterval: projects.crawlInterval 
+    }).from(projects).where(eq(projects.source, 'github'));
+    const existingGHMap = new Map(existingGitHub.map(p => [
+      p.sourceId, 
+      { id: p.id, crawlInterval: p.crawlInterval }
+    ]));
 
     let queuedCount = 0;
     for (const repo of newRepos) {
       const sourceId = `${repo.owner}/${repo.repo}`;
-      const existingId = existingGHMap.get(sourceId);
+      const existing = existingGHMap.get(sourceId);
       
-      if (!existingId) {
+      if (!existing) {
         // New repo: crawl immediately
         await crawlerQueue.add('crawl-repo', {
           owner: repo.owner,
@@ -69,22 +79,20 @@ export async function runDailyDiscovery(source?: 'github' | 'huggingface') {
         });
         queuedCount++;
       } else {
-        // Existing repo but discovered as trending: reset crawl interval to daily and schedule NOW
-        await db.update(projects)
-          .set({
-            crawlInterval: 1,
-            nextCrawlAt: new Date(),
-          })
-          .where(eq(projects.id, existingId));
-
-        await crawlerQueue.add('crawl-repo', {
-          owner: repo.owner,
-          repo: repo.repo,
-          projectId: existingId,
-        }, {
-          jobId: `discovery-update-gh-${existingId}-${new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().split('T')[0]}`,
-        });
-        queuedCount++;
+        // Existing repo but discovered as trending: reset crawl interval to daily and schedule NOW.
+        // We only update crawlInterval and nextCrawlAt in the DB, and let runDailyUpdate
+        // (running 30 mins later) naturally select and enqueue it in githubUpdaterQueue to avoid double-queueing.
+        // Crucial optimization: If it's currently under 30-day backoff due to SAML SSO/permission denied,
+        // do not reset it so we do not flood the logs with SSO errors repeatedly.
+        if (existing.crawlInterval !== 30) {
+          await db.update(projects)
+            .set({
+              crawlInterval: 1,
+              nextCrawlAt: new Date(),
+            })
+            .where(eq(projects.id, existing.id));
+          queuedCount++;
+        }
       }
     }
     console.log(`[Cron] Queued ${queuedCount} GitHub repos for crawling/update (new/trending reset).`);
@@ -139,8 +147,7 @@ export async function runDailyUpdate(force = false) {
     : await db.select(selectFields).from(projects)
         .where(or(
           isNull(projects.nextCrawlAt),
-          lte(projects.nextCrawlAt, new Date()),
-          and(eq(projects.source, 'github'), isNull(projects.countryCode))
+          lte(projects.nextCrawlAt, new Date())
         ))
         .orderBy(asc(projects.crawlInterval), asc(projects.nextCrawlAt));
 
@@ -150,8 +157,8 @@ export async function runDailyUpdate(force = false) {
   let ghCount = 0;
   let hfCount = 0;
 
-  // 1. Process GitHub projects using GraphQL batching (100 repos per request)
-  const GITHUB_BATCH_SIZE = 100;
+  // 1. Process GitHub projects using GraphQL batching (50 repos per request)
+  const GITHUB_BATCH_SIZE = 50;
   for (let i = 0; i < githubProjects.length; i += GITHUB_BATCH_SIZE) {
     const batch = githubProjects.slice(i, i + GITHUB_BATCH_SIZE);
     console.log(`[Cron Batch] Updating GitHub repositories batch ${Math.floor(i / GITHUB_BATCH_SIZE) + 1}/${Math.ceil(githubProjects.length / GITHUB_BATCH_SIZE)} (size: ${batch.length})...`);
@@ -168,6 +175,30 @@ export async function runDailyUpdate(force = false) {
         const result = batchResults[j];
         const project = batch[j];
         const [owner, repo] = project.sourceId.split('/');
+
+        if (result.permissionDenied) {
+          console.warn(`[Cron Batch] Project ${project.sourceId} returned permission denied/SAML SSO. Attempting anonymous REST fallback...`);
+          const restResult = await fetchPublicRepoREST(owner, repo);
+          if (restResult.exists && restResult.data) {
+            console.log(`[Cron Batch] REST fallback succeeded for public repo ${project.sourceId}.`);
+            result.permissionDenied = false;
+            result.data = restResult.data;
+          } else {
+            console.warn(`[Cron Batch] Project ${project.sourceId} REST fallback failed or private. Skipping update, setting 30-day backoff, and keeping database record.`);
+            try {
+              await db.update(projects)
+                .set({
+                  crawlInterval: 30,
+                  nextCrawlAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+                  lastCrawledAt: new Date(),
+                })
+                .where(eq(projects.id, project.id));
+            } catch (dbErr) {
+              console.error(`[Cron Batch] Failed to update next crawl for restricted project ${project.sourceId}:`, dbErr);
+            }
+            continue;
+          }
+        }
 
         if (!result.exists) {
           console.warn(`[Cron Batch] Project ${project.sourceId} not found on GitHub. Removing from database.`);
@@ -295,195 +326,130 @@ export async function runDailyUpdate(force = false) {
 
           // Recalculate schedule
           await updateProjectCrawlSchedule(project.id, 'github');
+          await calculateProjectTrendInline(project.id);
           ghCount++;
         } catch (dbErr) {
           console.error(`[Cron Batch] Failed to update project db for ${project.sourceId}:`, dbErr);
         }
       }
-    } catch (batchErr) {
+    } catch (batchErr: unknown) {
+      const err = batchErr instanceof Error ? batchErr : new Error(String(batchErr));
+      if (err.message?.includes('[RateLimitError]')) {
+        console.warn('[Cron Batch] GitHub Rate Limit reached. Stopping subsequent GitHub update batches.');
+        break;
+      }
       console.error(`[Cron Batch] Failed to process batch for ${repoCoords.map(r => `${r.owner}/${r.name}`).join(', ')}:`, batchErr);
     }
   }
 
-  // 2. Process HuggingFace projects using single jobs enqueued to hfUpdaterQueue
-  const hfJobs: { name: string; data: Record<string, unknown>; opts: { jobId?: string; priority?: number } }[] = [];
-  for (const project of huggingFaceProjects) {
-    const isDataset = project.sourceUrl?.includes('huggingface.co/datasets/');
-    const type = isDataset ? 'datasets' : 'models';
-    const jobName = isDataset ? 'crawl-hf-dataset' : 'crawl-hf-model';
+  // 2. Process HuggingFace projects using batched REST fallback in cron.ts directly
+  const HF_BATCH_SIZE = 50;
+  for (let i = 0; i < huggingFaceProjects.length; i += HF_BATCH_SIZE) {
+    const batch = huggingFaceProjects.slice(i, i + HF_BATCH_SIZE);
+    console.log(`[Cron Batch] Updating HuggingFace repositories batch ${Math.floor(i / HF_BATCH_SIZE) + 1}/${Math.ceil(huggingFaceProjects.length / HF_BATCH_SIZE)} (size: ${batch.length})...`);
     
-    const dateSuffix = force ? `force-${Date.now()}` : new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().split('T')[0];
-    hfJobs.push({
-      name: jobName,
-      data: {
-        id: project.sourceId,
-        type
-      },
-      opts: {
-        jobId: `update-hf-${project.id}-${dateSuffix}`,
-        priority: force ? 1 : crawlIntervalToPriority(project.crawlInterval),
-      }
+    const hfTargets = batch.map(p => {
+      const isDataset = p.sourceUrl?.includes('huggingface.co/datasets/');
+      return { id: p.sourceId, type: isDataset ? 'datasets' : 'models' as 'datasets' | 'models' };
     });
-    hfCount++;
-  }
 
-  const CHUNK_SIZE = 500;
-  if (hfJobs.length > 0) {
-    console.log(`[Cron] Enqueuing ${hfJobs.length} HuggingFace updater jobs in bulk...`);
-    for (let i = 0; i < hfJobs.length; i += CHUNK_SIZE) {
-      const chunk = hfJobs.slice(i, i + CHUNK_SIZE);
-      await hfUpdaterQueue.addBulk(chunk);
+    try {
+      const batchResults = await fetchHFBatch(hfTargets);
+      
+      for (let j = 0; j < batchResults.length; j++) {
+        const result = batchResults[j];
+        const project = batch[j];
+
+        if (!result.exists) {
+          console.warn(`[Cron Batch] HF Project ${project.sourceId} not found. Removing from database.`);
+          try {
+            await db.delete(projectTrends).where(eq(projectTrends.projectId, project.id));
+            await db.delete(projectSnapshots).where(eq(projectSnapshots.projectId, project.id));
+            await db.delete(projects).where(eq(projects.id, project.id));
+          } catch (delErr) {
+            console.error(`[Cron Batch] Failed to delete non-existent HF project ${project.sourceId}:`, delErr);
+          }
+          continue;
+        }
+
+        const data = result.data;
+        if (!data) continue;
+
+        const likes = data.likes || 0;
+        const downloads = data.downloads || 0;
+        const rawTags = data.tags || [];
+        if (data.pipeline_tag) rawTags.push(data.pipeline_tag);
+        if (result.type === 'datasets' && data.task_categories) rawTags.push(...data.task_categories);
+
+        const canonicalCategories = await categorizeProject(rawTags, result.type === 'models' ? 'model' : 'dataset');
+
+        try {
+          await db.update(projects)
+            .set({
+              topics: rawTags,
+              categories: canonicalCategories,
+              primaryLanguage: data.pipeline_tag || (result.type === 'datasets' ? data.task_categories?.[0] : '') || '',
+              likes: likes,
+              downloads: downloads,
+              sourceUpdatedAt: data.lastModified ? new Date(data.lastModified) : undefined,
+              lastCrawledAt: new Date(),
+            })
+            .where(eq(projects.id, project.id));
+
+          // Record snapshot
+          const snapshotDateStr = new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().split('T')[0];
+          const [existingSnap] = await db
+            .select({ id: projectSnapshots.id })
+            .from(projectSnapshots)
+            .where(
+              and(
+                eq(projectSnapshots.projectId, project.id),
+                eq(projectSnapshots.snapshotDate, snapshotDateStr)
+              )
+            )
+            .limit(1);
+
+          if (existingSnap) {
+            await db.update(projectSnapshots)
+              .set({
+                likes: likes,
+                downloads: downloads,
+              })
+              .where(eq(projectSnapshots.id, existingSnap.id));
+          } else {
+            await db.insert(projectSnapshots).values({
+              projectId: project.id,
+              stars: 0,
+              watchers: 0,
+              forks: 0,
+              openIssues: 0,
+              likes: likes,
+              downloads: downloads,
+              snapshotDate: snapshotDateStr,
+            });
+          }
+
+          // Recalculate schedule
+          await updateProjectCrawlSchedule(project.id, 'huggingface');
+          await calculateProjectTrendInline(project.id);
+          hfCount++;
+        } catch (dbErr) {
+          console.error(`[Cron Batch] Failed to update project db for HF ${project.sourceId}:`, dbErr);
+        }
+      }
+    } catch (batchErr: unknown) {
+      const err = batchErr instanceof Error ? batchErr : new Error(String(batchErr));
+      if (err.message?.includes('[RateLimitError]')) {
+        console.warn('[Cron Batch] HuggingFace Rate Limit reached. Stopping subsequent HuggingFace update batches.');
+        break;
+      }
+      console.error(`[Cron Batch] Failed to process HF batch for ${hfTargets.map(r => r.id).join(', ')}:`, batchErr);
     }
   }
 
-  console.log(`[Cron] Completed Daily Update. Batch updated ${ghCount}/${githubProjects.length} GitHub repos, bulk enqueued ${hfCount} HuggingFace models (force: ${force}).`);
+  console.log(`[Cron] Completed Daily Update. Batch updated ${ghCount}/${githubProjects.length} GitHub repos, ${hfCount}/${huggingFaceProjects.length} HuggingFace models (force: ${force}).`);
 }
 
-/**
- * Job 3: Daily Trend Calculation
- * Calculates daily, weekly, and monthly growth for stars and downloads.
- */
-export async function runTrendCalculation() {
-  console.log('[Cron] Running Trend Calculation...');
-
-  try {
-    const query = sql`
-      WITH current_snaps AS (
-        SELECT DISTINCT ON (project_id) project_id, COALESCE(stars, likes, 0) as stars, downloads, snapshot_date
-        FROM project_snapshots
-        ORDER BY project_id, snapshot_date DESC
-      ),
-      daily_snaps AS (
-        SELECT DISTINCT ON (s.project_id) s.project_id, COALESCE(s.stars, s.likes, 0) as stars, s.downloads
-        FROM project_snapshots s
-        JOIN current_snaps c ON s.project_id = c.project_id
-        WHERE s.snapshot_date = (c.snapshot_date - INTERVAL '1 day')::date
-        ORDER BY s.project_id, s.snapshot_date DESC
-      ),
-      weekly_snaps AS (
-        SELECT DISTINCT ON (s.project_id) s.project_id, COALESCE(s.stars, s.likes, 0) as stars, s.downloads
-        FROM project_snapshots s
-        JOIN current_snaps c ON s.project_id = c.project_id
-        WHERE s.snapshot_date = (c.snapshot_date - INTERVAL '7 days')::date
-        ORDER BY s.project_id, s.snapshot_date DESC
-      ),
-      monthly_snaps AS (
-        SELECT DISTINCT ON (s.project_id) s.project_id, COALESCE(s.stars, s.likes, 0) as stars, s.downloads
-        FROM project_snapshots s
-        JOIN current_snaps c ON s.project_id = c.project_id
-        WHERE s.snapshot_date = (c.snapshot_date - INTERVAL '30 days')::date
-        ORDER BY s.project_id, s.snapshot_date DESC
-      )
-      INSERT INTO project_trends (
-        project_id, 
-        daily_stars, weekly_stars, monthly_stars, 
-        daily_downloads, weekly_downloads, monthly_downloads,
-        updated_at
-      )
-      SELECT 
-        c.project_id,
-        COALESCE(c.stars - d.stars, 0) as daily_stars,
-        COALESCE(c.stars - w.stars, 0) as weekly_stars,
-        COALESCE(c.stars - m.stars, 0) as monthly_stars,
-        COALESCE(c.downloads - d.downloads, 0) as daily_downloads,
-        COALESCE(c.downloads - w.downloads, 0) as weekly_downloads,
-        COALESCE(c.downloads - m.downloads, 0) as monthly_downloads,
-        NOW() as updated_at
-      FROM current_snaps c
-      LEFT JOIN daily_snaps d ON c.project_id = d.project_id
-      LEFT JOIN weekly_snaps w ON c.project_id = w.project_id
-      LEFT JOIN monthly_snaps m ON c.project_id = m.project_id
-      ON CONFLICT (project_id) DO UPDATE SET
-        daily_stars = EXCLUDED.daily_stars,
-        weekly_stars = EXCLUDED.weekly_stars,
-        monthly_stars = EXCLUDED.monthly_stars,
-        daily_downloads = EXCLUDED.daily_downloads,
-        weekly_downloads = EXCLUDED.weekly_downloads,
-        monthly_downloads = EXCLUDED.monthly_downloads,
-        updated_at = EXCLUDED.updated_at;
-    `;
-
-    await db.execute(query);
-    console.log('[Cron] Trend Calculation completed successfully.');
-  } catch (error) {
-    console.error('[Cron] Error running trend calculation:', error);
-  }
-}
-
-/**
- * Calculates and updates trends (stars and downloads) inline for a specific project.
- */
-export async function calculateProjectTrendInline(projectId: string) {
-  try {
-    // 1. Fetch snapshots for the project from the last 31 days
-    const snapshots = await db.execute(sql`
-      SELECT snapshot_date::text, COALESCE(stars, likes, 0) as stars, downloads
-      FROM project_snapshots
-      WHERE project_id = ${projectId}::uuid
-        AND snapshot_date >= (timezone('Asia/Ho_Chi_Minh', now()))::date - INTERVAL '31 days'
-      ORDER BY snapshot_date DESC
-    `) as unknown as { snapshot_date: string; stars: number; downloads: number }[];
-
-    if (snapshots.length === 0) return;
-
-    // The first snapshot in the sorted list is the latest one
-    const latest = snapshots[0];
-    const latestDate = new Date(latest.snapshot_date);
-
-    // Helper to format Date back to YYYY-MM-DD
-    const formatDate = (date: Date) => {
-      return date.toISOString().split('T')[0];
-    };
-
-    const targetDate1d = formatDate(new Date(latestDate.getTime() - 1 * 24 * 60 * 60 * 1000));
-    const targetDate7d = formatDate(new Date(latestDate.getTime() - 7 * 24 * 60 * 60 * 1000));
-    const targetDate30d = formatDate(new Date(latestDate.getTime() - 30 * 24 * 60 * 60 * 1000));
-
-    // Find the closest snapshot on or before the target dates
-    const findSnapshot = (targetDateStr: string) => {
-      return snapshots.find(s => s.snapshot_date <= targetDateStr) || snapshots[snapshots.length - 1];
-    };
-
-    const snap1d = findSnapshot(targetDate1d);
-    const snap7d = findSnapshot(targetDate7d);
-    const snap30d = findSnapshot(targetDate30d);
-
-    const dailyStars = Math.max(0, latest.stars - (snap1d?.stars ?? latest.stars));
-    const weeklyStars = Math.max(0, latest.stars - (snap7d?.stars ?? latest.stars));
-    const monthlyStars = Math.max(0, latest.stars - (snap30d?.stars ?? latest.stars));
-
-    const dailyDownloads = Math.max(0, latest.downloads - (snap1d?.downloads ?? latest.downloads));
-    const weeklyDownloads = Math.max(0, latest.downloads - (snap7d?.downloads ?? latest.downloads));
-    const monthlyDownloads = Math.max(0, latest.downloads - (snap30d?.downloads ?? latest.downloads));
-
-    await db.execute(sql`
-      INSERT INTO project_trends (
-        project_id, 
-        daily_stars, weekly_stars, monthly_stars, 
-        daily_downloads, weekly_downloads, monthly_downloads,
-        updated_at
-      )
-      VALUES (
-        ${projectId}::uuid,
-        ${dailyStars}, ${weeklyStars}, ${monthlyStars},
-        ${dailyDownloads}, ${weeklyDownloads}, ${monthlyDownloads},
-        NOW()
-      )
-      ON CONFLICT (project_id) DO UPDATE SET
-        daily_stars = EXCLUDED.daily_stars,
-        weekly_stars = EXCLUDED.weekly_stars,
-        monthly_stars = EXCLUDED.monthly_stars,
-        daily_downloads = EXCLUDED.daily_downloads,
-        weekly_downloads = EXCLUDED.weekly_downloads,
-        monthly_downloads = EXCLUDED.monthly_downloads,
-        updated_at = EXCLUDED.updated_at;
-    `);
-
-    console.log(`[Cron] Inline Trend Calculation completed for project: ${projectId}`);
-  } catch (error) {
-    console.error(`[Cron] Error running inline trend calculation for ${projectId}:`, error);
-  }
-}
 
 /**
  * Job 4: Daily Social Mentions Fetcher
@@ -492,23 +458,77 @@ export async function calculateProjectTrendInline(projectId: string) {
 export async function runDailySocialMentions() {
   console.log('[Cron] Enqueuing Daily Social Mentions crawl jobs...');
   try {
-    // 1. Fetch all projects with stars >= 100 (for GitHub) or likes >= 100 (for Hugging Face) using their latest snapshot
+    // 1. Fetch actively growing projects using project_trends data.
+    // Only crawl projects with meaningful weekly momentum to avoid queue bloat.
+    // Criteria: weekly_stars >= 10 (GitHub) OR weekly_downloads >= 50 (HuggingFace)
+    // Falls back to top projects by lifetime stars if trends data is missing.
     const result = await db.execute(sql`
-      WITH latest_snapshots AS (
-        SELECT DISTINCT ON (project_id) project_id, stars, likes
-        FROM project_snapshots
-        ORDER BY project_id, snapshot_date DESC
-      )
-      SELECT p.id, p.full_name as "fullName", p.source
+      SELECT DISTINCT p.id, p.full_name as "fullName", p.source
       FROM projects p
-      JOIN latest_snapshots s ON p.id = s.project_id
-      WHERE (p.source = 'github' AND COALESCE(s.stars, 0) >= 100)
-         OR (p.source = 'huggingface' AND COALESCE(s.likes, 0) >= 100)
+      LEFT JOIN project_trends pt ON pt.project_id = p.id
+      WHERE (
+        -- Actively growing GitHub repos
+        (p.source = 'github' AND (
+          COALESCE(pt.weekly_stars, 0) >= 10
+          OR (pt.project_id IS NULL AND COALESCE(p.stars, 0) >= 1000)
+        ))
+        OR
+        -- Actively growing HuggingFace models/datasets
+        (p.source = 'huggingface' AND (
+          COALESCE(pt.weekly_downloads, 0) >= 50
+          OR COALESCE(pt.weekly_likes, 0) >= 5
+          OR (pt.project_id IS NULL AND COALESCE(p.likes, 0) >= 500)
+        ))
+      )
+      ORDER BY COALESCE(pt.weekly_stars, 0) + COALESCE(pt.weekly_downloads, 0) DESC
+      LIMIT 5000
     `);
 
     const activeProjects = result as unknown as { id: string; fullName: string; source: string }[];
-    console.log(`[Cron] Found ${activeProjects.length} projects with >= 100 stars/likes for social update.`);
+    console.log(`[Cron] Found ${activeProjects.length} actively growing projects for social mention crawl (limited to 5000).`);
 
+    // 2. Perform batched Twitter (X) crawl first to save API calls
+    if (process.env.TWITTER_BEARER_TOKEN) {
+      console.log(`[Cron] Fetching Twitter mentions in batch for ${activeProjects.length} projects...`);
+      const twitterTargets: TwitterProjectTarget[] = activeProjects.map(p => ({
+        projectId: p.id,
+        keyword: p.fullName
+      }));
+      
+      const twitterResults = await crawlTwitterMentionsBatched(twitterTargets);
+      let totalInserted = 0;
+
+      for (const [projectId, mentions] of twitterResults.entries()) {
+        for (const mention of mentions) {
+          let content = mention.content || '';
+          if (content.length > 500) {
+            content = content.substring(0, 497) + '...';
+          }
+          try {
+            await db.insert(projectMentions)
+              .values({
+                projectId: projectId,
+                source: mention.source,
+                author: mention.author,
+                content: content,
+                url: mention.url,
+                score: mention.score,
+                commentsCount: mention.commentsCount,
+                mentionedAt: mention.mentionedAt,
+              })
+              .onConflictDoNothing();
+            totalInserted++;
+          } catch (err) {
+            console.error(`[Cron] Failed to insert Twitter mention for project ${projectId}:`, err);
+          }
+        }
+      }
+      console.log(`[Cron] Inserted ${totalInserted} new Twitter mentions.`);
+    } else {
+      console.log(`[Cron] Skipping Twitter batch crawl (TWITTER_BEARER_TOKEN not set).`);
+    }
+
+    // 3. Enqueue jobs for HN & Reddit
     const dateSuffix = new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().split('T')[0];
     const jobs = activeProjects.map(project => ({
       name: 'crawl-social',
@@ -527,7 +547,7 @@ export async function runDailySocialMentions() {
       await socialCrawlerQueue.addBulk(chunk);
     }
 
-    console.log(`[Cron] Bulk enqueued ${jobs.length} social crawler jobs in queue.`);
+    console.log(`[Cron] Bulk enqueued ${jobs.length} social crawler jobs in queue for HN/Reddit.`);
   } catch (error) {
     console.error('[Cron] Error enqueuing daily social mentions:', error);
   }

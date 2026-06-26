@@ -21,6 +21,8 @@ import {
   Sparkles,
   Github,
   Search,
+  Box,
+  HardDrive,
 } from "lucide-react";
 import { SearchableSelect } from "@/components/common/searchable-select";
 import { CategoryIcon } from "@/components/common/category-icon";
@@ -178,6 +180,7 @@ export default function HomePage() {
   const filterType = (searchParams.get("filter") as "trending" | "all" | "new") || "trending";
   const sortBy = (searchParams.get("sortBy") as "project" | "stars" | "trend" | "updated" | "views") || undefined;
   const sortOrder = (searchParams.get("sortOrder") as "asc" | "desc") || undefined;
+  const projectType = searchParams.get("type") || "";
   const itemsPerPage = 20;
 
   const t = useTranslations("HomePage");
@@ -218,9 +221,21 @@ export default function HomePage() {
     params.delete("page");
     params.delete("sortBy");
     params.delete("sortOrder");
+    params.delete("type");
     if (newSource === "huggingface") {
       setSelectedLanguage("");
     }
+    router.push(`${pathname}?${params.toString()}`);
+  };
+
+  const handleProjectTypeChange = (newType: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (newType) {
+      params.set("type", newType);
+    } else {
+      params.delete("type");
+    }
+    params.delete("page");
     router.push(`${pathname}?${params.toString()}`);
   };
 
@@ -278,8 +293,13 @@ export default function HomePage() {
   useEffect(() => {
     fetchGlobalStats().then(setStats);
     fetchCategoryStats().then(setCategories);
-    fetchPopularFilters().then(setPopularFilters);
+    fetchPopularFilters(selectedSource || undefined).then(setPopularFilters);
   }, []);
+
+  // Re-fetch popular filters when source changes
+  useEffect(() => {
+    fetchPopularFilters(selectedSource || undefined).then(setPopularFilters);
+  }, [selectedSource]);
 
   useEffect(() => {
     startTransition(() => {
@@ -299,13 +319,14 @@ export default function HomePage() {
         sortOrder,
         license: searchParams.get("license") || undefined,
         country: searchParams.get("country") || undefined,
-        owner: searchParams.get("owner") || undefined
+        owner: searchParams.get("owner") || undefined,
+        projectType: projectType || undefined,
       }).then((res) => {
         setProjects(res.projects);
         setTotalProjects(res.total);
       });
     });
-  }, [days, minStars, minDownloads, selectedCategory, categoryParam, selectedSource, selectedLanguage, searchQuery, selectedTag, currentPage, filterType, sortBy, sortOrder, searchParams]);
+  }, [days, minStars, minDownloads, selectedCategory, categoryParam, selectedSource, selectedLanguage, searchQuery, selectedTag, currentPage, filterType, sortBy, sortOrder, searchParams, projectType]);
 
   const filteredProjects = projects;
   const paginatedProjects = filteredProjects;
@@ -460,15 +481,15 @@ export default function HomePage() {
                         className="h-9 px-2.5 rounded-lg border border-[var(--color-hairline)] bg-[var(--color-canvas)] text-xs text-[var(--color-ink)] outline-none focus:border-[var(--color-action-blue)] cursor-pointer"
                       >
                         <option value="">Any Country</option>
-                        <option value="us">🇺🇸 United States</option>
-                        <option value="vn">🇻🇳 Vietnam</option>
-                        <option value="sg">🇸🇬 Singapore</option>
-                        <option value="fr">🇫🇷 France</option>
-                        <option value="de">🇩🇪 Germany</option>
-                        <option value="jp">🇯🇵 Japan</option>
-                        <option value="cn">🇨🇳 China</option>
-                        <option value="gb">🇬🇧 United Kingdom</option>
-                        <option value="ca">🇨🇦 Canada</option>
+                        {countries.map((code) => {
+                          let name = code.toUpperCase();
+                          try {
+                            name = displayNames.of(code.toUpperCase()) || code.toUpperCase();
+                          } catch {}
+                          return (
+                            <option key={code} value={code}>{name}</option>
+                          );
+                        })}
                       </select>
                     </div>
 
@@ -580,7 +601,7 @@ export default function HomePage() {
                   <Flame className="h-3.5 w-3.5 text-amber-500" />
                   Trending:
                 </span>
-                {(hashtags.length > 0 ? hashtags.slice(0, 5) : ["AI Agent", "MCP", "RAG", "LLM", "Rust"]).map((topic) => {
+                {(hashtags.length > 0 ? hashtags.slice(0, 8) : ["AI Agent", "MCP", "RAG", "LLM", "Rust", "transformers", "llama", "docker"]).map((topic) => {
                   const isActive = selectedTag === topic;
                   return (
                     <Link
@@ -683,6 +704,48 @@ export default function HomePage() {
                 </button>
               </div>
             </div>
+
+            {/* HuggingFace Project Type Sub-Filter */}
+            {selectedSource === "huggingface" && (
+              <div className="flex items-center gap-2 mb-5">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--color-ink-muted-48)] mr-1">Type</span>
+                <div className="flex items-center gap-1 p-0.5 bg-[var(--color-surface-elevated)] rounded-lg border border-[var(--color-divider-soft)]">
+                  <button
+                    onClick={() => handleProjectTypeChange("")}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer ${
+                      !projectType
+                        ? "bg-[var(--color-bg-primary)] text-[var(--color-ink)] shadow-sm border border-[var(--color-border)]"
+                        : "text-[var(--color-ink-muted-80)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-pearl)]"
+                    }`}
+                  >
+                    <Database className="w-3.5 h-3.5" />
+                    All
+                  </button>
+                  <button
+                    onClick={() => handleProjectTypeChange("model")}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer ${
+                      projectType === "model"
+                        ? "bg-[var(--color-bg-primary)] text-[var(--color-ink)] shadow-sm border border-[var(--color-border)]"
+                        : "text-[var(--color-ink-muted-80)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-pearl)]"
+                    }`}
+                  >
+                    <Box className="w-3.5 h-3.5" />
+                    Models
+                  </button>
+                  <button
+                    onClick={() => handleProjectTypeChange("dataset")}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer ${
+                      projectType === "dataset"
+                        ? "bg-[var(--color-bg-primary)] text-[var(--color-ink)] shadow-sm border border-[var(--color-border)]"
+                        : "text-[var(--color-ink-muted-80)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-pearl)]"
+                    }`}
+                  >
+                    <HardDrive className="w-3.5 h-3.5" />
+                    Datasets
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Filter Card */}
             <div className="relative z-30 bg-[var(--color-surface-elevated)] border border-[var(--color-divider-soft)] rounded-2xl p-4 mb-8 shadow-sm flex flex-col gap-4">
@@ -792,7 +855,7 @@ export default function HomePage() {
                     />
                   )}
 
-                  {(!selectedSource || selectedSource === "github") && countryOptions.length > 0 && (
+                  {countryOptions.length > 0 && (
                     <SearchableSelect
                       options={countryOptions}
                       value={selectedCountryName}
@@ -1118,7 +1181,7 @@ export default function HomePage() {
                 {t("hotTopicsWidget")}
               </h2>
               <div className="flex flex-wrap gap-2">
-                {(hashtags.length > 0 ? hashtags : ["AI Agent", "MCP", "RAG", "LLM", "Coding Assistant", "Open Source", "Rust", "Agentic", "Multi-modal", "Edge AI"]).map((topic) => {
+                {(hashtags.length > 0 ? hashtags.slice(0, 20) : ["AI Agent", "MCP", "RAG", "LLM", "Coding Assistant", "Open Source", "Rust", "Agentic", "Multi-modal", "Edge AI"]).map((topic) => {
                   const isActive = selectedTag === topic;
                   return (
                     <Link

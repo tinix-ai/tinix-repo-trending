@@ -1,13 +1,15 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { useComparison } from "@/hooks/use-comparison";
 import { useRouter } from "@/i18n/routing";
-import { BarChart3, Trash2, X } from "lucide-react";
+import { BarChart3, Trash2, X, FolderPlus } from "lucide-react";
+import { CollectionModal } from "@/components/leaderboard/collection-modal";
 
 export function ComparisonDrawer() {
   const { selectedProjects, removeProject, clearProjects } = useComparison();
   const router = useRouter();
+  const [isCollectionOpen, setIsCollectionOpen] = useState(false);
 
   if (selectedProjects.length === 0) return null;
 
@@ -22,9 +24,9 @@ export function ComparisonDrawer() {
               <BarChart3 className="w-4.5 h-4.5" />
             </div>
             <div>
-              <span className="font-bold text-sm text-[var(--color-ink)]">So sánh dự án</span>
+              <span className="font-bold text-sm text-[var(--color-ink)]">Đã chọn dự án</span>
               <span className="text-[10px] bg-[var(--color-bg-secondary)] border border-[var(--color-border)] px-1.5 py-0.5 rounded-full ml-1.5 text-[var(--color-ink-muted-80)] font-bold">
-                {selectedProjects.length}/3
+                {selectedProjects.length}/10
               </span>
             </div>
           </div>
@@ -39,7 +41,7 @@ export function ComparisonDrawer() {
         </div>
 
         {/* Selected List */}
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 max-h-[160px] overflow-y-auto pr-1">
           {selectedProjects.map((project) => (
             <div 
               key={project.id}
@@ -64,7 +66,7 @@ export function ComparisonDrawer() {
           ))}
         </div>
 
-        {/* Compare Trigger Button */}
+        {/* Action Buttons */}
         <div className="flex gap-2">
           <button
             onClick={() => {
@@ -72,12 +74,25 @@ export function ComparisonDrawer() {
               router.push(`/compare?ids=${ids}`);
             }}
             disabled={selectedProjects.length < 2}
-            className="w-full py-2.5 bg-[var(--color-action-blue)] disabled:bg-[var(--color-action-blue)]/50 hover:bg-[var(--color-accent-hover)] text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-blue-500/10 cursor-pointer disabled:cursor-not-allowed"
+            className="flex-1 py-2 bg-[var(--color-action-blue)] disabled:bg-[var(--color-action-blue)]/50 hover:bg-[var(--color-accent-hover)] text-white text-[11px] font-bold rounded-xl transition-all shadow-md shadow-blue-500/10 cursor-pointer disabled:cursor-not-allowed text-center"
           >
-            {selectedProjects.length < 2 ? "Chọn tối thiểu 2 dự án" : "So sánh ngay"}
+            So sánh ({selectedProjects.length})
+          </button>
+          <button
+            onClick={() => setIsCollectionOpen(true)}
+            className="flex-1 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-[11px] font-bold rounded-xl transition-all shadow-md shadow-emerald-500/10 cursor-pointer flex items-center justify-center gap-1.5"
+          >
+            <FolderPlus className="w-4 h-4" /> Tạo Collection
           </button>
         </div>
       </div>
+
+      <CollectionModal
+        isOpen={isCollectionOpen}
+        onClose={() => setIsCollectionOpen(false)}
+        selectedProjects={selectedProjects}
+      />
     </>
   );
 }
+

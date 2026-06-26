@@ -3,7 +3,7 @@
 import { Link, useRouter } from "@/i18n/routing";
 import type { RankedProject } from "@/types";
 import { formatNumber, timeAgo } from "@/lib/utils";
-import { Star, GitFork, Download, ArrowUpRight, ExternalLink, Eye } from "lucide-react";
+import { Star, GitFork, Download, ArrowUpRight, ExternalLink, Eye, Share2 } from "lucide-react";
 import { Sparkline } from "@/components/common/sparkline";
 import { SourceBadge } from "@/components/common/source-badge";
 import { CategoryIcon } from "@/components/common/category-icon";
@@ -13,6 +13,8 @@ import { useState, useEffect } from "react";
 import { useSearchParams, useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useComparison } from "@/hooks/use-comparison";
+import { evaluateProjectBadges } from "@/lib/badge-evaluator";
+import { ShareModal } from "@/components/leaderboard/share-modal";
 
 interface ProjectCardProps {
   project: RankedProject;
@@ -62,6 +64,8 @@ export function ProjectCard({ project, index, days: _days }: ProjectCardProps) {
   const { selectedProjects, addProject, removeProject } = useComparison();
   const isCompared = selectedProjects.some((p) => p.id === project.id);
   const [coords, setCoords] = useState({ x: 0, y: 0 });
+  const [isShareOpen, setIsShareOpen] = useState(false);
+  const badges = evaluateProjectBadges(project);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -160,11 +164,15 @@ export function ProjectCard({ project, index, days: _days }: ProjectCardProps) {
                 </span>
               )}
 
-              {isNew && (
-                <span className="text-[10px] font-semibold tracking-wider uppercase bg-[var(--color-accent-dim)] text-[var(--color-accent)] px-1.5 py-0.5 rounded shrink-0">
-                  {t("newBadge")}
+              {badges.map((badge) => (
+                <span
+                  key={badge.id}
+                  className={`text-[10px] font-semibold tracking-wider uppercase px-1.5 py-0.5 rounded shrink-0 flex items-center gap-0.5 select-none ${badge.colorClass}`}
+                >
+                  <span>{badge.icon}</span>
+                  <span>{badge.label}</span>
                 </span>
-              )}
+              ))}
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -181,6 +189,15 @@ export function ProjectCard({ project, index, days: _days }: ProjectCardProps) {
                 }`}
               >
                 {isCompared ? "✓ So sánh" : "+ So sánh"}
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsShareOpen(true);
+                }}
+                className="text-[10px] font-bold tracking-wider px-2 py-0.5 rounded bg-[var(--color-surface-pearl)] text-[var(--color-action-blue)] border border-[var(--color-border)] hover:bg-[var(--color-divider-soft)] transition-all cursor-pointer select-none shrink-0 flex items-center gap-0.5"
+              >
+                <Share2 className="h-3 w-3" /> Share & PR
               </button>
             </div>
 
@@ -262,14 +279,22 @@ export function ProjectCard({ project, index, days: _days }: ProjectCardProps) {
                   </span>
                 </>
               ) : (
-                <span className="metric-badge">
-                  <Download className="text-[var(--color-info)]" />
-                  <span className="text-[var(--color-text-primary)] font-medium">
-                    {formatNumber(project.downloads || 0)}
+                <>
+                  <span className="metric-badge">
+                    <span className="text-rose-500 text-xs">♥</span>
+                    <span className="text-[var(--color-text-primary)] font-medium">
+                      {formatNumber(project.likes || 0)}
+                    </span>
                   </span>
-                </span>
+                  <span className="metric-badge">
+                    <Download className="text-[var(--color-info)] shrink-0 h-3.5 w-3.5" />
+                    <span className="text-[var(--color-text-primary)] font-medium">
+                      {formatNumber(project.downloads || 0)}
+                    </span>
+                  </span>
+                </>
               )}
-              {project.views !== undefined && (
+              {project.views !== undefined && project.views > 0 && (
                 <span className="metric-badge" title={`${formatNumber(project.views)} views`}>
                   <Eye className="text-[var(--color-text-tertiary)]" />
                   <span className="text-[var(--color-text-primary)] font-medium">
@@ -303,14 +328,22 @@ export function ProjectCard({ project, index, days: _days }: ProjectCardProps) {
                 </span>
               </>
             ) : (
-              <span className="metric-badge">
-                <Download className="text-[var(--color-info)]" />
-                <span className="text-[var(--color-text-primary)] font-medium">
-                  {formatNumber(project.downloads || 0)}
+              <>
+                <span className="metric-badge">
+                  <span className="text-rose-500 text-xs">♥</span>
+                  <span className="text-[var(--color-text-primary)] font-medium">
+                    {formatNumber(project.likes || 0)}
+                  </span>
                 </span>
-              </span>
+                <span className="metric-badge">
+                  <Download className="text-[var(--color-info)] shrink-0 h-3.5 w-3.5" />
+                  <span className="text-[var(--color-text-primary)] font-medium">
+                    {formatNumber(project.downloads || 0)}
+                  </span>
+                </span>
+              </>
             )}
-            {project.views !== undefined && (
+            {project.views !== undefined && project.views > 0 && (
               <span className="metric-badge" title={`${formatNumber(project.views)} views`}>
                 <Eye className="text-[var(--color-text-tertiary)]" />
                 <span className="text-[var(--color-text-primary)] font-medium">
@@ -342,6 +375,13 @@ export function ProjectCard({ project, index, days: _days }: ProjectCardProps) {
       >
         <ExternalLink className="h-4 w-4" />
       </a>
+
+      <ShareModal
+        project={project}
+        days={_days}
+        isOpen={isShareOpen}
+        onClose={() => setIsShareOpen(false)}
+      />
     </div>
   );
 }

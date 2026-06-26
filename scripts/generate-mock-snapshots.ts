@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { db } from '../src/lib/db';
 import { sql } from 'drizzle-orm';
-import { runTrendCalculation } from '../src/workers/cron';
+import { calculateProjectTrendInline } from '../src/lib/db/trends';
 
 async function main() {
   console.log('Fetching all projects...');
@@ -117,7 +117,9 @@ async function main() {
   }
 
   console.log('Recalculating project trends...');
-  await runTrendCalculation();
+  for (const proj of activeProjects as unknown as { id: string }[]) {
+    await calculateProjectTrendInline(proj.id);
+  }
   console.log('Done generating mock snapshot data and recalculating trends!');
   process.exit(0);
 }

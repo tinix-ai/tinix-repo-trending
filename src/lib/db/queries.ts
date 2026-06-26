@@ -41,6 +41,7 @@ export interface ProjectQueryParams {
   license?: string;
   country?: string;
   owner?: string;
+  projectType?: string;
 }
 
 export async function getDynamicTrendingProjects(params: ProjectQueryParams): Promise<{ projects: RankedProject[], total: number }> {
@@ -107,6 +108,10 @@ export async function getDynamicTrendingProjects(params: ProjectQueryParams): Pr
     filters.push(sql`source = ${params.source}`);
   }
 
+  if (params.projectType) {
+    filters.push(sql`project_type = ${params.projectType}`);
+  }
+
   if (params.language) {
     filters.push(sql`primary_language = ${params.language}`);
   }
@@ -127,7 +132,7 @@ export async function getDynamicTrendingProjects(params: ProjectQueryParams): Pr
 
   if (finalSearchQuery) {
     const search = `%${finalSearchQuery}%`;
-    filters.push(sql`(name ILIKE ${search} OR description ILIKE ${search} OR owner_name ILIKE ${search})`);
+    filters.push(sql`(name ILIKE ${search} OR full_name ILIKE ${search} OR description ILIKE ${search} OR owner_name ILIKE ${search} OR slug ILIKE ${search} OR topics::text ILIKE ${search})`);
   }
 
   if (params.tag) {
@@ -145,7 +150,9 @@ export async function getDynamicTrendingProjects(params: ProjectQueryParams): Pr
         orderFragment = isAsc ? sql`ORDER BY full_name ASC` : sql`ORDER BY full_name DESC`;
         break;
       case "stars":
-        orderFragment = isAsc ? sql`ORDER BY COALESCE(stars, likes, 0) ASC NULLS FIRST` : sql`ORDER BY COALESCE(stars, likes, 0) DESC NULLS LAST`;
+        orderFragment = isAsc 
+          ? sql`ORDER BY (CASE WHEN source = 'github' THEN COALESCE(stars, 0) ELSE COALESCE(likes, 0) END) ASC NULLS FIRST` 
+          : sql`ORDER BY (CASE WHEN source = 'github' THEN COALESCE(stars, 0) ELSE COALESCE(likes, 0) END) DESC NULLS LAST`;
         break;
       case "trend":
         orderFragment = isAsc ? sql`ORDER BY momentum_score ASC` : sql`ORDER BY momentum_score DESC`;
@@ -243,7 +250,7 @@ export async function getDynamicTrendingProjects(params: ProjectQueryParams): Pr
       SELECT 
         pg.*,
         (
-          SELECT json_agg(COALESCE(stars, likes, 0) ORDER BY snapshot_date ASC)
+          SELECT json_agg(CASE WHEN pg.source = 'github' THEN stars ELSE likes END ORDER BY snapshot_date ASC)
           FROM (
             SELECT stars, likes, snapshot_date
             FROM project_snapshots
@@ -296,11 +303,11 @@ export async function getDynamicTrendingProjects(params: ProjectQueryParams): Pr
           p.categories,
           p.location,
           p.country_code,
-          GREATEST(p.stars - COALESCE(prev.stars, earliest.stars, p.stars), 0) as stars_gained,
-          GREATEST(p.forks - COALESCE(prev.forks, earliest.forks, p.forks), 0) as forks_gained,
-          GREATEST(p.contributors_count - COALESCE(prev.contributors_count, earliest.contributors_count, p.contributors_count), 0) as contributors_gained,
-          GREATEST(p.likes - COALESCE(prev.likes, earliest.likes, p.likes), 0) as likes_gained,
-          GREATEST(p.downloads - COALESCE(prev.downloads, earliest.downloads, p.downloads), 0) as downloads_gained,
+          CASE WHEN COALESCE(prev.stars, earliest.stars, 0) > 0 THEN GREATEST(p.stars - COALESCE(prev.stars, earliest.stars), 0) ELSE 0 END as stars_gained,
+          CASE WHEN COALESCE(prev.forks, earliest.forks, 0) > 0 THEN GREATEST(p.forks - COALESCE(prev.forks, earliest.forks), 0) ELSE 0 END as forks_gained,
+          CASE WHEN COALESCE(prev.contributors_count, earliest.contributors_count, 0) > 0 THEN GREATEST(p.contributors_count - COALESCE(prev.contributors_count, earliest.contributors_count), 0) ELSE 0 END as contributors_gained,
+          CASE WHEN COALESCE(prev.likes, earliest.likes, 0) > 0 THEN GREATEST(p.likes - COALESCE(prev.likes, earliest.likes), 0) ELSE 0 END as likes_gained,
+          CASE WHEN COALESCE(prev.downloads, earliest.downloads, 0) > 0 THEN GREATEST(p.downloads - COALESCE(prev.downloads, earliest.downloads), 0) ELSE 0 END as downloads_gained,
           p.stars, p.forks, p.downloads, p.likes, p.open_issues, p.views, p.contributors_count as current_contributors_count
         FROM projects p
         LEFT JOIN previous_snapshots prev ON p.id = prev.project_id
@@ -332,7 +339,7 @@ export async function getDynamicTrendingProjects(params: ProjectQueryParams): Pr
       SELECT 
         pg.*,
         (
-          SELECT json_agg(COALESCE(stars, likes, 0) ORDER BY snapshot_date ASC)
+          SELECT json_agg(CASE WHEN pg.source = 'github' THEN stars ELSE likes END ORDER BY snapshot_date ASC)
           FROM (
             SELECT stars, likes, snapshot_date
             FROM project_snapshots
@@ -470,7 +477,7 @@ export async function getCategoryStats() {
   }
 }
 
-export async function getPopularLanguagesAndHashtags() {
+export async function getPopularLanguagesAndHashtags(source?: string) {
   try {
     const langs = await db.execute(sql`
       SELECT primary_language as name, COUNT(*) as count
@@ -481,6 +488,8 @@ export async function getPopularLanguagesAndHashtags() {
       LIMIT 20;
     `);
 
+    const sourceFilter = source ? sql`AND p.source = ${source}` : sql``;
+
     const tags = await db.execute(sql`
       SELECT t.topic as name, COUNT(*) as count
       FROM projects p,
@@ -490,18 +499,19 @@ export async function getPopularLanguagesAndHashtags() {
         AND t.topic NOT LIKE '%:%'
         AND LENGTH(t.topic) > 2
         AND t.topic NOT IN ('en', 'zh', 'fr', 'ja', 'ko', 'es', 'de', 'pt', 'it', 'ru')
+        ${sourceFilter}
       GROUP BY t.topic
       ORDER BY count DESC
-      LIMIT 10;
+      LIMIT 500;
     `);
 
     const countries = await db.execute(sql`
       SELECT country_code as name, COUNT(*) as count
       FROM projects
-      WHERE country_code IS NOT NULL AND country_code != ''
+      WHERE country_code IS NOT NULL AND country_code != '' AND country_code != 'UNKNOWN'
       GROUP BY country_code
       ORDER BY count DESC
-      LIMIT 15;
+      LIMIT 250;
     `);
 
     return {
@@ -889,6 +899,106 @@ export async function getRecentSocialMentions(limit: number = 30): Promise<Recen
   }
 }
 
+export interface PaginatedMentionsParams {
+  page?: number;
+  perPage?: number;
+  source?: string;
+  search?: string;
+  sort?: 'newest' | 'oldest' | 'score' | 'comments';
+}
+
+export interface PaginatedMentionsResult {
+  data: RecentProjectMention[];
+  total: number;
+  page: number;
+  perPage: number;
+  totalPages: number;
+}
+
+export async function getPaginatedSocialMentions(params: PaginatedMentionsParams = {}): Promise<PaginatedMentionsResult> {
+  const { page = 1, perPage = 20, source, search, sort = 'newest' } = params;
+  const offset = (page - 1) * perPage;
+
+  try {
+    const sourceFilter = source && source !== 'all' ? sql`AND m.source = ${source}` : sql``;
+    const searchFilter = search && search.trim()
+      ? sql`AND (
+          m.content ILIKE ${'%' + search.trim() + '%'}
+          OR m.author ILIKE ${'%' + search.trim() + '%'}
+          OR p.full_name ILIKE ${'%' + search.trim() + '%'}
+          OR p.name ILIKE ${'%' + search.trim() + '%'}
+        )`
+      : sql``;
+
+    const orderClause = sort === 'oldest'
+      ? sql`ORDER BY m.mentioned_at ASC`
+      : sort === 'score'
+        ? sql`ORDER BY m.score DESC, m.mentioned_at DESC`
+        : sort === 'comments'
+          ? sql`ORDER BY m.comments_count DESC, m.mentioned_at DESC`
+          : sql`ORDER BY m.mentioned_at DESC`;
+
+    // Count query
+    const [countResult] = await db.execute(sql`
+      SELECT COUNT(*)::int as total
+      FROM project_mentions m
+      JOIN projects p ON m.project_id = p.id
+      WHERE 1=1
+      ${sourceFilter}
+      ${searchFilter}
+    `) as { total: number }[];
+
+    const total = Number(countResult?.total ?? 0);
+
+    // Data query
+    const result = await db.execute(sql`
+      SELECT m.id, m.project_id as "projectId", m.source, m.author, m.author_avatar_url as "authorAvatarUrl",
+             m.content, m.url, m.score, m.comments_count as "commentsCount", m.mentioned_at as "mentionedAt",
+             p.slug as "projectSlug", p.full_name as "projectFullName", p.name as "projectName", p.source as "projectSource"
+      FROM project_mentions m
+      JOIN projects p ON m.project_id = p.id
+      WHERE 1=1
+      ${sourceFilter}
+      ${searchFilter}
+      ${orderClause}
+      LIMIT ${perPage}
+      OFFSET ${offset};
+    `);
+
+    const data = result.map(row => {
+      const r = row as Record<string, unknown>;
+      return {
+        id: String(r.id),
+        projectId: String(r.projectId),
+        source: String(r.source),
+        author: String(r.author),
+        authorAvatarUrl: r.authorAvatarUrl ? String(r.authorAvatarUrl) : undefined,
+        content: String(r.content),
+        url: String(r.url),
+        score: Number(r.score || 0),
+        commentsCount: Number(r.commentsCount || 0),
+        mentionedAt: new Date(r.mentionedAt as string),
+        projectSlug: String(r.projectSlug),
+        projectFullName: String(r.projectFullName),
+        projectName: String(r.projectName),
+        projectSource: String(r.projectSource) as ProjectSource,
+      };
+    });
+
+    return {
+      data,
+      total,
+      page,
+      perPage,
+      totalPages: Math.ceil(total / perPage),
+    };
+  } catch (error) {
+    console.error("Error fetching paginated social mentions:", error);
+    return { data: [], total: 0, page, perPage, totalPages: 0 };
+  }
+}
+
+
 export async function getSimilarProjects(projectId: string, limit: number = 3): Promise<RankedProject[]> {
   await ensureCategoriesLoaded();
   try {
@@ -958,7 +1068,7 @@ export async function getSimilarProjects(projectId: string, limit: number = 3): 
       SELECT 
         pg.*,
         (
-          SELECT json_agg(COALESCE(stars, likes, 0) ORDER BY snapshot_date ASC)
+          SELECT json_agg(CASE WHEN pg.source = 'github' THEN stars ELSE likes END ORDER BY snapshot_date ASC)
           FROM (
             SELECT stars, likes, snapshot_date
             FROM project_snapshots
@@ -1033,6 +1143,218 @@ export async function getSimilarProjects(projectId: string, limit: number = 3): 
     return [];
   }
 }
+
+export async function getProjectDynamicRank(id: string, days: number = 1): Promise<{ rank: number; total: number } | null> {
+  try {
+    const starsGainedCol = days === 1 ? sql`t.daily_stars` : days === 7 ? sql`t.weekly_stars` : sql`t.monthly_stars`;
+    const downloadsGainedCol = days === 1 ? sql`t.daily_downloads` : days === 7 ? sql`t.weekly_downloads` : sql`t.monthly_downloads`;
+
+    const result = await db.execute(sql`
+      WITH deltas AS (
+        SELECT 
+          p.id as project_id,
+          p.source,
+          p.stars,
+          p.likes,
+          p.downloads,
+          GREATEST(COALESCE(
+            CASE 
+              WHEN p.source = 'github' THEN ${starsGainedCol}
+              ELSE 0
+            END, 0
+          ), 0) as stars_gained,
+          GREATEST(COALESCE(
+            CASE 
+              WHEN p.source = 'huggingface' THEN ${starsGainedCol}
+              ELSE 0
+            END, 0
+          ), 0) as likes_gained,
+          GREATEST(COALESCE(${downloadsGainedCol}, 0), 0) as downloads_gained
+        FROM projects p
+        LEFT JOIN project_trends t ON p.id = t.project_id
+      ),
+      scored AS (
+        SELECT 
+          *,
+          CASE 
+            WHEN source = 'github' THEN LN(stars_gained + 1) * 15.0
+            WHEN source = 'huggingface' THEN LN(downloads_gained + 1) * 2.5
+            ELSE 0 
+          END as momentum_score
+        FROM deltas
+      ),
+      ranked AS (
+        SELECT 
+          project_id,
+          ROW_NUMBER() OVER(ORDER BY momentum_score DESC, (CASE WHEN source = 'github' THEN COALESCE(stars, 0) ELSE COALESCE(likes, 0) * 5.0 + (COALESCE(downloads, 0) / 1000.0) END) DESC) as rank,
+          COUNT(*) OVER() as total_count
+        FROM scored
+      )
+      SELECT rank, total_count FROM ranked WHERE project_id = ${id}
+      LIMIT 1
+    `);
+
+    if (result.length === 0) {
+      return null;
+    }
+
+    const r = result[0];
+    return {
+      rank: Number(r.rank),
+      total: Number(r.total_count)
+    };
+  } catch (error) {
+    console.error("Error fetching project dynamic rank:", error);
+    return null;
+  }
+}
+
+export async function createCollection(title: string, description: string, projectIds: string[], notes: string[]) {
+  try {
+    const slugBase = title.toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/đ/g, "d")
+      .replace(/Đ/g, "d")
+      .trim()
+      .replace(/\s+/g, "-")
+      .replace(/[^\w\-]+/g, "")
+      .replace(/\-\-+/g, "-");
+    
+    const uniqueSlug = `${slugBase}-${Math.random().toString(36).substring(2, 8)}`;
+
+    const collectionRes = await db.execute(sql`
+      INSERT INTO collections (id, title, description, slug, created_at, updated_at)
+      VALUES (gen_random_uuid(), ${title}, ${description}, ${uniqueSlug}, NOW(), NOW())
+      RETURNING id, slug
+    `);
+
+    const collectionId = String(collectionRes[0].id);
+    const collectionSlug = String(collectionRes[0].slug);
+
+    for (let i = 0; i < projectIds.length; i++) {
+      const pid = projectIds[i];
+      const note = notes[i] || "";
+      await db.execute(sql`
+        INSERT INTO collection_projects (id, collection_id, project_id, sort_order, notes, created_at)
+        VALUES (gen_random_uuid(), ${collectionId}, ${pid}, ${i + 1}, ${note}, NOW())
+      `);
+    }
+
+    return { success: true, slug: collectionSlug };
+  } catch (error) {
+    console.error("Error creating collection:", error);
+    return { success: false, error: String(error) };
+  }
+}
+
+export async function getCollectionBySlug(slug: string) {
+  try {
+    const collectionRes = await db.execute(sql`
+      SELECT * FROM collections WHERE slug = ${slug} LIMIT 1
+    `);
+
+    if (collectionRes.length === 0) return null;
+    const collection = collectionRes[0];
+
+    const projectsRes = await db.execute(sql`
+      SELECT 
+        cp.sort_order,
+        cp.notes as curator_notes,
+        p.*,
+        COALESCE(p.stars, 0) as current_stars,
+        COALESCE(p.forks, 0) as current_forks,
+        COALESCE(p.downloads, 0) as current_downloads,
+        COALESCE(p.likes, 0) as current_likes
+      FROM collection_projects cp
+      JOIN projects p ON cp.project_id = p.id
+      WHERE cp.collection_id = ${collection.id}
+      ORDER BY cp.sort_order ASC
+    `);
+
+    const formattedProjects = projectsRes.map((r: any) => {
+      return {
+        id: r.id as string,
+        source: r.source as "github" | "huggingface" | "paperwithcode",
+        projectType: (r.project_type || 'repository') as "repository" | "model" | "dataset",
+        slug: r.slug as string,
+        name: r.name as string,
+        fullName: r.full_name as string,
+        description: r.description as string,
+        aiSummary: r.ai_summary as string,
+        homepageUrl: r.homepage_url as string,
+        sourceUrl: r.source_url as string,
+        primaryLanguage: r.primary_language as string,
+        license: r.license as string,
+        ownerName: r.owner_name as string,
+        ownerAvatarUrl: r.owner_avatar_url as string,
+        topics: (r.topics as string[]) || [],
+        categories: (r.categories as string[]) || [],
+        location: (r.location as string) || null,
+        countryCode: (r.country_code as string) || null,
+        stars: r.source === 'huggingface' ? Number(r.current_likes) : Number(r.current_stars),
+        forks: Number(r.current_forks),
+        downloads: Number(r.current_downloads),
+        views: Number(r.views || 0),
+        curatorNotes: r.curator_notes as string,
+        sortOrder: Number(r.sort_order)
+      };
+    });
+
+    return {
+      id: String(collection.id),
+      title: String(collection.title),
+      description: String(collection.description),
+      slug: String(collection.slug),
+      createdAt: String(collection.created_at),
+      projects: formattedProjects
+    };
+  } catch (error) {
+    console.error("Error fetching collection:", error);
+    return null;
+  }
+}
+
+export async function getRecentCollections(limit: number = 10) {
+  try {
+    const collectionsRes = await db.execute(sql`
+      SELECT * FROM collections
+      ORDER BY created_at DESC
+      LIMIT ${limit}
+    `);
+
+    const result = [];
+    for (const col of collectionsRes) {
+      const previews = await db.execute(sql`
+        SELECT p.owner_avatar_url, p.full_name, p.source
+        FROM collection_projects cp
+        JOIN projects p ON cp.project_id = p.id
+        WHERE cp.collection_id = ${col.id}
+        ORDER BY cp.sort_order ASC
+        LIMIT 3
+      `);
+
+      result.push({
+        id: String(col.id),
+        title: String(col.title),
+        description: String(col.description),
+        slug: String(col.slug),
+        createdAt: String(col.created_at),
+        projectPreviews: previews.map((p: any) => ({
+          avatarUrl: p.owner_avatar_url,
+          fullName: p.full_name,
+          source: p.source
+        }))
+      });
+    }
+    return result;
+  } catch (error) {
+    console.error("Error fetching recent collections:", error);
+    return [];
+  }
+}
+
+
 
 
 

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Link, useRouter } from "@/i18n/routing";
 import type { RankedProject } from "@/types";
 import { formatNumber, timeAgo } from "@/lib/utils";
-import { Star, GitFork, Download, ArrowUpRight, ExternalLink, Trophy, Eye } from "lucide-react";
+import { Star, GitFork, Download, ArrowUpRight, ExternalLink, Trophy, Eye, Share2 } from "lucide-react";
 import { Sparkline } from "@/components/common/sparkline";
 import { SourceBadge } from "@/components/common/source-badge";
 import { CategoryIcon } from "@/components/common/category-icon";
@@ -12,6 +12,8 @@ import { ProjectAvatar } from "@/components/common/project-avatar";
 import { useTranslations } from "next-intl";
 import { useComparison } from "@/hooks/use-comparison";
 import { useSearchParams, useParams } from "next/navigation";
+import { evaluateProjectBadges } from "@/lib/badge-evaluator";
+import { ShareModal } from "@/components/leaderboard/share-modal";
 
 interface TopRankedGridProps {
   projects: RankedProject[];
@@ -66,6 +68,8 @@ function RankedCard({ project, rank, isHero = false }: RankedCardProps) {
   const { selectedProjects, addProject, removeProject } = useComparison();
   const isCompared = selectedProjects.some((p) => p.id === project.id);
   const [isNew, setIsNew] = useState(false);
+  const [isShareOpen, setIsShareOpen] = useState(false);
+  const badges = evaluateProjectBadges(project);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -189,11 +193,15 @@ function RankedCard({ project, rank, isHero = false }: RankedCardProps) {
                 </span>
               )}
 
-              {isNew && (
-                <span className="text-[9px] font-semibold bg-[var(--color-accent-dim)] text-[var(--color-accent)] px-1.5 py-0.5 rounded shrink-0">
-                  {t("newBadge")}
+              {badges.map((badge) => (
+                <span
+                  key={badge.id}
+                  className={`text-[9px] font-semibold px-1.5 py-0.5 rounded shrink-0 flex items-center gap-0.5 select-none ${badge.colorClass}`}
+                >
+                  <span>{badge.icon}</span>
+                  <span>{badge.label}</span>
                 </span>
-              )}
+              ))}
 
               <button
                 onClick={(e) => {
@@ -211,6 +219,15 @@ function RankedCard({ project, rank, isHero = false }: RankedCardProps) {
                 }`}
               >
                 {isCompared ? "✓ So sánh" : "+ So sánh"}
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsShareOpen(true);
+                }}
+                className="text-[9px] font-bold tracking-wider px-2 py-0.5 rounded bg-[var(--color-surface-pearl)] text-[var(--color-action-blue)] border border-[var(--color-border)] hover:bg-[var(--color-divider-soft)] transition-all cursor-pointer select-none shrink-0 flex items-center gap-0.5"
+              >
+                <Share2 className="h-3 w-3" /> Share & PR
               </button>
             </div>
 
@@ -277,14 +294,22 @@ function RankedCard({ project, rank, isHero = false }: RankedCardProps) {
                     </span>
                   </>
                 ) : (
-                  <span className="metric-badge">
-                    <Download className="text-[var(--color-info)]" />
-                    <span className="text-[var(--color-text-primary)] font-bold">
-                      {formatNumber(project.downloads || 0)}
+                  <>
+                    <span className="metric-badge">
+                      <span className="text-rose-500 text-xs">♥</span>
+                      <span className="text-[var(--color-text-primary)] font-bold">
+                        {formatNumber(project.likes || 0)}
+                      </span>
                     </span>
-                  </span>
+                    <span className="metric-badge">
+                      <Download className="text-[var(--color-info)] shrink-0 h-3.5 w-3.5" />
+                      <span className="text-[var(--color-text-primary)] font-bold">
+                        {formatNumber(project.downloads || 0)}
+                      </span>
+                    </span>
+                  </>
                 )}
-                {project.views !== undefined && (
+                {project.views !== undefined && project.views > 0 && (
                   <span className="metric-badge" title={`${formatNumber(project.views)} views`}>
                     <Eye className="text-[var(--color-text-tertiary)]" />
                     <span className="text-[var(--color-text-primary)] font-bold">
@@ -318,6 +343,13 @@ function RankedCard({ project, rank, isHero = false }: RankedCardProps) {
       >
         <ExternalLink className="h-4 w-4" />
       </a>
+
+      <ShareModal
+        project={project}
+        days={1}
+        isOpen={isShareOpen}
+        onClose={() => setIsShareOpen(false)}
+      />
     </div>
   );
 }

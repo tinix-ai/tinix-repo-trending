@@ -25,8 +25,18 @@ export function SearchableSelect({
   const [activeIndex, setActiveIndex] = useState<number>(-1);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  const normalize = (str: string) => {
+    return str
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/đ/g, "d")
+      .replace(/Đ/g, "d")
+      .replace(/\s+/g, "");
+  };
+
   const filteredOptions = options.filter((opt) =>
-    opt.toLowerCase().includes(searchQuery.toLowerCase())
+    normalize(opt).includes(normalize(searchQuery))
   );
 
   useEffect(() => {

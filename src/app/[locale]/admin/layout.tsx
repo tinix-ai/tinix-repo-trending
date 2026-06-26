@@ -1,5 +1,5 @@
 import { Link } from "@/i18n/routing";
-import { Settings, Database, Activity, BarChart2 } from "lucide-react";
+import { Settings, Database, Activity, BarChart2, Link2 } from "lucide-react";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -16,11 +16,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <Link href="/admin?tab=analytics" className="hover:text-[var(--color-ink)] flex items-center gap-1.5 transition-colors">
             <BarChart2 className="w-4 h-4" /> Analytics
           </Link>
+          <Link href="/admin/share-analytics" className="hover:text-[var(--color-ink)] flex items-center gap-1.5 transition-colors">
+            <Link2 className="w-4 h-4" /> Share Links
+          </Link>
           <Link href="/admin?tab=queues" className="hover:text-[var(--color-ink)] flex items-center gap-1.5 transition-colors">
             <Settings className="w-4 h-4" /> Settings
           </Link>
         </div>
       </div>
+
       <main className="page-container py-12">
         {children}
       </main>

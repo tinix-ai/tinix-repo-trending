@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { crawlerQueue, hfQueue, githubUpdaterQueue, hfUpdaterQueue, schedulerQueue, redisConnection } from '../src/workers/queue';
+import { crawlerQueue, hfQueue, githubUpdaterQueue, hfUpdaterQueue, schedulerQueue, redisConnection, socialCrawlerQueue } from '../src/workers/queue';
 import { Queue } from 'bullmq';
 
 async function main() {
@@ -49,6 +49,7 @@ async function main() {
     await printQueueInfo('hf-crawler', hfQueue as Queue);
     await printQueueInfo('github-updater', githubUpdaterQueue as Queue);
     await printQueueInfo('hf-updater', hfUpdaterQueue as Queue);
+    await printQueueInfo('social-crawler', socialCrawlerQueue as Queue);
     if (schedulerQueue) {
       await printQueueInfo('scheduler-queue', schedulerQueue as Queue);
     }

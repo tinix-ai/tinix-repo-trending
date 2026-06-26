@@ -5,14 +5,13 @@ import { db } from '../lib/db';
 import { projects, projectSnapshots, projectTrends, projectMentions, githubUsers } from '../lib/db/schema';
 import { crawlHNMentions } from '../lib/crawlers/hn';
 import { crawlRedditMentions } from '../lib/crawlers/reddit';
-import { crawlTwitterMentions } from '../lib/crawlers/twitter';
 import * as zlib from 'zlib';
 import { sql, eq, and, isNotNull } from 'drizzle-orm';
 import { categorizeProject } from '../lib/categorizer';
 import { parseCountryFromProfile } from '../lib/location-parser';
 import { updateProjectCrawlSchedule } from '../lib/crawlers/scheduler';
 import { githubPool } from '../lib/crawlers/github-pool';
-import { proxyManager } from '../lib/crawlers/proxy';
+import { calculateProjectTrendInline } from '../lib/db/trends';
 import { fetchSingleGitHubRepo } from '../lib/crawlers/github-graphql';
 import { setTimeout } from 'timers/promises';
 import { crawlerQueue, githubUpdaterQueue, socialCrawlerQueue } from './queue';
@@ -106,6 +105,45 @@ export async function handleGithubCrawlJob(job: Job<CrawlJobData>) {
     // 1. Fetch data from GitHub API via GraphQL
     const result = await fetchSingleGitHubRepo(owner, repo);
     
+    if (result.permissionDenied) {
+      console.warn(`${logPrefix} Project ${owner}/${repo} returned permission denied/SAML SSO. Skipping crawl, setting 30-day backoff, and keeping database record.`);
+      const targetProjectId = job.data.projectId || existingProject?.id;
+      if (targetProjectId) {
+        try {
+          await db.update(projects)
+            .set({
+              crawlInterval: 30,
+              nextCrawlAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+              lastCrawledAt: new Date(),
+            })
+            .where(eq(projects.id, targetProjectId));
+        } catch (dbErr) {
+          console.error(`${logPrefix} Failed to update next crawl for restricted project ${owner}/${repo}:`, dbErr);
+        }
+      } else {
+        try {
+          const slug = `${owner.toLowerCase()}-${repo.toLowerCase()}`;
+          await db.insert(projects).values({
+            source: 'github',
+            projectType: 'repository',
+            sourceId: `${owner}/${repo}`,
+            slug,
+            name: repo,
+            fullName: `${owner}/${repo}`,
+            sourceUrl: `https://github.com/${owner}/${repo}`,
+            ownerName: owner,
+            crawlInterval: 30,
+            nextCrawlAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+            lastCrawledAt: new Date(),
+          });
+          console.log(`${logPrefix} Created new restricted database record for ${owner}/${repo} with 30-day backoff.`);
+        } catch (dbErr) {
+          console.error(`${logPrefix} Failed to create restricted database record for ${owner}/${repo}:`, dbErr);
+        }
+      }
+      return { status: 'skipped_permission_denied' };
+    }
+
     if (!result.exists) {
       console.warn(`${logPrefix} Project ${owner}/${repo} not found on GitHub. Removing from database.`);
       if (job.data.projectId) {
@@ -410,6 +448,9 @@ export async function handleGithubCrawlJob(job: Job<CrawlJobData>) {
     // Recalculate and update the next crawl schedule
     await updateProjectCrawlSchedule(project.id, 'github');
 
+    // Calculate trends inline
+    await calculateProjectTrendInline(project.id);
+
     console.log(`${logPrefix} Successfully fetched & saved ${owner}/${repo}: ${data.stars} stars`);
 
     return { 
@@ -423,6 +464,37 @@ export async function handleGithubCrawlJob(job: Job<CrawlJobData>) {
     const error = err instanceof Error ? err : new Error(String(err));
     if (error.message?.includes('[RateLimitError]')) {
       console.log(`${logPrefix} Rate limit reached for ${owner}/${repo}. Will retry when tokens reset.`);
+
+      if (!pauseScheduledMap[job.queueName]) {
+        pauseScheduledMap[job.queueName] = true;
+        console.log(`${logPrefix} GitHub API rate limited. Automatically pausing queue...`);
+        try {
+          const nextAvailableTime = await githubPool.getNextAvailableTime();
+          const now = Date.now();
+          const sleepMs = nextAvailableTime > now ? (nextAvailableTime - now + 5000) : 60000;
+          const resetSeconds = Math.ceil(sleepMs / 1000);
+
+          await redisConnection.set(`crawler:rate-limit-reset:${job.queueName}`, 'true', 'PX', sleepMs);
+          await currentQueue.pause();
+          console.log(`${logPrefix} Queue paused successfully. Will resume in ${resetSeconds} second(s).`);
+
+          (async () => {
+            await setTimeout(sleepMs);
+            try {
+              await currentQueue.resume();
+              await redisConnection.del(`crawler:rate-limit-reset:${job.queueName}`);
+              pauseScheduledMap[job.queueName] = false;
+              console.log(`${logPrefix} Automatically resumed queue after rate limit reset.`);
+            } catch (resumeErr) {
+              pauseScheduledMap[job.queueName] = false;
+              console.error(`${logPrefix} Failed to automatically resume queue:`, resumeErr);
+            }
+          })();
+        } catch (pauseErr) {
+          pauseScheduledMap[job.queueName] = false;
+          console.error(`${logPrefix} Failed to pause queue:`, pauseErr);
+        }
+      }
     } else {
       console.error(`${logPrefix} Error processing ${owner}/${repo}:`, error);
     }
@@ -478,29 +550,18 @@ export async function handleSocialCrawlJob(job: Job<SocialCrawlJobData>) {
     .from(projects)
     .where(eq(projects.id, projectId))
     .limit(1);
-
     if (!project) {
       console.warn(`[Social Crawler] Project ${projectId} not found in DB.`);
       return { status: 'ignored', reason: 'project_not_found' };
     }
 
-    const topicsArray = Array.isArray(project.topics) ? (project.topics as string[]) : [];
-
-    // 2. Run crawlers in parallel
-    const [hnMentions, redditMentions, twitterMentions] = await Promise.all([
+    // 2. Run crawlers in parallel (HN and Reddit only; Twitter is handled in batch by cron)
+    const [hnMentions, redditMentions] = await Promise.all([
       crawlHNMentions(project.fullName, project.name, project.sourceUrl, project.homepageUrl),
-      crawlRedditMentions(project.fullName, project.name, project.sourceUrl, project.homepageUrl),
-      crawlTwitterMentions(
-        project.fullName,
-        project.name,
-        project.ownerName,
-        project.primaryLanguage,
-        topicsArray,
-        project.description
-      )
+      crawlRedditMentions(project.fullName, project.name, project.sourceUrl, project.homepageUrl)
     ]);
 
-    const allMentions = [...hnMentions, ...redditMentions, ...twitterMentions];
+    const allMentions = [...hnMentions, ...redditMentions];
     if (allMentions.length > 0) {
       console.log(`[Social Crawler] Inserting ${allMentions.length} mentions for ${project.fullName}`);
       for (const mention of allMentions) {
@@ -541,12 +602,12 @@ export const socialCrawlerWorker = new Worker<SocialCrawlJobData>(
   handleSocialCrawlJob,
   {
     connection: redisConnection as unknown as Worker['opts']['connection'],
-    concurrency: 1, // Process 1 job at a time per worker instance
+    concurrency: 3, // Increased from 1; queue is now ~5k jobs instead of 100k
     stalledInterval: 15000,
     maxStalledCount: 2,
     limiter: {
-      max: 1,
-      duration: 3000, // 3 seconds delay between jobs per worker
+      max: 3,
+      duration: 3000, // Max 3 jobs per 3 seconds = 1 req/s per crawler
     }
   }
 );

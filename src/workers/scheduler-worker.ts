@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { Worker, Job } from 'bullmq';
 import { schedulerQueue, redisConnection } from './queue';
-import { runDailyDiscovery, runDailyUpdate, runTrendCalculation, runDailySocialMentions } from './cron';
+import { runDailyDiscovery, runDailyUpdate, runDailySocialMentions } from './cron';
 import { startMemoryReporting } from './metrics';
 
 
@@ -35,8 +35,6 @@ const schedulerWorker = new Worker('scheduler-queue', async (job: Job) => {
       }
     } else if (job.name === 'daily-update') {
       await runDailyUpdate(!!job.data?.force);
-    } else if (job.name === 'trend-calculation') {
-      await runTrendCalculation();
     } else if (job.name === 'social-mentions') {
       await runDailySocialMentions();
     } else {
@@ -109,11 +107,6 @@ async function setupRepeatableJobs() {
     jobId: 'repeat-social-mentions'
   });
 
-  // 4. Trend Calculation: Run at 01:30 every day GMT+7
-  await schedulerQueue.add('trend-calculation', {}, {
-    repeat: { pattern: '30 1 * * *', tz: 'Asia/Ho_Chi_Minh' },
-    jobId: 'repeat-trend-calculation'
-  });
 
   console.log('[Scheduler Worker] Repeatable jobs synced successfully.');
 }
