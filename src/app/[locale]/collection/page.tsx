@@ -94,15 +94,25 @@ export default async function CollectionsPage({ params }: PageProps) {
                   <div className="flex items-center justify-between pt-4 border-t border-[var(--color-divider-soft)]">
                     <div className="flex items-center">
                       <div className="flex -space-x-2.5 overflow-hidden">
-                        {col.projectPreviews.map((p, idx) => (
-                          <img
-                            key={idx}
-                            src={p.avatarUrl || ""}
-                            alt={p.fullName}
-                            title={p.fullName}
-                            className="inline-block h-7 w-7 rounded-md object-cover ring-2 ring-white dark:ring-[#1C1C1E] bg-white border border-[var(--color-border)] shrink-0"
-                          />
-                        ))}
+                        {col.projectPreviews.map((p, idx) =>
+                          p.avatarUrl ? (
+                            <img
+                              key={idx}
+                              src={p.avatarUrl}
+                              alt={p.fullName}
+                              title={p.fullName}
+                              className="inline-block h-7 w-7 rounded-md object-cover ring-2 ring-white dark:ring-[#1C1C1E] bg-white border border-[var(--color-border)] shrink-0"
+                            />
+                          ) : (
+                            <div
+                              key={idx}
+                              title={p.fullName}
+                              className="inline-block h-7 w-7 rounded-md ring-2 ring-white dark:ring-[#1C1C1E] bg-zinc-100 dark:bg-zinc-800 border border-[var(--color-border)] shrink-0 flex items-center justify-center text-[9px] font-bold text-[var(--color-ink-muted-48)]"
+                            >
+                              {(p.fullName || "?").charAt(0).toUpperCase()}
+                            </div>
+                          )
+                        )}
                       </div>
                       <span className="text-[11px] text-[var(--color-text-tertiary)] ml-2.5 font-medium flex items-center gap-1 select-none">
                         <Layers className="w-3.5 h-3.5" />
