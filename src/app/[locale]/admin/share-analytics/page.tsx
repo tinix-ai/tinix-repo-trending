@@ -114,12 +114,7 @@ function downloadCSV(data: Record<string, unknown>[], filename: string) {
 // ─────────────────────────────────────────────
 function Card({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
   return (
-    <div style={{
-      background: 'rgba(255,255,255,0.03)',
-      border: '1px solid rgba(255,255,255,0.08)',
-      borderRadius: '14px',
-      ...style,
-    }}>
+    <div className="apple-utility-card" style={style}>
       {children}
     </div>
   );
@@ -127,8 +122,8 @@ function Card({ children, style }: { children: React.ReactNode; style?: React.CS
 
 function CardHeader({ title, action }: { title: string; action?: React.ReactNode }) {
   return (
-    <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-      <span style={{ fontSize: '13px', fontWeight: '600', color: 'rgba(255,255,255,0.75)' }}>{title}</span>
+    <div className="px-5 py-4 border-b border-[var(--color-divider-soft)] flex justify-between items-center">
+      <span className="text-[13px] font-semibold text-[var(--color-ink-muted-80)]">{title}</span>
       {action}
     </div>
   );
@@ -153,9 +148,9 @@ function MetricCard({
           </div>
         )}
       </div>
-      <div style={{ marginTop: '12px', fontSize: '26px', fontWeight: '700', color: 'white', lineHeight: 1 }}>{value}</div>
-      <div style={{ marginTop: '4px', fontSize: '12px', color: 'rgba(255,255,255,0.45)' }}>{label}</div>
-      {sub && <div style={{ marginTop: '4px', fontSize: '11px', color: 'rgba(255,255,255,0.3)' }}>{sub}</div>}
+      <div style={{ marginTop: '12px', fontSize: '26px', fontWeight: '700', color: 'var(--color-ink)', lineHeight: 1 }}>{value}</div>
+      <div style={{ marginTop: '4px', fontSize: '12px', color: 'var(--color-ink-muted-48)' }}>{label}</div>
+      {sub && <div style={{ marginTop: '4px', fontSize: '11px', color: 'var(--color-ink-muted-24)' }}>{sub}</div>}
     </Card>
   );
 }
@@ -163,16 +158,16 @@ function MetricCard({
 function ProgressBar({ value, max, color = '#6366f1' }: { value: number; max: number; color?: string }) {
   const w = max > 0 ? Math.round((value / max) * 100) : 0;
   return (
-    <div style={{ height: '4px', borderRadius: '2px', background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+    <div style={{ height: '4px', borderRadius: '2px', background: 'var(--color-surface-tile-1)', overflow: 'hidden' }}>
       <div style={{ height: '100%', width: `${w}%`, background: color, borderRadius: '2px', transition: 'width 0.4s ease' }} />
     </div>
   );
 }
 
 const TOOLTIP_STYLE = {
-  contentStyle: { background: '#1e1e3a', border: '1px solid rgba(99,102,241,0.3)', borderRadius: '8px', fontSize: '12px', boxShadow: '0 8px 32px rgba(0,0,0,0.4)' },
-  labelStyle: { color: 'rgba(255,255,255,0.7)', fontWeight: '600', marginBottom: '4px' },
-  itemStyle: { color: '#a5b4fc' },
+  contentStyle: { background: 'var(--color-surface-elevated)', border: '1px solid var(--color-hairline)', borderRadius: '8px', fontSize: '12px', boxShadow: '0 8px 32px rgba(0,0,0,0.1)' },
+  labelStyle: { color: 'var(--color-ink)', fontWeight: '600', marginBottom: '4px' },
+  itemStyle: { color: 'var(--color-action-blue)' },
 };
 
 // ─────────────────────────────────────────────
@@ -213,11 +208,11 @@ function OverviewTab({ stats, days }: { stats: FullStats; days: number }) {
                     <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                <XAxis dataKey="date" tick={{ fontSize: 11, fill: 'rgba(255,255,255,0.35)' }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 11, fill: 'rgba(255,255,255,0.35)' }} axisLine={false} tickLine={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--color-divider-soft)" />
+                <XAxis dataKey="date" tick={{ fontSize: 11, fill: 'var(--color-ink-muted-48)' }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 11, fill: 'var(--color-ink-muted-48)' }} axisLine={false} tickLine={false} />
                 <Tooltip {...TOOLTIP_STYLE} />
-                <Legend wrapperStyle={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }} />
+                <Legend wrapperStyle={{ fontSize: '12px', color: 'var(--color-ink-muted-24)' }} />
                 <Area type="monotone" dataKey="clicks" name="Clicks" stroke="#6366f1" strokeWidth={2} fill="url(#clickGrad)" dot={false} activeDot={{ r: 4 }} />
                 <Area type="monotone" dataKey="visitors" name="Unique Visitors" stroke="#10b981" strokeWidth={2} fill="url(#visitorGrad)" dot={false} activeDot={{ r: 4 }} />
               </AreaChart>
@@ -233,9 +228,9 @@ function OverviewTab({ stats, days }: { stats: FullStats; days: number }) {
           <div style={{ padding: '20px' }}>
             <ResponsiveContainer width="100%" height={160}>
               <BarChart data={dowData} margin={{ top: 0, right: 0, left: -25, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                <XAxis dataKey="label" tick={{ fontSize: 11, fill: 'rgba(255,255,255,0.35)' }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 11, fill: 'rgba(255,255,255,0.35)' }} axisLine={false} tickLine={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--color-divider-soft)" vertical={false} />
+                <XAxis dataKey="label" tick={{ fontSize: 11, fill: 'var(--color-ink-muted-48)' }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 11, fill: 'var(--color-ink-muted-48)' }} axisLine={false} tickLine={false} />
                 <Tooltip {...TOOLTIP_STYLE} />
                 <Bar dataKey="clicks" name="Clicks" fill="#6366f1" radius={[3, 3, 0, 0]} />
               </BarChart>
@@ -269,9 +264,9 @@ function OverviewTab({ stats, days }: { stats: FullStats; days: number }) {
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                             <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: PALETTE[i] }} />
-                            <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)', textTransform: 'capitalize' }}>{v.visitor_type}</span>
+                            <span style={{ fontSize: '12px', color: 'var(--color-ink-muted-64)', textTransform: 'capitalize' }}>{v.visitor_type}</span>
                           </div>
-                          <span style={{ fontSize: '12px', fontWeight: '600', color: 'white' }}>{pct(v.visitors, total)}</span>
+                          <span style={{ fontSize: '12px', fontWeight: '600', color: 'var(--color-ink)' }}>{pct(v.visitors, total)}</span>
                         </div>
                         <ProgressBar value={v.visitors} max={total} color={PALETTE[i]} />
                       </div>
@@ -300,7 +295,7 @@ function TrafficTab({ stats }: { stats: FullStats }) {
         <CardHeader
           title="Traffic by Platform"
           action={
-            <button onClick={() => downloadCSV(stats.trafficSources as unknown as Record<string, unknown>[], 'traffic-sources.csv')} style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'none', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '6px', color: 'rgba(255,255,255,0.5)', padding: '4px 10px', cursor: 'pointer', fontSize: '11px' }}>
+            <button onClick={() => downloadCSV(stats.trafficSources as unknown as Record<string, unknown>[], 'traffic-sources.csv')} style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'none', border: '1px solid var(--color-divider-soft)', borderRadius: '6px', color: 'var(--color-ink-muted-24)', padding: '4px 10px', cursor: 'pointer', fontSize: '11px' }}>
               <Download size={11} /> Export
             </button>
           }
@@ -308,9 +303,9 @@ function TrafficTab({ stats }: { stats: FullStats }) {
         <div style={{ padding: '20px' }}>
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={stats.trafficSources} layout="vertical" margin={{ top: 0, right: 40, left: 80, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={false} />
-              <XAxis type="number" tick={{ fontSize: 11, fill: 'rgba(255,255,255,0.35)' }} axisLine={false} tickLine={false} />
-              <YAxis type="category" dataKey="platform" tick={{ fontSize: 11, fill: 'rgba(255,255,255,0.55)' }} axisLine={false} tickLine={false} width={80} />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--color-divider-soft)" horizontal={false} />
+              <XAxis type="number" tick={{ fontSize: 11, fill: 'var(--color-ink-muted-48)' }} axisLine={false} tickLine={false} />
+              <YAxis type="category" dataKey="platform" tick={{ fontSize: 11, fill: 'var(--color-ink-muted-48)' }} axisLine={false} tickLine={false} width={80} />
               <Tooltip {...TOOLTIP_STYLE} />
               <Bar dataKey="clicks" name="Clicks" fill="#6366f1" radius={[0, 3, 3, 0]}>
                 {stats.trafficSources.map((_, i) => <Cell key={i} fill={PALETTE[i % PALETTE.length]} />)}
@@ -326,29 +321,29 @@ function TrafficTab({ stats }: { stats: FullStats }) {
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
-              <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+              <tr style={{ borderBottom: '1px solid var(--color-divider-soft)' }}>
                 {['Platform', 'Clicks', 'Unique Visitors', 'Share', 'Distribution'].map(h => (
-                  <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: '11px', color: 'rgba(255,255,255,0.4)', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>{h}</th>
+                  <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: '11px', color: 'var(--color-ink-muted-48)', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {stats.trafficSources.length === 0 && (
-                <tr><td colSpan={5} style={{ padding: '24px', textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: '13px' }}>No traffic data</td></tr>
+                <tr><td colSpan={5} style={{ padding: '24px', textAlign: 'center', color: 'var(--color-ink-muted-24)', fontSize: '13px' }}>No traffic data</td></tr>
               )}
               {stats.trafficSources.map((s, i) => (
-                <tr key={s.platform} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', transition: 'background 0.1s' }}
-                  onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.02)')}
+                <tr key={s.platform} style={{ borderBottom: '1px solid var(--color-divider-soft)', transition: 'background 0.1s' }}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-ink-muted-24)')}
                   onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
                   <td style={{ padding: '12px 16px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <div style={{ color: PALETTE[i % PALETTE.length] }}>{PLATFORM_ICONS[s.platform] ?? <Share2 size={13} />}</div>
-                      <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.8)', fontWeight: '500' }}>{s.platform}</span>
+                      <span style={{ fontSize: '13px', color: 'var(--color-ink-muted-80)', fontWeight: '500' }}>{s.platform}</span>
                     </div>
                   </td>
-                  <td style={{ padding: '12px 16px', fontSize: '13px', fontWeight: '600', color: 'white' }}>{s.clicks.toLocaleString()}</td>
-                  <td style={{ padding: '12px 16px', fontSize: '13px', color: 'rgba(255,255,255,0.6)' }}>{s.unique_visitors.toLocaleString()}</td>
-                  <td style={{ padding: '12px 16px', fontSize: '13px', color: 'rgba(255,255,255,0.6)' }}>{s.percentage}%</td>
+                  <td style={{ padding: '12px 16px', fontSize: '13px', fontWeight: '600', color: 'var(--color-ink)' }}>{s.clicks.toLocaleString()}</td>
+                  <td style={{ padding: '12px 16px', fontSize: '13px', color: 'var(--color-ink-muted-64)' }}>{s.unique_visitors.toLocaleString()}</td>
+                  <td style={{ padding: '12px 16px', fontSize: '13px', color: 'var(--color-ink-muted-64)' }}>{s.percentage}%</td>
                   <td style={{ padding: '12px 16px', width: '140px' }}>
                     <ProgressBar value={s.clicks} max={maxClicks} color={PALETTE[i % PALETTE.length]} />
                   </td>
@@ -392,9 +387,9 @@ function GeoTab({ stats }: { stats: FullStats }) {
           <div style={{ padding: '20px' }}>
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={stats.countryBreakdown.slice(0, 10)} layout="vertical" margin={{ top: 0, right: 40, left: 60, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={false} />
-                <XAxis type="number" tick={{ fontSize: 11, fill: 'rgba(255,255,255,0.35)' }} axisLine={false} tickLine={false} />
-                <YAxis type="category" dataKey="country" tick={{ fontSize: 11, fill: 'rgba(255,255,255,0.55)' }} axisLine={false} tickLine={false} width={60} />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--color-divider-soft)" horizontal={false} />
+                <XAxis type="number" tick={{ fontSize: 11, fill: 'var(--color-ink-muted-48)' }} axisLine={false} tickLine={false} />
+                <YAxis type="category" dataKey="country" tick={{ fontSize: 11, fill: 'var(--color-ink-muted-48)' }} axisLine={false} tickLine={false} width={60} />
                 <Tooltip {...TOOLTIP_STYLE} />
                 <Bar dataKey="clicks" name="Clicks" fill="#6366f1" radius={[0, 3, 3, 0]}>
                   {stats.countryBreakdown.slice(0, 10).map((_, i) => <Cell key={i} fill={PALETTE[i % PALETTE.length]} />)}
@@ -410,7 +405,7 @@ function GeoTab({ stats }: { stats: FullStats }) {
         <CardHeader
           title="All Countries"
           action={
-            <button onClick={() => downloadCSV(stats.countryBreakdown as unknown as Record<string, unknown>[], 'countries.csv')} style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'none', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '6px', color: 'rgba(255,255,255,0.5)', padding: '4px 10px', cursor: 'pointer', fontSize: '11px' }}>
+            <button onClick={() => downloadCSV(stats.countryBreakdown as unknown as Record<string, unknown>[], 'countries.csv')} style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'none', border: '1px solid var(--color-divider-soft)', borderRadius: '6px', color: 'var(--color-ink-muted-24)', padding: '4px 10px', cursor: 'pointer', fontSize: '11px' }}>
               <Download size={11} /> Export
             </button>
           }
@@ -418,30 +413,30 @@ function GeoTab({ stats }: { stats: FullStats }) {
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
-              <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+              <tr style={{ borderBottom: '1px solid var(--color-divider-soft)' }}>
                 {['#', 'Country', 'Clicks', 'Unique Visitors', 'Share', ''].map((h, i) => (
-                  <th key={i} style={{ padding: '10px 16px', textAlign: 'left', fontSize: '11px', color: 'rgba(255,255,255,0.4)', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</th>
+                  <th key={i} style={{ padding: '10px 16px', textAlign: 'left', fontSize: '11px', color: 'var(--color-ink-muted-48)', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {stats.countryBreakdown.length === 0 && (
-                <tr><td colSpan={6} style={{ padding: '24px', textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: '13px' }}>No geo data available</td></tr>
+                <tr><td colSpan={6} style={{ padding: '24px', textAlign: 'center', color: 'var(--color-ink-muted-24)', fontSize: '13px' }}>No geo data available</td></tr>
               )}
               {stats.countryBreakdown.map((c, i) => (
-                <tr key={c.country} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                  <td style={{ padding: '10px 16px', fontSize: '12px', color: 'rgba(255,255,255,0.3)', width: 40 }}>{i + 1}</td>
+                <tr key={c.country} style={{ borderBottom: '1px solid var(--color-divider-soft)' }}>
+                  <td style={{ padding: '10px 16px', fontSize: '12px', color: 'var(--color-ink-muted-24)', width: 40 }}>{i + 1}</td>
                   <td style={{ padding: '10px 16px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       {c.country !== 'Unknown' && (
                         <img src={`https://flagcdn.com/w20/${c.country.toLowerCase()}.png`} alt="" style={{ width: 18, height: 13, objectFit: 'cover', borderRadius: '2px' }} onError={e => (e.currentTarget.style.display = 'none')} />
                       )}
-                      <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.8)' }}>{c.country}</span>
+                      <span style={{ fontSize: '13px', color: 'var(--color-ink-muted-80)' }}>{c.country}</span>
                     </div>
                   </td>
-                  <td style={{ padding: '10px 16px', fontSize: '13px', fontWeight: '600', color: 'white' }}>{c.clicks.toLocaleString()}</td>
-                  <td style={{ padding: '10px 16px', fontSize: '13px', color: 'rgba(255,255,255,0.6)' }}>{c.unique_visitors.toLocaleString()}</td>
-                  <td style={{ padding: '10px 16px', fontSize: '13px', color: 'rgba(255,255,255,0.6)' }}>{c.percentage}%</td>
+                  <td style={{ padding: '10px 16px', fontSize: '13px', fontWeight: '600', color: 'var(--color-ink)' }}>{c.clicks.toLocaleString()}</td>
+                  <td style={{ padding: '10px 16px', fontSize: '13px', color: 'var(--color-ink-muted-64)' }}>{c.unique_visitors.toLocaleString()}</td>
+                  <td style={{ padding: '10px 16px', fontSize: '13px', color: 'var(--color-ink-muted-64)' }}>{c.percentage}%</td>
                   <td style={{ padding: '10px 16px', width: 120 }}><ProgressBar value={c.clicks} max={maxClicks} color={PALETTE[i % PALETTE.length]} /></td>
                 </tr>
               ))}
@@ -483,11 +478,11 @@ function DevicesTab({ stats }: { stats: FullStats }) {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <Icon size={13} color={deviceColors[d.device] ?? '#6366f1'} />
-                        <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.65)', textTransform: 'capitalize' }}>{d.device}</span>
+                        <span style={{ fontSize: '12px', color: 'var(--color-ink-muted-64)', textTransform: 'capitalize' }}>{d.device}</span>
                       </div>
                       <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                        <span style={{ fontSize: '12px', fontWeight: '600', color: 'white' }}>{d.human_clicks.toLocaleString()}</span>
-                        <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.35)' }}>{pct(d.human_clicks, total)}</span>
+                        <span style={{ fontSize: '12px', fontWeight: '600', color: 'var(--color-ink)' }}>{d.human_clicks.toLocaleString()}</span>
+                        <span style={{ fontSize: '11px', color: 'var(--color-ink-muted-48)' }}>{pct(d.human_clicks, total)}</span>
                       </div>
                     </div>
                     <ProgressBar value={d.human_clicks} max={total} color={deviceColors[d.device] ?? '#6366f1'} />
@@ -503,9 +498,9 @@ function DevicesTab({ stats }: { stats: FullStats }) {
           <div style={{ padding: '20px' }}>
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={stats.deviceBreakdown} margin={{ top: 0, right: 10, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                <XAxis dataKey="device" tick={{ fontSize: 11, fill: 'rgba(255,255,255,0.4)' }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 11, fill: 'rgba(255,255,255,0.4)' }} axisLine={false} tickLine={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--color-divider-soft)" vertical={false} />
+                <XAxis dataKey="device" tick={{ fontSize: 11, fill: 'var(--color-ink-muted-48)' }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 11, fill: 'var(--color-ink-muted-48)' }} axisLine={false} tickLine={false} />
                 <Tooltip {...TOOLTIP_STYLE} />
                 <Bar dataKey="clicks" name="Total Clicks" radius={[3, 3, 0, 0]}>
                   {stats.deviceBreakdown.map(d => <Cell key={d.device} fill={deviceColors[d.device] ?? '#6366f1'} />)}
@@ -530,7 +525,7 @@ function TopLinksTab({ stats }: { stats: FullStats }) {
       <CardHeader
         title="Top Performing Links"
         action={
-          <button onClick={() => downloadCSV(stats.topLinks as unknown as Record<string, unknown>[], 'top-links.csv')} style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'none', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '6px', color: 'rgba(255,255,255,0.5)', padding: '4px 10px', cursor: 'pointer', fontSize: '11px' }}>
+          <button onClick={() => downloadCSV(stats.topLinks as unknown as Record<string, unknown>[], 'top-links.csv')} style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'none', border: '1px solid var(--color-divider-soft)', borderRadius: '6px', color: 'var(--color-ink-muted-24)', padding: '4px 10px', cursor: 'pointer', fontSize: '11px' }}>
             <Download size={11} /> Export CSV
           </button>
         }
@@ -538,35 +533,35 @@ function TopLinksTab({ stats }: { stats: FullStats }) {
       <div style={{ overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
-            <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+            <tr style={{ borderBottom: '1px solid var(--color-divider-soft)' }}>
               {['#', 'Project', 'Short URL', 'Clicks', 'Unique Visitors', 'Created', ''].map((h, i) => (
-                <th key={i} style={{ padding: '10px 16px', textAlign: 'left', fontSize: '11px', color: 'rgba(255,255,255,0.4)', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>{h}</th>
+                <th key={i} style={{ padding: '10px 16px', textAlign: 'left', fontSize: '11px', color: 'var(--color-ink-muted-48)', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {stats.topLinks.length === 0 && (
-              <tr><td colSpan={7} style={{ padding: '32px', textAlign: 'center', color: 'rgba(255,255,255,0.3)', fontSize: '13px' }}>No links created yet</td></tr>
+              <tr><td colSpan={7} style={{ padding: '32px', textAlign: 'center', color: 'var(--color-ink-muted-24)', fontSize: '13px' }}>No links created yet</td></tr>
             )}
             {stats.topLinks.map((l, i) => (
-              <tr key={l.code} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                <td style={{ padding: '12px 16px', fontSize: '12px', color: 'rgba(255,255,255,0.3)', width: 36 }}>{i + 1}</td>
+              <tr key={l.code} style={{ borderBottom: '1px solid var(--color-divider-soft)' }}>
+                <td style={{ padding: '12px 16px', fontSize: '12px', color: 'var(--color-ink-muted-24)', width: 36 }}>{i + 1}</td>
                 <td style={{ padding: '12px 16px', maxWidth: '200px' }}>
-                  <div style={{ fontSize: '13px', fontWeight: '500', color: 'rgba(255,255,255,0.85)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{l.project_full_name}</div>
-                  <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.35)', marginTop: '2px', textTransform: 'capitalize' }}>{l.source}</div>
+                  <div style={{ fontSize: '13px', fontWeight: '500', color: 'var(--color-ink-muted-80)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{l.project_full_name}</div>
+                  <div style={{ fontSize: '11px', color: 'var(--color-ink-muted-48)', marginTop: '2px', textTransform: 'capitalize' }}>{l.source}</div>
                 </td>
                 <td style={{ padding: '12px 16px' }}>
                   <a href={`${baseUrl}/s/${l.code}`} target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: '#a5b4fc', fontFamily: 'monospace', textDecoration: 'none' }}>
                     /s/{l.code} <ExternalLink size={10} />
                   </a>
                 </td>
-                <td style={{ padding: '12px 16px', fontSize: '14px', fontWeight: '700', color: 'white' }}>{l.clicks.toLocaleString()}</td>
-                <td style={{ padding: '12px 16px', fontSize: '13px', color: 'rgba(255,255,255,0.55)' }}>{l.unique_visitors.toLocaleString()}</td>
-                <td style={{ padding: '12px 16px', fontSize: '12px', color: 'rgba(255,255,255,0.4)' }}>{new Date(l.created_at).toLocaleDateString()}</td>
+                <td style={{ padding: '12px 16px', fontSize: '14px', fontWeight: '700', color: 'var(--color-ink)' }}>{l.clicks.toLocaleString()}</td>
+                <td style={{ padding: '12px 16px', fontSize: '13px', color: 'var(--color-ink-muted-64)' }}>{l.unique_visitors.toLocaleString()}</td>
+                <td style={{ padding: '12px 16px', fontSize: '12px', color: 'var(--color-ink-muted-48)' }}>{new Date(l.created_at).toLocaleDateString()}</td>
                 <td style={{ padding: '12px 16px' }}>
                   <div style={{ display: 'flex', gap: '6px' }}>
                     {[5, 4, 3, 2, 1, 0].map(level => (
-                      <div key={level} style={{ width: 6, height: 6, borderRadius: '50%', background: l.clicks > level * 5 ? '#6366f1' : 'rgba(255,255,255,0.1)' }} />
+                      <div key={level} style={{ width: 6, height: 6, borderRadius: '50%', background: l.clicks > level * 5 ? '#6366f1' : 'var(--color-ink-muted-24)' }} />
                     ))}
                   </div>
                 </td>
@@ -601,14 +596,14 @@ function BehaviorTab({ stats }: { stats: FullStats }) {
             {/* Header row */}
             <div />
             {Array.from({ length: 24 }, (_, h) => (
-              <div key={h} style={{ fontSize: '9px', color: 'rgba(255,255,255,0.3)', textAlign: 'center', paddingBottom: '4px' }}>
+              <div key={h} style={{ fontSize: '9px', color: 'var(--color-ink-muted-24)', textAlign: 'center', paddingBottom: '4px' }}>
                 {h === 0 ? '12a' : h < 12 ? `${h}a` : h === 12 ? '12p' : `${h - 12}p`}
               </div>
             ))}
             {/* Data rows */}
             {DOW_LABELS.map((day, dow) => (
               <React.Fragment key={dow}>
-                <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)', display: 'flex', alignItems: 'center', paddingRight: '6px', justifyContent: 'flex-end' }}>
+                <div style={{ fontSize: '10px', color: 'var(--color-ink-muted-48)', display: 'flex', alignItems: 'center', paddingRight: '6px', justifyContent: 'flex-end' }}>
                   {day}
                 </div>
                 {Array.from({ length: 24 }, (_, h) => {
@@ -633,11 +628,11 @@ function BehaviorTab({ stats }: { stats: FullStats }) {
             ))}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '14px', justifyContent: 'flex-end' }}>
-            <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.3)' }}>Less</span>
+            <span style={{ fontSize: '10px', color: 'var(--color-ink-muted-24)' }}>Less</span>
             {[0.04, 0.15, 0.35, 0.55, 0.75, 0.95].map((o, i) => (
               <div key={i} style={{ width: 12, height: 12, borderRadius: '2px', background: `rgba(99,102,241,${o})` }} />
             ))}
-            <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.3)' }}>More</span>
+            <span style={{ fontSize: '10px', color: 'var(--color-ink-muted-24)' }}>More</span>
           </div>
         </div>
       </Card>
@@ -651,15 +646,15 @@ function BehaviorTab({ stats }: { stats: FullStats }) {
               <EmptyState label="No data" />
             ) : stats.peakHours.map((h, i) => (
               <div key={h.hour} style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
-                <div style={{ width: 36, height: 36, borderRadius: '8px', background: `rgba(99,102,241,${0.8 - i * 0.12})`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: '700', color: 'white', flexShrink: 0 }}>
+                <div style={{ width: 36, height: 36, borderRadius: '8px', background: `rgba(99,102,241,${0.8 - i * 0.12})`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: '700', color: 'var(--color-ink)', flexShrink: 0 }}>
                   {h.hour}:00
                 </div>
                 <div style={{ flex: 1 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                    <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)' }}>
+                    <span style={{ fontSize: '12px', color: 'var(--color-ink-muted-64)' }}>
                       {h.hour < 12 ? `${h.hour === 0 ? 12 : h.hour} AM` : `${h.hour === 12 ? 12 : h.hour - 12} PM`}
                     </span>
-                    <span style={{ fontSize: '12px', fontWeight: '600', color: 'white' }}>{h.clicks} clicks</span>
+                    <span style={{ fontSize: '12px', fontWeight: '600', color: 'var(--color-ink)' }}>{h.clicks} clicks</span>
                   </div>
                   <ProgressBar value={h.clicks} max={stats.peakHours[0]?.clicks ?? 1} color="#6366f1" />
                 </div>
@@ -678,10 +673,10 @@ function BehaviorTab({ stats }: { stats: FullStats }) {
               return (
                 <div key={u.utm_source} style={{ marginBottom: '12px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                    <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)', textTransform: 'capitalize' }}>{u.utm_source}</span>
+                    <span style={{ fontSize: '12px', color: 'var(--color-ink-muted-64)', textTransform: 'capitalize' }}>{u.utm_source}</span>
                     <div style={{ display: 'flex', gap: '8px' }}>
-                      <span style={{ fontSize: '12px', fontWeight: '600', color: 'white' }}>{u.clicks}</span>
-                      <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.35)' }}>{pct(u.clicks, total)}</span>
+                      <span style={{ fontSize: '12px', fontWeight: '600', color: 'var(--color-ink)' }}>{u.clicks}</span>
+                      <span style={{ fontSize: '11px', color: 'var(--color-ink-muted-48)' }}>{pct(u.clicks, total)}</span>
                     </div>
                   </div>
                   <ProgressBar value={u.clicks} max={total} color={PALETTE[i % PALETTE.length]} />
@@ -697,7 +692,7 @@ function BehaviorTab({ stats }: { stats: FullStats }) {
 
 function EmptyState({ label }: { label: string }) {
   return (
-    <div style={{ padding: '32px', textAlign: 'center', color: 'rgba(255,255,255,0.25)', fontSize: '13px' }}>
+    <div className="p-8 text-center text-[13px] text-[var(--color-ink-muted-48)]">
       {label}
     </div>
   );
@@ -727,101 +722,92 @@ export default function ShareAnalyticsDashboard() {
     }
   }, [days]);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { loadStats(); }, [loadStats]);
 
   const summary = stats?.summary;
   const clicksChange = summary?.clicksChange ?? null;
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: 'linear-gradient(160deg, #0c0c1e 0%, #161630 50%, #0c0c1e 100%)',
-      color: 'white',
-      fontFamily: 'system-ui, -apple-system, sans-serif',
-    }}>
+    <div className="w-full space-y-6">
       {/* ── Top Header ── */}
-      <div style={{ padding: '28px 32px 0', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '6px' }}>
-              <div style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', borderRadius: '10px', padding: '8px', display: 'flex' }}>
-                <BarChart2 size={18} color="white" />
-              </div>
-              <h1 style={{ fontSize: '22px', fontWeight: '700', margin: 0 }}>Share Link Analytics</h1>
-              <span style={{ background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.3)', borderRadius: '100px', padding: '2px 10px', fontSize: '11px', color: '#a5b4fc', fontWeight: '600' }}>
-                BETA
-              </span>
-            </div>
-            <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '13px', margin: 0 }}>
-              Social share tracking · Traffic sources · Geographic · Device analytics
-              {lastUpdated && <span style={{ marginLeft: '12px', fontSize: '11px', color: 'rgba(255,255,255,0.25)' }}>Updated {lastUpdated.toLocaleTimeString()}</span>}
-            </p>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            {/* Date range */}
-            <div style={{ display: 'flex', gap: '4px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', padding: '3px' }}>
-              {[7, 14, 30, 90].map(d => (
-                <button key={d} onClick={() => setDays(d)} style={{
-                  padding: '5px 12px', borderRadius: '6px',
-                  background: days === d ? 'rgba(99,102,241,0.3)' : 'transparent',
-                  border: 'none', color: days === d ? '#c4b5fd' : 'rgba(255,255,255,0.4)',
-                  fontSize: '12px', fontWeight: days === d ? '600' : '400', cursor: 'pointer',
-                }}>
-                  {d}d
-                </button>
-              ))}
-            </div>
-            <button onClick={loadStats} disabled={loading} style={{
-              display: 'flex', alignItems: 'center', gap: '6px',
-              background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.3)',
-              borderRadius: '8px', color: '#a5b4fc', padding: '8px 14px', cursor: 'pointer', fontSize: '13px',
-            }}>
-              <RefreshCw size={13} style={{ animation: loading ? 'spin 1s linear infinite' : 'none' }} />
-              Refresh
-            </button>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <BarChart2 className="text-[var(--color-ink-muted-64)]" size={20} />
+            <h1 className="text-xl font-bold text-[var(--color-ink)] tracking-tight">Share Link Analytics</h1>
+            <span className="bg-[var(--color-action-blue)]/10 border border-[var(--color-action-blue)]/20 rounded-full px-2 py-0.5 text-[10px] text-[var(--color-action-blue)] font-semibold uppercase tracking-wider">
+              BETA
+            </span>
+            {lastUpdated && <span className="ml-2 text-[11px] text-[var(--color-ink-muted-48)]">Updated {lastUpdated.toLocaleTimeString()}</span>}
           </div>
         </div>
 
-        {/* ── Metric Cards ── */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '12px', marginBottom: '24px' }}>
-          <MetricCard icon={MousePointerClick} label={`Clicks (${days}d)`} value={fmt(summary?.humanClicks ?? 0)} change={clicksChange} color="#6366f1" sub={`vs ${fmt(summary?.prevClicks ?? 0)} prev period`} />
-          <MetricCard icon={Users} label="Unique Visitors" value={fmt(summary?.uniqueVisitors ?? 0)} color="#10b981" />
-          <MetricCard icon={Link2} label="Total Links" value={stats?.topLinks?.length ?? 0} color="#f59e0b" />
-          <MetricCard icon={Activity} label="Active Days" value={summary?.activeDays ?? 0} color="#06b6d4" sub={`in last ${days} days`} />
-          <MetricCard icon={Zap} label="Bot Traffic" value={fmt(summary?.botClicks ?? 0)} color="#64748b" sub="filtered from stats" />
-        </div>
-
-        {/* ── Tabs ── */}
-        <div style={{ display: 'flex', gap: '2px' }}>
-          {TABS.map(tab => {
-            const Icon = tab.icon;
-            const active = activeTab === tab.id;
-            return (
-              <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{
-                display: 'flex', alignItems: 'center', gap: '6px',
-                padding: '10px 16px', borderRadius: '8px 8px 0 0',
-                background: active ? 'rgba(99,102,241,0.12)' : 'transparent',
-                borderTop: `2px solid ${active ? '#6366f1' : 'transparent'}`,
-                border: 'none', borderBottom: 'none',
-                color: active ? '#a5b4fc' : 'rgba(255,255,255,0.4)',
-                fontSize: '13px', fontWeight: active ? '600' : '400', cursor: 'pointer',
-                transition: 'all 0.15s',
-              }}>
-                <Icon size={13} />
-                {tab.label}
+        <div className="flex items-center gap-2">
+          {/* Date range */}
+          <div className="flex gap-0.5 p-0.5 bg-[var(--color-bg-secondary)] border border-[var(--color-divider-soft)] rounded-lg">
+            {[7, 14, 30, 90].map(d => (
+              <button
+                key={d}
+                onClick={() => setDays(d)}
+                className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors cursor-pointer ${
+                  days === d
+                    ? "bg-[var(--color-canvas)] text-[var(--color-ink)] shadow-sm"
+                    : "text-[var(--color-ink-muted-48)] hover:text-[var(--color-ink)]"
+                }`}
+              >
+                {d}d
               </button>
-            );
-          })}
+            ))}
+          </div>
+          <button
+            onClick={loadStats}
+            disabled={loading}
+            className="flex items-center gap-1.5 px-3.5 py-1.5 bg-[var(--color-bg-secondary)] border border-[var(--color-divider-soft)] text-[var(--color-ink)] rounded-full text-[12px] font-medium hover:bg-[var(--color-bg-secondary)]/80 transition-colors focus:outline-none cursor-pointer"
+          >
+            <RefreshCw size={13} className={loading ? "animate-spin" : ""} />
+            Refresh
+          </button>
         </div>
       </div>
 
+      {/* ── Metric Cards ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
+        <MetricCard icon={MousePointerClick} label={`Clicks (${days}d)`} value={fmt(summary?.humanClicks ?? 0)} change={clicksChange} color="#6366f1" sub={`vs ${fmt(summary?.prevClicks ?? 0)} prev period`} />
+        <MetricCard icon={Users} label="Unique Visitors" value={fmt(summary?.uniqueVisitors ?? 0)} color="#10b981" />
+        <MetricCard icon={Link2} label="Total Links" value={stats?.topLinks?.length ?? 0} color="#f59e0b" />
+        <MetricCard icon={Activity} label="Active Days" value={summary?.activeDays ?? 0} color="#06b6d4" sub={`in last ${days} days`} />
+        <MetricCard icon={Zap} label="Bot Traffic" value={fmt(summary?.botClicks ?? 0)} color="#64748b" sub="filtered from stats" />
+      </div>
+
+      {/* ── Tabs ── */}
+      <div className="flex items-center gap-1 border-b border-[var(--color-divider-soft)]">
+        {TABS.map(tab => {
+          const Icon = tab.icon;
+          const active = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-1.5 px-4 py-2 border-b-2 text-[13px] font-medium transition-all cursor-pointer ${
+                active
+                  ? "border-[var(--color-action-blue)] text-[var(--color-action-blue)]"
+                  : "border-transparent text-[var(--color-ink-muted-64)] hover:text-[var(--color-ink)]"
+              }`}
+            >
+              <Icon size={14} />
+              {tab.label}
+            </button>
+          );
+        })}
+      </div>
+
       {/* ── Tab Content ── */}
-      <div style={{ padding: '24px 32px 40px' }}>
+      <div className="w-full">
         <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
         {loading ? (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 300, gap: '12px', color: 'rgba(255,255,255,0.4)', fontSize: '14px' }}>
-            <RefreshCw size={18} style={{ animation: 'spin 1s linear infinite' }} />
+          <div className="flex items-center justify-center h-[300px] gap-3 text-[var(--color-ink-muted-48)] text-sm">
+            <RefreshCw size={18} className="animate-spin" />
             Loading analytics…
           </div>
         ) : !stats ? (

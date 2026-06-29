@@ -482,10 +482,10 @@ body {
 @layer utilities {
   .text-apple-hero {
     font-family: "SF Pro Display", system-ui, -apple-system, sans-serif;
-    font-size: 56px;
+    font-size: clamp(28px, 4.5vw, 38px);
     font-weight: 600;
-    line-height: 1.07;
-    letter-spacing: -0.28px;
+    line-height: 1.15;
+    letter-spacing: -0.2px;
   }
   
   .text-apple-display-lg {
@@ -506,10 +506,10 @@ body {
   
   .text-apple-lead {
     font-family: "SF Pro Display", system-ui, -apple-system, sans-serif;
-    font-size: 28px;
+    font-size: clamp(15px, 2.5vw, 17px);
     font-weight: 400;
-    line-height: 1.14;
-    letter-spacing: 0.196px;
+    line-height: 1.5;
+    letter-spacing: 0;
   }
   
   .text-apple-tagline {
@@ -603,33 +603,25 @@ body {
   }
   
   .apple-utility-card {
-    background: rgba(255, 255, 255, 0.5);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: var(--color-canvas);
+    border: 1px solid var(--color-hairline);
     border-radius: var(--radius-lg);
     padding: 24px;
     color: var(--color-ink);
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.03);
-    transition: transform var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-base);
+    transition: transform var(--transition-fast), border-color var(--transition-fast);
   }
   
   .dark .apple-utility-card {
-    background: rgba(15, 23, 42, 0.45);
-    backdrop-filter: blur(18px);
-    -webkit-backdrop-filter: blur(18px);
-    border: 1px solid rgba(255, 255, 255, 0.04);
-    box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.4);
+    background: var(--color-surface-tile-1);
+    border: 1px solid var(--color-hairline);
   }
 
   .apple-utility-card:hover {
-    border-color: rgba(0, 102, 204, 0.2);
-    box-shadow: 0 12px 40px rgba(0, 102, 204, 0.04);
+    border-color: rgba(0, 102, 204, 0.4);
   }
 
   .dark .apple-utility-card:hover {
-    border-color: rgba(41, 151, 255, 0.15);
-    box-shadow: 0 16px 48px rgba(41, 151, 255, 0.08);
+    border-color: rgba(41, 151, 255, 0.4);
   }
   
   .apple-product-shadow {
@@ -782,19 +774,13 @@ body {
 
 /* ─────────── UI/UX Pro Max Premium Styles ─────────── */
 .glass-card {
-  background: rgba(255, 255, 255, 0.5);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.03);
+  background: var(--color-canvas);
+  border: 1px solid var(--color-hairline);
 }
 
 .dark .glass-card {
-  background: rgba(15, 23, 42, 0.45);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
-  border: 1px solid rgba(255, 255, 255, 0.04);
-  box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.4);
+  background: var(--color-surface-tile-1);
+  border: 1px solid var(--color-hairline);
 }
 
 .glow-interactive {

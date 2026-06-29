@@ -58,7 +58,7 @@ async function getPopularDatabaseTopics(limit = 30): Promise<string[]> {
  */
 export async function discoverNewRepos(maxPages: number = 10): Promise<DiscoveredRepo[]> {
   const checkpointKey = "crawler:checkpoint:github-discovery";
-  
+
   const staticTopics = [
     // Existing AI/ML topics
     'ai', 'machine-learning', 'llm', 'deep-learning',
@@ -75,8 +75,8 @@ export async function discoverNewRepos(maxPages: number = 10): Promise<Discovere
     'rust', 'go', 'webassembly', 'docker', 'kubernetes', 'terraform',
     'redis', 'postgresql', 'sqlite', 'security', 'linux',
     // Newly added static keywords from missing trending repos
-    'tui', 'terminal', 'markdown-editor', 'mesh-network', 'edge-computing', 
-    'mental-health', 'whatsapp-crm', 'crm-system', 'ide-integration', 
+    'tui', 'terminal', 'markdown-editor', 'mesh-network', 'edge-computing',
+    'mental-health', 'whatsapp-crm', 'crm-system', 'ide-integration',
     'model-serving', 'inference-engine', 'git-client', 'nlp', 'sandboxing',
     'note-taking', 'knowledge-base', 'ai-agent', 'llm-agent'
   ];
@@ -87,14 +87,14 @@ export async function discoverNewRepos(maxPages: number = 10): Promise<Discovere
   let startTopicIndex = 0;
   let startPage = 1;
   let startCursor: string | null = null;
-  
+
   try {
     const lastSavedCheckpoint = await redisConnection.get(checkpointKey);
     if (lastSavedCheckpoint) {
       const parsed = JSON.parse(lastSavedCheckpoint);
       const savedTopic = parsed.topic;
       const savedTopicIndex = savedTopic ? topics.indexOf(savedTopic) : parsed.topicIndex;
-      
+
       if (savedTopicIndex !== -1 && savedTopicIndex !== undefined) {
         startTopicIndex = savedTopicIndex;
         startPage = (parsed.page || 0) + 1; // Resume from the next page
@@ -116,7 +116,7 @@ export async function discoverNewRepos(maxPages: number = 10): Promise<Discovere
     startCursor = null;
     try {
       await redisConnection.del(checkpointKey);
-    } catch {}
+    } catch { }
   }
 
   const discoveredMap = new Map<string, DiscoveredRepo>();
@@ -125,19 +125,19 @@ export async function discoverNewRepos(maxPages: number = 10): Promise<Discovere
   for (let t = startTopicIndex; t < topics.length; t++) {
     const topic = topics[t];
     let completedTopic = false;
-    
+
     // Determine page and cursor to start for this specific topic
     const pageStart = (t === startTopicIndex) ? startPage : 1;
     let cursor: string | null = (t === startTopicIndex) ? startCursor : null;
 
     for (let page = pageStart; page <= maxPages; page++) {
-      console.log(`[Discovery] Fetching page ${page} of GitHub GraphQL Search for topic:${topic} using cursor: ${cursor || 'null'}...`);
-      
+      console.log(`[Discovery] Fetching page ${page} of GitHub GraphQL Search for query: ("${topic}" in:name,description OR topic:${topic}) using cursor: ${cursor || 'null'}...`);
+
       try {
-        const query = `topic:${topic} stars:>100 sort:updated-desc`;
+        const query = `("${topic}" in:name,description OR topic:${topic}) stars:>50 sort:updated-desc`;
         const data = await searchGitHubRepos(query, 100, cursor);
         const items = data.nodes || [];
-        
+
         if (items.length === 0) {
           completedTopic = true;
           break; // No more results for this topic
@@ -157,11 +157,11 @@ export async function discoverNewRepos(maxPages: number = 10): Promise<Discovere
 
         // Save checkpoint page, topicIndex, topic, and cursor to Redis
         try {
-          await redisConnection.set(checkpointKey, JSON.stringify({ 
-            topicIndex: t, 
-            topic, 
-            page, 
-            endCursor: cursor 
+          await redisConnection.set(checkpointKey, JSON.stringify({
+            topicIndex: t,
+            topic,
+            page,
+            endCursor: cursor
           }));
         } catch (err) {
           console.warn(`[Discovery] Failed to save checkpoint in Redis`, err);
@@ -189,11 +189,11 @@ export async function discoverNewRepos(maxPages: number = 10): Promise<Discovere
     if (completedTopic) {
       try {
         if (t + 1 < topics.length) {
-          await redisConnection.set(checkpointKey, JSON.stringify({ 
-            topicIndex: t + 1, 
-            topic: topics[t + 1], 
-            page: 0, 
-            endCursor: null 
+          await redisConnection.set(checkpointKey, JSON.stringify({
+            topicIndex: t + 1,
+            topic: topics[t + 1],
+            page: 0,
+            endCursor: null
           }));
         }
       } catch (err) {
@@ -217,7 +217,7 @@ export async function discoverNewRepos(maxPages: number = 10): Promise<Discovere
     try {
       const currentVal = await redisConnection.get(checkpointKey);
       console.log(`[Discovery] GitHub discovery interrupted. Checkpoint preserved: ${currentVal || "unknown"}.`);
-    } catch {}
+    } catch { }
   }
 
   return Array.from(discoveredMap.values());

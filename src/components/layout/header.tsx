@@ -88,9 +88,9 @@ export function Header() {
   ];
 
   return (
-    <header className="sticky top-0 z-50 border-b border-[var(--color-divider-soft)] bg-[var(--color-surface-chip-translucent)] backdrop-blur-xl">
+    <header className="sticky top-0 z-50 border-b border-[var(--color-divider-soft)] bg-[var(--color-canvas-parchment)]/80 backdrop-blur-xl">
       <div className="page-container">
-        <div className="flex h-12 items-center gap-3">
+        <div className="flex h-[44px] items-center gap-3">
           {/* Logo */}
           <Link
             href="/"
@@ -168,20 +168,20 @@ export function Header() {
               href="https://github.com/tinix-ai/tinix-repo-trending"
               target="_blank"
               rel="noopener noreferrer"
-              className="hidden md:flex items-center justify-center h-8 w-8 rounded-lg text-[var(--color-ink-muted-48)] transition-all hover:text-[var(--color-ink)] hover:bg-[var(--color-bg-secondary)]"
+              className="hidden md:flex items-center justify-center h-11 w-11 rounded-lg text-[var(--color-ink-muted-48)] transition-all hover:text-[var(--color-ink)] hover:bg-[var(--color-bg-secondary)]"
               aria-label="GitHub repository"
             >
-              <Github className="h-3.5 w-3.5" />
+              <Github className="h-4 w-4" />
             </a>
           </div>
 
           {/* Mobile menu button */}
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
-            className="lg:hidden flex items-center justify-center h-8 w-8 rounded-lg text-[var(--color-ink-muted-80)] cursor-pointer"
+            className="lg:hidden flex items-center justify-center h-11 w-11 rounded-lg text-[var(--color-ink-muted-80)] cursor-pointer"
             aria-label="Toggle menu"
           >
-            {mobileOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+            {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
         </div>
 

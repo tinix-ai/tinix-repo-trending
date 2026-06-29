@@ -44,41 +44,10 @@ export default async function AdminPage(props: AdminPageProps) {
   }
   
   return (
-    <div className="space-y-8">
-      <header>
-        <h1 className="text-xl font-bold text-[var(--color-ink)] tracking-tight">{t("dashboard")}</h1>
-        <p className="text-sm text-[var(--color-ink-muted-80)] mt-1">{t("desc")}</p>
-      </header>
-      
-      {/* Tabs Navigation */}
-      <div className="flex items-center gap-0.5 p-0.5 bg-[var(--color-bg-secondary)] rounded-lg w-fit border border-[var(--color-divider-soft)]">
-        <Link
-          href="/admin?tab=overview"
-          className={`px-3 py-1.5 rounded-md text-[12px] font-medium transition-colors cursor-pointer ${currentTab === 'overview' ? 'bg-[var(--color-canvas)] text-[var(--color-ink)] shadow-sm' : 'text-[var(--color-ink-muted-48)] hover:text-[var(--color-ink)]'}`}
-        >
-          {t("tabOverview")}
-        </Link>
-        <Link
-          href="/admin?tab=analytics"
-          className={`px-3 py-1.5 rounded-md text-[12px] font-medium transition-colors cursor-pointer ${currentTab === 'analytics' ? 'bg-[var(--color-canvas)] text-[var(--color-ink)] shadow-sm' : 'text-[var(--color-ink-muted-48)] hover:text-[var(--color-ink)]'}`}
-        >
-          {t("tabAnalytics")}
-        </Link>
-        <Link
-          href="/admin?tab=queues"
-          className={`px-3 py-1.5 rounded-md text-[12px] font-medium transition-colors cursor-pointer ${currentTab === 'queues' ? 'bg-[var(--color-canvas)] text-[var(--color-ink)] shadow-sm' : 'text-[var(--color-ink-muted-48)] hover:text-[var(--color-ink)]'}`}
-        >
-          {t("tabQueues")}
-        </Link>
-        <Link
-          href="/admin?tab=categories"
-          className={`px-3 py-1.5 rounded-md text-[12px] font-medium transition-colors cursor-pointer ${currentTab === 'categories' ? 'bg-[var(--color-canvas)] text-[var(--color-ink)] shadow-sm' : 'text-[var(--color-ink-muted-48)] hover:text-[var(--color-ink)]'}`}
-        >
-          {t("tabCategories")}
-        </Link>
-      </div>
+    <div className="space-y-6">
+      <h1 className="text-xl font-bold text-[var(--color-ink)] tracking-tight mb-6">{t("dashboard")}</h1>
 
-      <div className="pt-2">
+      <div>
         {currentTab === 'overview' && (
           <div className="space-y-12 animate-fade-in-up">
             <section id="overview">

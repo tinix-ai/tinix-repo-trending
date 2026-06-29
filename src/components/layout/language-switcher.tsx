@@ -23,7 +23,7 @@ export function LanguageSwitcher() {
       <Globe className="absolute left-2 h-4 w-4 text-[var(--color-ink-muted-80)] pointer-events-none" />
       <select
         aria-label="Select language"
-        className="h-9 appearance-none bg-transparent pl-8 pr-6 text-sm font-medium text-[var(--color-ink-muted-80)] hover:text-[var(--color-ink)] transition-colors cursor-pointer outline-none focus:ring-0 disabled:opacity-50"
+        className="h-11 appearance-none bg-transparent pl-8 pr-6 text-sm font-medium text-[var(--color-ink-muted-80)] hover:text-[var(--color-ink)] transition-colors cursor-pointer outline-none focus:ring-0 disabled:opacity-50"
         defaultValue={locale}
         onChange={onSelectChange}
         disabled={isPending}

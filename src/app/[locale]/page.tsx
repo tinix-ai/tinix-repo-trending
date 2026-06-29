@@ -390,10 +390,10 @@ export default function HomePage() {
 
   return (
     <div className="w-full">
-      <section className="apple-tile-light w-full pt-8 pb-10 lg:pt-12 lg:pb-14 border-b border-[var(--color-divider-soft)]">
-        <div className="page-container flex flex-col items-center text-center max-w-4xl mx-auto gap-6">
+      <section className="apple-tile-light w-full py-12 border-b border-[var(--color-divider-soft)]">
+        <div className="page-container flex flex-col items-center text-center max-w-4xl mx-auto gap-4">
           <div className="flex flex-col items-center max-w-2xl">
-            <div className="flex items-center gap-2 mb-4">
+            <div className="flex items-center gap-2 mb-3">
               <div className="flex items-center gap-1.5 rounded-full border border-[var(--color-accent-dim)] bg-[var(--color-accent-dim)] px-3 py-1 text-[11px] font-semibold tracking-wider text-[var(--color-accent)] uppercase">
                 <span className="relative flex h-1.5 w-1.5">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--color-accent)] opacity-75" />
@@ -406,21 +406,21 @@ export default function HomePage() {
               </span>
             </div>
 
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-[var(--color-ink)] mb-4 leading-tight">
+            <h1 className="text-apple-hero text-[var(--color-ink)] mb-3">
               {t("heroTitle")}{" "}
               <span className="text-[var(--color-action-blue)] block sm:inline">
                 {t("heroHighlight")}
               </span>
             </h1>
 
-            <p className="text-sm sm:text-base text-[var(--color-ink-muted-80)] max-w-xl leading-relaxed">
+            <p className="text-apple-lead text-[var(--color-ink-muted-80)] max-w-xl">
               {t("heroDesc")}
             </p>
 
             {/* Redesigned Search & Advanced Filters */}
-            <div className="w-full max-w-2xl mx-auto mt-6 relative z-40">
-              <form onSubmit={handleSearchSubmit} className="relative flex items-center bg-[var(--color-surface-elevated)] border border-[var(--color-divider-soft)] rounded-2xl p-1.5 shadow-lg backdrop-blur-md transition-all duration-305 focus-within:border-[var(--color-action-blue)]/50 focus-within:ring-2 focus-within:ring-[var(--color-action-blue)]/10">
-                <div className="flex-1 flex items-center pl-3">
+            <div className="w-full max-w-2xl mx-auto mt-4 relative z-40">
+              <form onSubmit={handleSearchSubmit} className="relative flex items-center bg-[var(--color-canvas)] border border-[var(--color-hairline)] rounded-full p-1.5 transition-all duration-300 focus-within:border-[var(--color-action-blue)]">
+                <div className="flex-1 flex items-center pl-4">
                   <Search className="h-5 w-5 text-[var(--color-ink-muted-48)] shrink-0" />
                   <input
                     type="text"
@@ -434,18 +434,18 @@ export default function HomePage() {
                   <button
                     type="button"
                     onClick={() => setShowAdvancedSearch(!showAdvancedSearch)}
-                    className={`flex items-center justify-center h-10 px-3.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${
+                    className={`flex items-center justify-center h-[44px] px-4 rounded-full border text-apple-body transition-all cursor-pointer ${
                       showAdvancedSearch
                         ? "bg-[var(--color-action-blue)]/10 border-[var(--color-action-blue)]/20 text-[var(--color-action-blue)]"
                         : "border-[var(--color-hairline)] text-[var(--color-ink-muted-80)] hover:bg-[var(--color-surface-pearl)]"
                     }`}
                   >
-                    <Settings2 className="h-3.5 w-3.5 sm:mr-1.5" />
+                    <Settings2 className="h-4 w-4 sm:mr-1.5" />
                     <span className="hidden sm:inline">Advanced</span>
                   </button>
                   <button
                     type="submit"
-                    className="apple-btn-primary h-10 px-5 text-xs font-bold rounded-xl cursor-pointer"
+                    className="apple-btn-primary h-[44px] cursor-pointer"
                   >
                     Search
                   </button>
@@ -454,7 +454,7 @@ export default function HomePage() {
 
               {/* Advanced Panel Dropdown */}
               {showAdvancedSearch && (
-                <div className="absolute top-full left-0 right-0 mt-3 p-5 bg-[var(--color-surface-elevated)] border border-[var(--color-divider-soft)] rounded-2xl shadow-xl backdrop-blur-lg animate-in fade-in-50 slide-in-from-top-3 duration-250 flex flex-col gap-4 text-left">
+                <div className="absolute top-full left-0 right-0 mt-3 p-5 bg-[var(--color-canvas)] border border-[var(--color-hairline)] rounded-2xl shadow-none animate-in fade-in-50 duration-200 flex flex-col gap-4 text-left">
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     {/* Owner Input */}
                     <div className="flex flex-col gap-1.5">
@@ -621,7 +621,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="flex items-center justify-center divide-x divide-[var(--color-divider-soft)] glass-card border border-[var(--color-divider-soft)] rounded-2xl px-6 py-4 shadow-md max-w-xl w-full mx-auto backdrop-blur-md">
+          <div className="flex items-center justify-center divide-x divide-[var(--color-divider-soft)] apple-utility-card max-w-xl w-full mx-auto">
             <div className="flex-1 flex flex-col items-center px-2">
               <div className="flex items-center gap-1.5 text-[var(--color-action-blue)] mb-0.5">
                 <TrendingUp className="h-4 w-4 shrink-0" />
@@ -661,7 +661,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="apple-tile-parchment w-full py-16">
+      <section className="apple-tile-parchment w-full py-20">
         <div className="page-container grid grid-cols-1 xl:grid-cols-[1fr_280px] gap-8">
           <div className="min-w-0">
             {/* Platform Switcher Tabs above Filter Card */}
