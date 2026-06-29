@@ -76,7 +76,9 @@ Hệ thống quản lý công việc thông qua 5 hàng đợi BullMQ được c
 
 ### 3.1. Quy trình Phát hiện Dự án Mới (Daily Discovery)
 Chạy vào **00:00 hàng ngày** thông qua Scheduler:
-- **GitHub**: Gọi Search API để quét các dự án AI/ML có lượt sao > 100 theo 4 từ khóa chủ chốt: `ai`, `machine-learning`, `llm`, `deep-learning` (xem `src/lib/crawlers/github-discovery.ts`).
+- **GitHub**: Sử dụng cơ chế tìm kiếm lai (Hybrid Search) kết hợp từ khóa và topic nhằm tìm ra những dự án công nghệ ngách nhưng hữu ích (xem `src/lib/crawlers/github-discovery.ts`).
+  - **Cú pháp truy vấn**: Truy vấn tìm kiếm có dạng `("${topic}" in:name,description OR topic:${topic})` thay vì chỉ quét `topic:${topic}` đơn thuần. Điều này giúp phát hiện ra các repository liên quan nhưng không được tác giả cấu hình thẻ (topics) trên GitHub (ví dụ: `welcomyou/sherpa-vietnamese-asr`).
+  - **Ngưỡng lọc Sao**: Hạ ngưỡng lọc số sao tối thiểu xuống còn **`>50` stars** (thay vì `>100` stars như trước) để mở rộng độ phủ tới các dự án mới nổi.
   - **Redis Checkpoint**: Quá trình quét lưu vết `topicIndex` và `page` hiện tại vào khóa `crawler:checkpoint:github-discovery` trên Redis. Nếu tiến trình bị gián đoạn (crash hoặc tắt máy), hệ thống sẽ tự động khôi phục và chạy tiếp từ vị trí cũ để tiết kiệm giới hạn API request.
   - **Trì hoãn an toàn**: Nghỉ 2.5 giây giữa các trang kết quả để tôn trọng giới hạn 30 requests/phút của GitHub Search API.
 - **Hugging Face**: Quét top 100 Models và top 100 Datasets có xu hướng nổi bật dựa trên số lượt thích trong 7 ngày gần nhất (`sort=likes7d`) (xem `src/lib/crawlers/hf-discovery.ts`).

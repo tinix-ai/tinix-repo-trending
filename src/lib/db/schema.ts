@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, integer, uuid, jsonb, date, index, customType } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, integer, uuid, jsonb, date, index, customType, unique } from "drizzle-orm/pg-core";
 import * as zlib from "zlib";
 
 export const bytea = customType<{ data: Buffer | string; driverData: Buffer }>({
@@ -168,6 +168,41 @@ export const shareEvents = pgTable("share_events", {
 }, (table) => [
   index("share_events_code_idx").on(table.linkCode),
   index("share_events_clicked_at_idx").on(table.clickedAt),
+]);
+
+export const users = pgTable("users", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  username: text("username").notNull().unique(),
+  passwordHash: text("password_hash").notNull(),
+  salt: text("salt").notNull(),
+  role: text("role").notNull().default("user"), // 'admin' | 'user'
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const projectReviews = pgTable("project_reviews", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  projectId: uuid("project_id").references(() => projects.id, { onDelete: "cascade" }).notNull(),
+  userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  rating: integer("rating").notNull(), // 1 to 5
+  reviewText: text("review_text"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("project_reviews_project_idx").on(table.projectId),
+  index("project_reviews_user_idx").on(table.userId),
+]);
+
+export const projectVotes = pgTable("project_votes", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  projectId: uuid("project_id").references(() => projects.id, { onDelete: "cascade" }).notNull(),
+  userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  voteType: text("vote_type").notNull(), // 'like' | 'dislike'
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("project_votes_project_idx").on(table.projectId),
+  index("project_votes_user_idx").on(table.userId),
+  unique("project_votes_user_project_uq").on(table.projectId, table.userId)
 ]);
 
 

@@ -76,7 +76,8 @@
     "source": "Source",
     "tracker": "Open Source Project Tracker",
     "liveMentions": "Discussions",
-    "collections": "Collections"
+    "collections": "Collections",
+    "forum": "Forum"
   },
   "Submit": {
     "title": "Submit Project",

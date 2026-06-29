@@ -27,6 +27,7 @@ import { SimilarProjects } from "@/components/project/similar-projects";
 import { getTranslations } from "next-intl/server";
 import type { ProjectMention } from "@/types";
 import { ShareButton } from "@/components/project/share-button";
+import { VoteButtons } from "@/components/project/vote-buttons";
 
 // Metadata generation
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
@@ -280,6 +281,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                 projectName={project.fullName}
                 projectDescription={project.description}
               />
+              <VoteButtons projectId={project.id} />
             </div>
           </div>
         </div>
@@ -295,6 +297,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
             
             {/* Tabs Component (README & Social Mentions) */}
             <ProjectTabs 
+              projectId={project.id}
               cleanedReadme={cleanedReadme} 
               socialMentions={sortedMentions} 
               sourceUrl={project.sourceUrl || undefined} 

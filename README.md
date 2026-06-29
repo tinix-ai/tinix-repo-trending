@@ -25,8 +25,9 @@ Tinix Trending được xây dựng dựa trên triết lý thiết kế tối g
 ## 🚀 Key Features
 
 - **Multi-Source Crawling:**
-  - **GitHub:** Track stars, forks, open issues, readme, languages, licenses, and contributors count.
+  - **GitHub:** Track stars (minimum threshold reduced to >50), forks, open issues, readme, languages, licenses, and contributors count.
   - **HuggingFace:** Track downloads, likes, model/dataset metadata, readme description, and tags.
+- **Collections Management:** Complete CRUD interface to create, edit, delete, and visually curate lists of trending repositories and models (collections) directly from the Admin Panel.
 - **Growth-Based Trending Indicators:** Real-time and daily aggregated statistics calculating growth metrics over 1 day, 7 days, and 30 days.
 - **Advanced Leaderboard Sorting:** Dynamic sorting of repositories and models by:
   - Daily growth rate (default sorting for active trends)
@@ -35,7 +36,7 @@ Tinix Trending được xây dựng dựa trên triết lý thiết kế tối g
 - **Interactive Metrics History:** Interactive charts built with **Recharts** showing index updates (stars/downloads) over time.
 - **Apple-inspired UI System:** Frosted-glass sticky sub-navigation bars, rounded capsule badges (`rounded.pill`), custom modal dialogues, and smooth interactive click micro-animations (`transform: scale(0.95)`).
 - **Internationalization (i18n):** Complete localized UI support for English (`en`) and Vietnamese (`vi`) powered by `next-intl`.
-- **Markdown CMS / Admin Dashboard:** Rich administrator panel for managing Markdown articles and developer documentation.
+- **Markdown CMS / Admin Dashboard:** Rich administrator panel for managing Markdown articles, developer documentation, and trending collections.
 - **Project Submission:** Allow community members to submit AI/ML repositories and models for automatic indexing.
 
 ---

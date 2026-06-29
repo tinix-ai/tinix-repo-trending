@@ -20,14 +20,42 @@ import {
 import { ThemeToggle } from "./theme-toggle";
 import { LanguageSwitcher } from "./language-switcher";
 
+interface SessionUser {
+  username: string;
+  role: string;
+}
+
+interface SessionData {
+  authenticated: boolean;
+  user: SessionUser | null;
+}
+
 export function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
+  const [session, setSession] = useState<SessionData | null>(null);
   const t = useTranslations("Navigation");
   const router = useRouter();
   const pathname = usePathname();
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [showSearch, setShowSearch] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/auth/session")
+      .then((res) => res.json())
+      .then((data) => setSession(data))
+      .catch(() => setSession({ authenticated: false, user: null }));
+  }, [pathname]);
+
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+      setSession({ authenticated: false, user: null });
+      window.location.reload();
+    } catch (err) {
+      console.error("Logout error:", err);
+    }
+  };
 
   useEffect(() => {
     const isHome = pathname === "/" || pathname === "/en" || pathname === "/vi";
@@ -81,6 +109,7 @@ export function Header() {
     { href: "/", label: t("trending"), icon: Flame },
     { href: "/collection", label: t("collections"), icon: FolderHeart },
     { href: "/live-mentions", label: t("liveMentions"), icon: MessageSquare },
+    { href: "/forum", label: t("forum"), icon: MessageSquare },
     { href: "/categories", label: t("categories"), icon: Hash },
     { href: "/stats", label: t("stats"), icon: BarChart3 },
     { href: "/submit", label: t("submit"), icon: Plus },
@@ -159,9 +188,30 @@ export function Header() {
           </nav>
 
           {/* Right actions */}
-          <div className="flex items-center gap-0.5 shrink-0">
+          <div className="flex items-center gap-1 shrink-0">
             <LanguageSwitcher />
             <ThemeToggle />
+
+            {session?.authenticated ? (
+              <div className="flex items-center gap-1.5 ml-1 mr-1">
+                <span className="text-[12px] font-medium text-[var(--color-ink-muted-80)] border-r border-[var(--color-divider-soft)] pr-2 py-1 max-w-[80px] truncate" title={session.user?.username}>
+                  @{session.user?.username}
+                </span>
+                <button
+                  onClick={handleLogout}
+                  className="rounded-md px-2 py-1.5 text-[11px] font-semibold text-red-500 hover:bg-red-500/10 transition-colors cursor-pointer"
+                >
+                  Logout
+                </button>
+              </div>
+            ) : session !== null ? (
+              <Link
+                href="/login"
+                className="rounded-md px-2.5 py-1.5 text-[12px] font-medium text-[var(--color-action-blue)] hover:bg-[var(--color-bg-secondary)]/80 transition-colors cursor-pointer"
+              >
+                Sign In
+              </Link>
+            ) : null}
 
             {/* GitHub link */}
             <a
@@ -220,6 +270,31 @@ export function Header() {
                <LanguageSwitcher />
                <ThemeToggle />
             </div>
+            
+            {session?.authenticated ? (
+              <div className="flex items-center justify-between px-3 py-2 border-t border-[var(--color-divider-soft)] text-xs text-[var(--color-ink-muted-80)]">
+                <span>Logged in as: <strong className="text-[var(--color-ink)]">@{session.user?.username}</strong></span>
+                <button
+                  onClick={() => {
+                    setMobileOpen(false);
+                    handleLogout();
+                  }}
+                  className="text-red-500 font-semibold cursor-pointer"
+                >
+                  Logout
+                </button>
+              </div>
+            ) : session !== null ? (
+              <div className="px-3 py-2 border-t border-[var(--color-divider-soft)]">
+                <Link
+                  href="/login"
+                  onClick={() => setMobileOpen(false)}
+                  className="block text-center w-full py-1.5 bg-[var(--color-action-blue)] text-white text-xs font-semibold rounded-lg hover:bg-[var(--color-action-blue)]/90 transition-colors"
+                >
+                  Sign In
+                </Link>
+              </div>
+            ) : null}
           </nav>
         )}
       </div>
