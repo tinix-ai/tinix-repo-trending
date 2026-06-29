@@ -158,7 +158,7 @@ export async function getDynamicTrendingProjects(params: ProjectQueryParams): Pr
         orderFragment = isAsc ? sql`ORDER BY momentum_score ASC` : sql`ORDER BY momentum_score DESC`;
         break;
       case "updated":
-        orderFragment = isAsc ? sql`ORDER BY last_crawled_at ASC NULLS FIRST` : sql`ORDER BY last_crawled_at DESC NULLS LAST`;
+        orderFragment = isAsc ? sql`ORDER BY source_updated_at ASC NULLS FIRST` : sql`ORDER BY source_updated_at DESC NULLS LAST`;
         break;
       case "views":
         orderFragment = isAsc ? sql`ORDER BY COALESCE(views, 0) ASC NULLS FIRST` : sql`ORDER BY COALESCE(views, 0) DESC NULLS LAST`;

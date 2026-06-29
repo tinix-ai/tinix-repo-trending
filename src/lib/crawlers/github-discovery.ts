@@ -1,8 +1,8 @@
 import { setTimeout } from "timers/promises";
-import { sql } from "drizzle-orm";
 import { redisConnection } from "../../workers/queue";
-import { db } from "../db";
 import { searchGitHubRepos } from "./github-graphql";
+import { db } from "../db";
+import { sql } from "drizzle-orm";
 
 interface DiscoveredRepo {
   owner: string;
@@ -53,8 +53,11 @@ async function getPopularDatabaseTopics(limit = 30): Promise<string[]> {
 }
 
 /**
- * Discovers new AI/ML repositories using GitHub GraphQL Search API.
- * Tracks checkpoint in Redis via { topicIndex, page, endCursor } to support multi-process resume.
+ * Discovers new AI/ML/Tech repositories using GitHub GraphQL Search API.
+ * Uses a hybrid approach:
+ * 1. For Low Stars (50..200): Queries using specific topics to target relevant tech/AI projects.
+ * 2. For High Stars (>=200): Performs global, keyword-free searches partitioned by star ranges to scan everything.
+ * Tracks checkpoint in Redis to support process resume.
  */
 export async function discoverNewRepos(maxPages: number = 10): Promise<DiscoveredRepo[]> {
   const checkpointKey = "crawler:checkpoint:github-discovery";
@@ -78,130 +81,227 @@ export async function discoverNewRepos(maxPages: number = 10): Promise<Discovere
     'tui', 'terminal', 'markdown-editor', 'mesh-network', 'edge-computing',
     'mental-health', 'whatsapp-crm', 'crm-system', 'ide-integration',
     'model-serving', 'inference-engine', 'git-client', 'nlp', 'sandboxing',
-    'note-taking', 'knowledge-base', 'ai-agent', 'llm-agent'
+    'note-taking', 'knowledge-base', 'llm-agent'
   ];
 
   const dbTopics = await getPopularDatabaseTopics(30);
   const topics = Array.from(new Set([...staticTopics, ...dbTopics]));
 
-  let startTopicIndex = 0;
-  let startPage = 1;
-  let startCursor: string | null = null;
+  // Define global high-star ranges (no topic limits)
+  const highStarRanges = [
+    { min: 200, max: 500 },
+    { min: 501, max: 1500 },
+    { min: 1501, max: 5000 },
+    { min: 5001, max: 20000 },
+    { min: 20001, max: 10000000 }
+  ];
+
+  // Default checkpoint state
+  let phase: "low-stars" | "high-stars" = "low-stars";
+  let topicIndex = 0;
+  let rangeIndex = 0;
+  let page = 1;
+  let cursor: string | null = null;
 
   try {
     const lastSavedCheckpoint = await redisConnection.get(checkpointKey);
     if (lastSavedCheckpoint) {
       const parsed = JSON.parse(lastSavedCheckpoint);
-      const savedTopic = parsed.topic;
-      const savedTopicIndex = savedTopic ? topics.indexOf(savedTopic) : parsed.topicIndex;
-
-      if (savedTopicIndex !== -1 && savedTopicIndex !== undefined) {
-        startTopicIndex = savedTopicIndex;
-        startPage = (parsed.page || 0) + 1; // Resume from the next page
-        startCursor = parsed.endCursor || null;
-        console.log(`[Discovery] Resuming GitHub Discovery from checkpoint. TopicIndex: ${startTopicIndex} (${topics[startTopicIndex]}), page: ${startPage}, cursor: ${startCursor}`);
-      } else {
-        console.log(`[Discovery] Saved checkpoint topic "${savedTopic || parsed.topicIndex}" not found in current topics. Starting from beginning.`);
-      }
+      phase = parsed.phase || "low-stars";
+      topicIndex = parsed.topicIndex || 0;
+      rangeIndex = parsed.rangeIndex || 0;
+      page = (parsed.page || 0) + 1;
+      cursor = parsed.endCursor || null;
+      console.log(`[Discovery] Resuming GitHub Discovery. Phase: ${phase}, TopicIndex: ${topicIndex}, RangeIndex: ${rangeIndex}, Page: ${page}`);
     }
   } catch (err) {
     console.warn("[Discovery] Failed to read Redis checkpoint, starting from beginning.", err);
   }
 
-  // If startPage has already exceeded maxPages, or topicIndex is out of bounds, reset checkpoint
-  if (startTopicIndex >= topics.length || startPage > maxPages) {
-    console.log(`[Discovery] Checkpoint state exceeds max bounds (Topic: ${startTopicIndex}/${topics.length}, Page: ${startPage}/${maxPages}). Resetting.`);
-    startTopicIndex = 0;
-    startPage = 1;
-    startCursor = null;
-    try {
-      await redisConnection.del(checkpointKey);
-    } catch { }
-  }
-
   const discoveredMap = new Map<string, DiscoveredRepo>();
   let completedAll = true;
 
-  for (let t = startTopicIndex; t < topics.length; t++) {
-    const topic = topics[t];
-    let completedTopic = false;
+  // --- PHASE 1: LOW STARS (50..200) WITH TOPICS ---
+  if (phase === "low-stars") {
+    for (let t = topicIndex; t < topics.length; t++) {
+      const topic = topics[t];
+      let completedTopic = false;
+      const pageStart = (t === topicIndex) ? page : 1;
+      let topicCursor = (t === topicIndex) ? cursor : null;
 
-    // Determine page and cursor to start for this specific topic
-    const pageStart = (t === startTopicIndex) ? startPage : 1;
-    let cursor: string | null = (t === startTopicIndex) ? startCursor : null;
+      // Fetch up to maxPages per topic inside the 50..200 range
+      const topicMaxPages = maxPages;
 
-    for (let page = pageStart; page <= maxPages; page++) {
-      console.log(`[Discovery] Fetching page ${page} of GitHub GraphQL Search for query: ("${topic}" in:name,description OR topic:${topic}) using cursor: ${cursor || 'null'}...`);
+      for (let p = pageStart; p <= topicMaxPages; p++) {
+        console.log(`[Discovery] Low Stars (50..200) - Topic: ${topic} (${t + 1}/${topics.length}), Page: ${p}/${topicMaxPages} using cursor: ${topicCursor || 'null'}...`);
 
-      try {
-        const query = `("${topic}" in:name,description OR topic:${topic}) stars:>50 sort:updated-desc`;
-        const data = await searchGitHubRepos(query, 100, cursor);
-        const items = data.nodes || [];
-
-        if (items.length === 0) {
-          completedTopic = true;
-          break; // No more results for this topic
-        }
-
-        for (const item of items) {
-          const key = `${item.owner}/${item.name}`;
-          discoveredMap.set(key, {
-            owner: item.owner,
-            repo: item.name,
-            stars: item.stars,
-          });
-        }
-
-        cursor = data.endCursor;
-        const hasNextPage = data.hasNextPage;
-
-        // Save checkpoint page, topicIndex, topic, and cursor to Redis
         try {
-          await redisConnection.set(checkpointKey, JSON.stringify({
-            topicIndex: t,
-            topic,
-            page,
-            endCursor: cursor
-          }));
-        } catch (err) {
-          console.warn(`[Discovery] Failed to save checkpoint in Redis`, err);
-        }
+          const query = `("${topic}" in:name,description OR topic:${topic}) stars:50..200 sort:updated-desc`;
+          const data = await searchGitHubRepos(query, 100, topicCursor);
+          const items = data.nodes || [];
 
-        if (!hasNextPage || page === maxPages) {
-          completedTopic = true;
+          if (items.length === 0) {
+            completedTopic = true;
+            break;
+          }
+
+          for (const item of items) {
+            const key = `${item.owner}/${item.name}`;
+            discoveredMap.set(key, {
+              owner: item.owner,
+              repo: item.name,
+              stars: item.stars,
+            });
+          }
+
+          topicCursor = data.endCursor;
+          const hasNextPage = data.hasNextPage;
+
+          // Save checkpoint
+          try {
+            await redisConnection.set(checkpointKey, JSON.stringify({
+              phase: "low-stars",
+              topicIndex: t,
+              page: p,
+              endCursor: topicCursor
+            }));
+          } catch (err) {
+            console.warn(`[Discovery] Failed to save checkpoint in Redis`, err);
+          }
+
+          if (!hasNextPage || p === topicMaxPages) {
+            completedTopic = true;
+            break;
+          }
+
+          await setTimeout(2500);
+        } catch (error: unknown) {
+          const err = error instanceof Error ? error : new Error(String(error));
+          if (err.message?.includes('[RateLimitError]')) {
+            console.warn(`[Discovery] GitHub API rate limit reached. Stopping and saving checkpoint.`);
+          } else {
+            console.error(`[Discovery] Error during Low Stars search (topic:${topic}, page:${p}):`, error);
+          }
+          completedAll = false;
           break;
         }
-
-        // Safe delay to respect API guidelines/courtesy
-        await setTimeout(2500);
-
-      } catch (error: unknown) {
-        const err = error instanceof Error ? error : new Error(String(error));
-        if (err.message?.includes('[RateLimitError]')) {
-          console.warn(`[Discovery] GitHub API rate limit reached (all tokens exhausted). Stopping discovery and saving checkpoint.`);
-        } else {
-          console.error(`[Discovery] Error during GitHub Search for topic:${topic} page:${page}:`, error);
-        }
-        completedTopic = false;
-        break; // Safe exit on error for this topic
       }
-    }
-    if (completedTopic) {
-      try {
-        if (t + 1 < topics.length) {
+
+      if (!completedTopic) {
+        completedAll = false;
+        break;
+      }
+
+      // Prepare next topic checkpoint
+      if (t + 1 < topics.length) {
+        page = 1;
+        cursor = null;
+        try {
           await redisConnection.set(checkpointKey, JSON.stringify({
+            phase: "low-stars",
             topicIndex: t + 1,
-            topic: topics[t + 1],
             page: 0,
             endCursor: null
           }));
-        }
-      } catch (err) {
-        console.warn(`[Discovery] Failed to save next topic checkpoint in Redis`, err);
+        } catch {}
+      } else {
+        // Transition to Phase 2: High Stars
+        phase = "high-stars";
+        rangeIndex = 0;
+        page = 1;
+        cursor = null;
+        try {
+          await redisConnection.set(checkpointKey, JSON.stringify({
+            phase: "high-stars",
+            rangeIndex: 0,
+            page: 0,
+            endCursor: null
+          }));
+        } catch {}
       }
-    } else {
-      completedAll = false;
-      break; // Stop loop and preserve checkpoint
+    }
+  }
+
+  // --- PHASE 2: HIGH STARS (>=200) GLOBAL RANGES ---
+  if (completedAll && phase === "high-stars") {
+    for (let r = rangeIndex; r < highStarRanges.length; r++) {
+      const range = highStarRanges[r];
+      let completedRange = false;
+      const pageStart = (r === rangeIndex) ? page : 1;
+      let rangeCursor = (r === rangeIndex) ? cursor : null;
+
+      for (let p = pageStart; p <= maxPages; p++) {
+        console.log(`[Discovery] High Stars (${range.min}..${range.max}) - Range: ${r + 1}/${highStarRanges.length}, Page: ${p}/${maxPages} using cursor: ${rangeCursor || 'null'}...`);
+
+        try {
+          const query = `stars:${range.min}..${range.max} sort:updated-desc`;
+          const data = await searchGitHubRepos(query, 100, rangeCursor);
+          const items = data.nodes || [];
+
+          if (items.length === 0) {
+            completedRange = true;
+            break;
+          }
+
+          for (const item of items) {
+            const key = `${item.owner}/${item.name}`;
+            discoveredMap.set(key, {
+              owner: item.owner,
+              repo: item.name,
+              stars: item.stars,
+            });
+          }
+
+          rangeCursor = data.endCursor;
+          const hasNextPage = data.hasNextPage;
+
+          // Save checkpoint
+          try {
+            await redisConnection.set(checkpointKey, JSON.stringify({
+              phase: "high-stars",
+              rangeIndex: r,
+              page: p,
+              endCursor: rangeCursor
+            }));
+          } catch (err) {
+            console.warn(`[Discovery] Failed to save checkpoint in Redis`, err);
+          }
+
+          if (!hasNextPage || p === maxPages) {
+            completedRange = true;
+            break;
+          }
+
+          await setTimeout(2500);
+        } catch (error: unknown) {
+          const err = error instanceof Error ? error : new Error(String(error));
+          if (err.message?.includes('[RateLimitError]')) {
+            console.warn(`[Discovery] GitHub API rate limit reached. Stopping and saving checkpoint.`);
+          } else {
+            console.error(`[Discovery] Error during High Stars search (${range.min}..${range.max}, page:${p}):`, error);
+          }
+          completedAll = false;
+          break;
+        }
+      }
+
+      if (!completedRange) {
+        completedAll = false;
+        break;
+      }
+
+      if (r + 1 < highStarRanges.length) {
+        page = 1;
+        cursor = null;
+        try {
+          await redisConnection.set(checkpointKey, JSON.stringify({
+            phase: "high-stars",
+            rangeIndex: r + 1,
+            page: 0,
+            endCursor: null
+          }));
+        } catch {}
+      }
     }
   }
 
@@ -209,15 +309,15 @@ export async function discoverNewRepos(maxPages: number = 10): Promise<Discovere
   if (completedAll) {
     try {
       await redisConnection.del(checkpointKey);
-      console.log("[Discovery] GitHub discovery completed successfully. Cleared Redis checkpoint.");
+      console.log("[Discovery] GitHub Hybrid discovery completed successfully. Cleared checkpoint.");
     } catch (err) {
       console.warn("[Discovery] Failed to clear Redis checkpoint", err);
     }
   } else {
     try {
       const currentVal = await redisConnection.get(checkpointKey);
-      console.log(`[Discovery] GitHub discovery interrupted. Checkpoint preserved: ${currentVal || "unknown"}.`);
-    } catch { }
+      console.log(`[Discovery] GitHub Hybrid discovery interrupted. Checkpoint preserved: ${currentVal || "unknown"}.`);
+    } catch {}
   }
 
   return Array.from(discoveredMap.values());

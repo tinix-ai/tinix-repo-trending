@@ -89,21 +89,21 @@ async function setupRepeatableJobs() {
     console.error('[Scheduler Worker] Error cleaning up repeatable jobs:', error);
   }
 
-  // 1. Daily Discovery: Run at 00:00 every day GMT+7
+  // 1. Daily Discovery: Run twice daily at 12:15 AM and 12:15 PM GMT+7
   await schedulerQueue.add('daily-discovery', {}, {
-    repeat: { pattern: '0 0 * * *', tz: 'Asia/Ho_Chi_Minh' },
+    repeat: { pattern: '15 0,12 * * *', tz: 'Asia/Ho_Chi_Minh' },
     jobId: 'repeat-daily-discovery'
   });
-
-  // 2. Daily Update: Run at 00:30 every day GMT+7
+ 
+  // 2. Daily Update: Run twice daily at 12:45 AM and 12:45 PM GMT+7
   await schedulerQueue.add('daily-update', {}, {
-    repeat: { pattern: '30 0 * * *', tz: 'Asia/Ho_Chi_Minh' },
+    repeat: { pattern: '45 0,12 * * *', tz: 'Asia/Ho_Chi_Minh' },
     jobId: 'repeat-daily-update'
   });
-
-  // 3. Social Mentions Update: Run at 01:00 every day GMT+7
+ 
+  // 3. Social Mentions Update: Run twice daily at 1:15 AM and 1:15 PM GMT+7
   await schedulerQueue.add('social-mentions', {}, {
-    repeat: { pattern: '0 1 * * *', tz: 'Asia/Ho_Chi_Minh' },
+    repeat: { pattern: '15 1,13 * * *', tz: 'Asia/Ho_Chi_Minh' },
     jobId: 'repeat-social-mentions'
   });
 
