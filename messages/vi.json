@@ -60,6 +60,7 @@
     "sortBy": "Sắp xếp theo",
     "sortTrendDesc": "Thịnh hành nhất",
     "sortStarsDesc": "Nhiều Sao nhất",
+    "sortLikesDesc": "Nhiều Like nhất",
     "sortStarsAsc": "Ít Sao nhất",
     "sortUpdatedDesc": "Mới cập nhật",
     "sortViewsDesc": "Nhiều lượt xem nhất",
@@ -77,7 +78,8 @@
     "tracker": "Theo dõi dự án nguồn mở",
     "liveMentions": "Thảo luận",
     "collections": "Bộ sưu tập",
-    "forum": "Diễn đàn"
+    "forum": "Diễn đàn",
+    "community": "Cộng đồng"
   },
   "Submit": {
     "title": "Gửi Dự Án",
@@ -97,6 +99,7 @@
     "tabAnalytics": "Phân tích",
     "tabScheduled": "Tác vụ định kỳ",
     "tabCategories": "Danh mục phân loại",
+    "tabSubmissions": "Dự án chờ duyệt",
     "addCategory": "Thêm danh mục",
     "editCategory": "Sửa danh mục",
     "categoryName": "Tên danh mục (ID)",
@@ -302,5 +305,36 @@
     "title": "Không Tìm Thấy Trang",
     "desc": "Xin lỗi, chúng tôi không thể tìm thấy trang bạn đang yêu cầu. Trang có thể đã bị di chuyển hoặc không tồn tại.",
     "backHome": "Quay lại Trang Chủ"
+  },
+  "Dashboard": {
+    "title": "Dự án của tôi",
+    "subtitle": "Quản lý các dự án bạn đã gửi và theo dõi hiệu suất của chúng.",
+    "noProjects": "Chưa có dự án nào",
+    "noProjectsDesc": "Bạn chưa gửi dự án nào. Hãy gửi dự án đầu tiên của bạn để xem tại đây!",
+    "submitProject": "Gửi Dự án",
+    "noDescription": "Không có mô tả",
+    "statusApproved": "Đã duyệt",
+    "statusRejected": "Bị từ chối",
+    "statusPending": "Chờ duyệt",
+    "submittedAt": "Đã gửi {date}"
+  },
+  "SubmissionsManager": {
+    "filterAll": "Tất cả",
+    "filterPending": "Chờ duyệt",
+    "filterApproved": "Đã duyệt",
+    "filterRejected": "Đã từ chối",
+    "noSubmissions": "Không có dự án nào",
+    "noSubmissionsDesc": "Không có dự án {filter} nào để hiển thị.",
+    "noDescription": "Không có mô tả",
+    "unknownUser": "Người dùng ẩn danh",
+    "submittedAt": "Gửi ngày: {date}",
+    "approve": "Duyệt",
+    "reject": "Từ chối",
+    "approveSuccess": "Đã duyệt dự án và đưa vào hàng đợi",
+    "rejectSuccess": "Đã từ chối dự án",
+    "actionFailed": "Thao tác thất bại",
+    "statusApproved": "Đã duyệt",
+    "statusRejected": "Từ chối",
+    "statusPending": "Chờ duyệt"
   }
 }

@@ -1,6 +1,7 @@
 import { actionGetRecentCollections } from "@/app/actions";
 import { Link } from "@/i18n/routing";
 import { FolderHeart, Calendar, ArrowRight, Layers, Sparkles, AlertCircle } from "lucide-react";
+import { PageHeader } from "@/components/common/page-header";
 
 interface PageProps {
   params: Promise<{ locale: string }>;
@@ -14,20 +15,19 @@ export default async function CollectionsPage({ params }: PageProps) {
   return (
     <div className="w-full bg-[var(--color-canvas)] min-h-screen pb-16">
       {/* Hero Section */}
-      <section className="apple-tile-light w-full pt-12 pb-14 border-b border-[var(--color-divider-soft)]">
-        <div className="page-container max-w-4xl mx-auto px-4 text-center space-y-4">
-          <div className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[var(--color-action-blue)] bg-[var(--color-action-blue)]/10 border border-[var(--color-action-blue)]/20 px-3 py-1 rounded-full">
-            <FolderHeart className="w-3.5 h-3.5" />
-            {isVi ? "Cộng đồng tuyển chọn" : "Curated by Community"}
-          </div>
-          <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-[var(--color-ink)]">
-            {isVi ? "Bộ sưu tập Mã nguồn mở" : "Open Source Collections"}
-          </h1>
-          <p className="text-[16px] text-[var(--color-text-secondary)] leading-relaxed max-w-xl mx-auto">
-            {isVi 
+      <section className="apple-tile-light w-full border-b border-[var(--color-divider-soft)]">
+        <div className="page-container max-w-5xl mx-auto px-4">
+          <PageHeader 
+            title={isVi ? "Bộ sưu tập Mã nguồn mở" : "Open Source Collections"} 
+            subtitle={isVi 
               ? "Khám phá các danh sách tuyển chọn dự án thịnh hành hàng đầu (Top 3, 5, 10) từ cộng đồng lập trình viên."
               : "Discover curated lists of top trending projects (Top 3, 5, 10) handpicked by the developer community."}
-          </p>
+          >
+            <div className="inline-flex items-center justify-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[var(--color-action-blue)] bg-[var(--color-action-blue)]/10 border border-[var(--color-action-blue)]/20 px-3 py-1 rounded-full">
+              <FolderHeart className="w-3.5 h-3.5" />
+              {isVi ? "Cộng đồng tuyển chọn" : "Curated by Community"}
+            </div>
+          </PageHeader>
         </div>
       </section>
 

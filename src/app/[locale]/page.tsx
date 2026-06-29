@@ -178,13 +178,14 @@ export default function HomePage() {
   // Pagination & Filter
   const currentPage = Number(searchParams.get("page")) || 1;
   const filterType = (searchParams.get("filter") as "trending" | "all" | "new") || "trending";
-  const sortBy = (searchParams.get("sortBy") as "project" | "stars" | "trend" | "updated" | "views") || undefined;
+  const sortBy = (searchParams.get("sortBy") as "project" | "stars" | "likes" | "trend" | "updated" | "views") || undefined;
   const sortOrder = (searchParams.get("sortOrder") as "asc" | "desc") || undefined;
   const projectType = searchParams.get("type") || "";
   const itemsPerPage = 20;
 
   const t = useTranslations("HomePage");
   const [projects, setProjects] = useState<RankedProject[]>([]);
+  const [hotVNProjects, setHotVNProjects] = useState<RankedProject[]>([]);
   const [totalProjects, setTotalProjects] = useState(0);
   const [stats, setStats] = useState({ totalProjects: 12847, trendingProjects: 2340, newProjects: 0 });
   const [categories, setCategories] = useState<Category[]>([]);
@@ -294,6 +295,16 @@ export default function HomePage() {
     fetchGlobalStats().then(setStats);
     fetchCategoryStats().then(setCategories);
     fetchPopularFilters(selectedSource || undefined).then(setPopularFilters);
+    
+    // Fetch Hot VN Projects
+    fetchDynamicRankings({
+      days: 1,
+      limit: 10,
+      country: "vn",
+      filterType: "trending",
+      sortBy: "trend",
+      sortOrder: "desc"
+    }).then(res => setHotVNProjects(res.projects));
   }, []);
 
   // Re-fetch popular filters when source changes
@@ -956,9 +967,9 @@ export default function HomePage() {
                 >
                   <option value="">{t("sortTrendDesc")}</option>
                   <option value="stars-desc">{t("sortStarsDesc")}</option>
-                  <option value="stars-asc">{t("sortStarsAsc")}</option>
-                  <option value="updated-desc">{t("sortUpdatedDesc")}</option>
+                  <option value="likes-desc">{t("sortLikesDesc")}</option>
                   <option value="views-desc">{t("sortViewsDesc")}</option>
+                  <option value="updated-desc">{t("sortUpdatedDesc")}</option>
                 </select>
               </div>
             </div>
@@ -1201,6 +1212,52 @@ export default function HomePage() {
                     </Link>
                   );
                 })}
+              </div>
+            </div>
+
+            {/* Hot Vietnam Projects Widget */}
+            <div className="apple-utility-card p-6 relative overflow-hidden group/widget">
+              <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-red-500/5 blur-xl transition-all duration-500 group-hover/widget:bg-red-500/10 pointer-events-none" />
+              <h2 className="text-apple-body-strong mb-5 flex items-center gap-2 font-bold text-[var(--color-ink)]">
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-red-500/10 text-red-500 shadow-[0_0_12px_rgba(239,68,68,0.1)]">
+                  <Flame className="h-4 w-4 animate-pulse" />
+                </div>
+                Vietnamese Trending
+              </h2>
+              <div className="space-y-3">
+                {hotVNProjects.map((project, idx) => {
+                  const gained = project.source === 'github' ? project.starsGained : project.downloadsGained;
+                  return (
+                    <Link
+                      key={project.id}
+                      href={`/project/${project.slug.replace(/\//g, '-')}-${project.id}`}
+                      className="flex items-center gap-3 p-2 rounded-xl hover:bg-[var(--color-surface-pearl)] transition-colors border border-transparent hover:border-[var(--color-divider-soft)] group min-w-0"
+                    >
+                      <div className="text-xl font-bold text-[var(--color-ink-muted-48)] w-5 text-right shrink-0">
+                        {idx + 1}
+                      </div>
+                      <div className="flex-1 min-w-0 flex flex-col justify-center">
+                        <div className="text-sm font-semibold text-[var(--color-ink)] truncate group-hover:text-[var(--color-action-blue)] transition-colors">
+                          {project.fullName}
+                        </div>
+                        <div className="flex items-center gap-2 text-[10px] text-[var(--color-ink-muted-80)] font-medium mt-0.5">
+                          {gained && gained > 0 && (
+                            <span className="flex items-center gap-0.5 text-orange-500 font-semibold shrink-0">
+                              <TrendingUp className="h-3 w-3" />
+                              +{formatNumber(gained)}
+                            </span>
+                          )}
+                          <span className="truncate">{project.description || "No description"}</span>
+                        </div>
+                      </div>
+                    </Link>
+                  );
+                })}
+                {hotVNProjects.length === 0 && (
+                  <div className="text-xs text-[var(--color-ink-muted-80)] text-center py-4">
+                    Fetching data...
+                  </div>
+                )}
               </div>
             </div>
 

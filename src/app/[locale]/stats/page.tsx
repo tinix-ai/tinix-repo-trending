@@ -4,6 +4,7 @@ import type { Category } from "@/types";
 import { getTranslations } from "next-intl/server";
 import { CategoryIcon } from "@/components/common/category-icon";
 import { StatsCards } from "@/components/stats/stats-cards";
+import { PageHeader } from "@/components/common/page-header";
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
@@ -21,13 +22,11 @@ export default async function StatsPage() {
 
   return (
     <div className="page-container py-12">
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-4xl font-extrabold tracking-tight text-[var(--color-ink)] mb-3">
-          {t("header")}
-        </h1>
-        <p className="text-[var(--color-ink-muted-80)] mb-10">
-          {t("subtitle")}
-        </p>
+      <div className="max-w-5xl mx-auto">
+        <PageHeader 
+          title={t("header")} 
+          subtitle={t("subtitle")} 
+        />
  
         <StatsCards
           totalProjects={globalStats.totalProjects}
@@ -41,40 +40,29 @@ export default async function StatsPage() {
           {t("byCategory")}
         </h2>
         
-        <div className="apple-utility-card p-0 overflow-hidden">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="border-b border-[var(--color-hairline)] bg-[var(--color-surface-elevated)]">
-                <th className="py-3 px-6 text-xs font-semibold text-[var(--color-ink-muted-80)] uppercase tracking-wider">{t("categoryCol")}</th>
-                <th className="py-3 px-6 text-xs font-semibold text-[var(--color-ink-muted-80)] uppercase tracking-wider text-right">{t("projectsCol")}</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[var(--color-hairline)]">
-              {categoryStats.map((cat: Category) => (
-                <tr key={cat.id} className="hover:bg-[var(--color-divider-soft)] transition-colors">
-                  <td className="py-4 px-6 flex items-center gap-3">
-                    <span 
-                      className="flex items-center justify-center w-7 h-7 rounded-lg" 
-                      style={{ backgroundColor: `${cat.color}15`, color: cat.color }}
-                    >
-                      <CategoryIcon icon={cat.icon} name={cat.name} className="h-4 w-4" />
-                    </span>
-                    <span className="font-medium text-[var(--color-ink)]">{cat.name}</span>
-                  </td>
-                  <td className="py-4 px-6 text-right font-medium tabular-nums text-[var(--color-ink-muted-80)]">
-                    {(cat.projectCount ?? 0).toLocaleString()}
-                  </td>
-                </tr>
-              ))}
-              {categoryStats.length === 0 && (
-                <tr>
-                  <td colSpan={2} className="py-8 text-center text-[var(--color-ink-muted-48)]">
-                    {t("noCategories")}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+          {categoryStats.map((cat: Category) => (
+            <div 
+              key={cat.id} 
+              className="glass-card hover-spring glow-interactive p-5 flex flex-col items-center justify-center gap-2 group relative overflow-hidden"
+            >
+              <div 
+                className="flex items-center justify-center w-12 h-12 rounded-2xl mb-2 group-hover:scale-110 group-hover:-translate-y-1 transition-all duration-300 shadow-sm" 
+                style={{ backgroundColor: `${cat.color}15`, color: cat.color }}
+              >
+                <CategoryIcon icon={cat.icon} name={cat.name} className="h-6 w-6" />
+              </div>
+              <span className="font-semibold text-[15px] text-[var(--color-ink)] line-clamp-1 text-center w-full">{cat.name}</span>
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-ink-muted-80)] bg-[var(--color-surface-pearl)] px-2.5 py-1 rounded-full border border-[var(--color-divider-soft)] shadow-sm tabular-nums">
+                {(cat.projectCount ?? 0).toLocaleString()} {t("projectsCol") || "Dự án"}
+              </span>
+            </div>
+          ))}
+          {categoryStats.length === 0 && (
+            <div className="col-span-full py-12 text-center text-[var(--color-ink-muted-48)] glass-card">
+              {t("noCategories")}
+            </div>
+          )}
         </div>
       </div>
     </div>

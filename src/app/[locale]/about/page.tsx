@@ -1,5 +1,6 @@
 import { useTranslations } from "next-intl";
 import { getTranslations } from "next-intl/server";
+import { PageHeader } from "@/components/common/page-header";
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
@@ -16,9 +17,9 @@ export default function AboutPage() {
   return (
     <div className="page-container py-12">
       <div className="max-w-3xl mx-auto prose prose-invert prose-blue">
-        <h1 className="text-4xl font-extrabold tracking-tight text-[var(--color-ink)] mb-8">
-          {t("header")}
-        </h1>
+        <PageHeader 
+          title={t("header")} 
+        />
         
         <div className="apple-utility-card p-8 mb-8 text-[var(--color-ink)]">
           <p className="text-lg leading-relaxed text-[var(--color-ink-muted-80)] mb-6">

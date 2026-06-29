@@ -476,7 +476,7 @@ export async function runDailySocialMentions() {
         -- Actively growing HuggingFace models/datasets
         (p.source = 'huggingface' AND (
           COALESCE(pt.weekly_downloads, 0) >= 50
-          OR COALESCE(pt.weekly_likes, 0) >= 5
+          OR COALESCE(pt.weekly_stars, 0) >= 5
           OR (pt.project_id IS NULL AND COALESCE(p.likes, 0) >= 500)
         ))
       )

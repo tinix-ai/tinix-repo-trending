@@ -729,17 +729,18 @@ export default function ShareAnalyticsDashboard() {
   const clicksChange = summary?.clicksChange ?? null;
 
   return (
-    <div className="w-full space-y-6">
-      {/* ── Top Header ── */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+    <div className="w-full">
+      <div className="mt-6 md:mt-10 mb-8">
+        <h1 className="text-3xl md:text-[32px] font-bold tracking-tight text-[var(--color-ink)] leading-tight flex items-center gap-3">
+          <BarChart2 className="text-[var(--color-action-blue)]" size={32} />
+          Share Links Analytics
+        </h1>
+      </div>
+
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
         <div>
           <div className="flex items-center gap-2">
-            <BarChart2 className="text-[var(--color-ink-muted-64)]" size={20} />
-            <h1 className="text-xl font-bold text-[var(--color-ink)] tracking-tight">Share Link Analytics</h1>
-            <span className="bg-[var(--color-action-blue)]/10 border border-[var(--color-action-blue)]/20 rounded-full px-2 py-0.5 text-[10px] text-[var(--color-action-blue)] font-semibold uppercase tracking-wider">
-              BETA
-            </span>
-            {lastUpdated && <span className="ml-2 text-[11px] text-[var(--color-ink-muted-48)]">Updated {lastUpdated.toLocaleTimeString()}</span>}
+            {lastUpdated && <span className="text-[11px] text-[var(--color-ink-muted-48)]">Updated {lastUpdated.toLocaleTimeString()}</span>}
           </div>
         </div>
 

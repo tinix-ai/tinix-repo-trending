@@ -1,16 +1,17 @@
 "use server";
 
 import { Queue } from "bullmq";
-import { getDynamicTrendingProjects, ProjectQueryParams, getGlobalStats, getProjectBySlug, getProjectHistory, getProjectById, getCategoryStats, getPopularLanguagesAndHashtags, getDatabaseStorageStats, getLanguageStats, getDataStalenessStats, getDatabaseGrowthStats, getProjectMentions, getRecentSocialMentions, getPaginatedSocialMentions, getSimilarProjects, createCollection, getCollectionBySlug, getRecentCollections } from "@/lib/db/queries";
-import type { PaginatedMentionsParams } from "@/lib/db/queries";
+import { getDynamicTrendingProjects, ProjectQueryParams, getGlobalStats, getProjectBySlug, getProjectHistory, getProjectById, getCategoryStats, getPopularLanguagesAndHashtags, getDatabaseStorageStats, getLanguageStats, getDataStalenessStats, getDatabaseGrowthStats, getProjectMentions, getRecentSocialMentions, getPaginatedSocialMentions, getSimilarProjects, createCollection, getCollectionBySlug, getRecentCollections, getUnifiedCommunityFeed, getForumCategoriesWithThreads, getCategoryProjectsForForum, getProjectThreadDetails, getProjectThreadReplies } from "@/lib/db/queries";
+import type { PaginatedMentionsParams, UnifiedActivityParams, ForumThread, ForumCategory } from "@/lib/db/queries";
 import os from "os";
 
 import type { RankedProject } from "@/types";
 import { redisConnection, crawlerQueue, hfQueue, githubUpdaterQueue, hfUpdaterQueue, schedulerQueue, socialCrawlerQueue } from "@/workers/queue";
 import { githubPool } from "@/lib/crawlers/github-pool";
 import { db } from "@/lib/db";
-import { projects, categories as categoriesTable } from "@/lib/db/schema";
-import { eq, sql, ilike, or } from "drizzle-orm";
+import { projects, categories as categoriesTable, projectReviews, users, projectSubmissions } from "@/lib/db/schema";
+import { eq, sql, ilike, or, desc } from "drizzle-orm";
+import { getSession } from "@/lib/auth";
 import { ensureCategoriesLoaded, categorizeProject } from "@/lib/categorizer";
 
 export async function fetchDynamicRankings(params: ProjectQueryParams): Promise<{ projects: RankedProject[], total: number }> {
@@ -56,6 +57,49 @@ export async function fetchRecentSocialMentions(limit: number = 30) {
 
 export async function fetchPaginatedMentions(params: PaginatedMentionsParams) {
   return await getPaginatedSocialMentions(params);
+}
+
+export async function fetchUnifiedCommunityFeed(params: UnifiedActivityParams) {
+  return await getUnifiedCommunityFeed(params);
+}
+
+export async function fetchForumCategoriesWithThreads() {
+  return await getForumCategoriesWithThreads();
+}
+
+export async function fetchCategoryProjectsForForum(categorySlug: string, params: { page?: number; perPage?: number }) {
+  return await getCategoryProjectsForForum(categorySlug, params);
+}
+
+export async function fetchProjectThreadDetails(slug: string) {
+  return await getProjectThreadDetails(slug);
+}
+
+export async function fetchProjectThreadReplies(projectId: string, params: { page?: number; perPage?: number }) {
+  return await getProjectThreadReplies(projectId, params);
+}
+
+export async function fetchProjectReviews(projectId: string) {
+  try {
+    return await db
+      .select({
+        id: projectReviews.id,
+        rating: projectReviews.rating,
+        reviewText: projectReviews.reviewText,
+        createdAt: projectReviews.createdAt,
+        user: {
+          username: users.username,
+          role: users.role,
+        },
+      })
+      .from(projectReviews)
+      .innerJoin(users, eq(projectReviews.userId, users.id))
+      .where(eq(projectReviews.projectId, projectId))
+      .orderBy(desc(projectReviews.createdAt));
+  } catch (error) {
+    console.error("fetchProjectReviews error:", error);
+    return [];
+  }
 }
 
 export async function triggerCrawlerSync(source: 'github' | 'huggingface') {
@@ -1048,4 +1092,252 @@ export async function actionGetCollectionBySlug(slug: string) {
 
 export async function actionGetRecentCollections(limit: number = 10) {
   return await getRecentCollections(limit);
+}
+
+// --- SUBMISSION ACTIONS ---
+
+function extractSourceInfo(url: string): { source: 'github' | 'huggingface' | 'custom', sourceId: string, type: 'repository' | 'model' | 'dataset' | 'custom' } | null {
+  try {
+    const parsed = new URL(url);
+    if (parsed.hostname === 'github.com') {
+      const parts = parsed.pathname.split('/').filter(Boolean);
+      if (parts.length >= 2) {
+        return { source: 'github', sourceId: `${parts[0]}/${parts[1]}`, type: 'repository' };
+      }
+    } else if (parsed.hostname === 'huggingface.co') {
+      const parts = parsed.pathname.split('/').filter(Boolean);
+      if (parts.length >= 2) {
+        if (parts[0] === 'datasets') {
+          return { source: 'huggingface', sourceId: `${parts[1]}/${parts[2] || ''}`.replace(/\/$/, ''), type: 'dataset' };
+        } else {
+          // Model
+          return { source: 'huggingface', sourceId: `${parts[0]}/${parts[1]}`, type: 'model' };
+        }
+      } else if (parts.length === 1 && parts[0] !== 'datasets') {
+         // Some models have no owner namespace? rare, but possible. usually owner/model.
+         return { source: 'huggingface', sourceId: parts[0], type: 'model' };
+      }
+    }
+    // Return custom for any other valid URL
+    return { source: 'custom', sourceId: parsed.hostname, type: 'custom' };
+  } catch (e) {
+    return null;
+  }
+}
+
+export async function actionPreAnalyzeUrl(url: string) {
+  const info = extractSourceInfo(url);
+  if (!info) return { success: false, error: "Invalid URL provided." };
+
+  try {
+    let preAnalysisData: any = {};
+    
+    // Check if it already exists in projects table
+    const existing = await db.select({ id: projects.id }).from(projects).where(eq(projects.sourceId, info.sourceId)).limit(1);
+    if (existing.length > 0) {
+      return { success: false, error: "Project already exists in the system." };
+    }
+
+    if (info.source === 'custom') {
+      return { success: true, info, preAnalysisData: null };
+    }
+
+    if (info.source === 'github') {
+      const token = await githubPool.getAvailableToken();
+      const headers: Record<string, string> = {
+        'Accept': 'application/vnd.github.v3+json',
+        'User-Agent': 'Tinix-Crawler'
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      const res = await fetch(`https://api.github.com/repos/${info.sourceId}`, { headers });
+      if (!res.ok) throw new Error("GitHub repository not found or API limit reached.");
+      const data = await res.json();
+      preAnalysisData = {
+        name: data.name,
+        fullName: data.full_name,
+        description: data.description,
+        stars: data.stargazers_count,
+        avatar: data.owner?.avatar_url,
+      };
+    } else if (info.source === 'huggingface') {
+      const endpoint = info.type === 'dataset' ? `https://huggingface.co/api/datasets/${info.sourceId}` : `https://huggingface.co/api/models/${info.sourceId}`;
+      const res = await fetch(endpoint);
+      if (!res.ok) throw new Error("HuggingFace project not found.");
+      const data = await res.json();
+      preAnalysisData = {
+        name: data.id?.split('/').pop() || data.id,
+        fullName: data.id,
+        description: data.pipeline_tag || "HuggingFace Project",
+        stars: data.likes || 0,
+        avatar: `https://huggingface.co/front/assets/huggingface_logo-noborder.svg`,
+      };
+    }
+
+    return { success: true, info, preAnalysisData };
+  } catch (error: any) {
+    return { success: false, error: error.message || "Failed to analyze URL." };
+  }
+}
+
+
+export async function actionSubmitProject(url: string | undefined, preAnalysisData: any, isCustom: boolean = false) {
+  let info: any;
+  let finalUrl = url || "";
+
+  if (isCustom) {
+    const customId = `custom-${Date.now()}`;
+    info = { source: 'custom', sourceId: customId, type: 'custom' };
+    finalUrl = finalUrl || `custom://${customId}`;
+  } else {
+    if (!finalUrl) return { success: false, error: "URL is required." };
+    info = extractSourceInfo(finalUrl);
+    if (!info) return { success: false, error: "Invalid URL." };
+  }
+
+  try {
+    const session = await getSession();
+    const submitterId = session?.userId || null;
+
+    // Check if already submitted
+    const existing = await db.select({ id: projectSubmissions.id, status: projectSubmissions.status })
+      .from(projectSubmissions)
+      .where(eq(projectSubmissions.url, finalUrl))
+      .limit(1);
+
+    if (existing.length > 0) {
+      if (existing[0].status === 'pending') return { success: false, error: "This project is already pending approval." };
+      if (existing[0].status === 'approved') return { success: false, error: "This project is already approved and listed." };
+      
+      // If rejected, allow resubmission by updating the record
+      await db.update(projectSubmissions).set({
+        status: 'pending',
+        preAnalysisData,
+        submittedAt: new Date(),
+        submitterId
+      }).where(eq(projectSubmissions.url, finalUrl));
+    } else {
+      await db.insert(projectSubmissions).values({
+        url: finalUrl,
+        source: info.source,
+        sourceId: info.sourceId,
+        status: 'pending',
+        preAnalysisData,
+        submitterId
+      });
+    }
+
+    return { success: true };
+  } catch (error: any) {
+    console.error("Submission error:", error);
+    return { success: false, error: "Failed to submit project." };
+  }
+}
+
+export async function actionGetSubmissions() {
+  try {
+    const data = await db
+      .select({
+        submission: projectSubmissions,
+        user: {
+          id: users.id,
+          username: users.username
+        }
+      })
+      .from(projectSubmissions)
+      .leftJoin(users, eq(projectSubmissions.submitterId, users.id))
+      .orderBy(desc(projectSubmissions.submittedAt));
+      
+    return data.map(row => ({
+      ...row.submission,
+      submitter: row.user
+    }));
+  } catch (error) {
+    return [];
+  }
+}
+
+export async function actionApproveSubmission(id: string) {
+  try {
+    const submission = await db.select().from(projectSubmissions).where(eq(projectSubmissions.id, id)).limit(1);
+    if (submission.length === 0) return { success: false, error: "Not found" };
+
+    const sub = submission[0];
+    
+    if (sub.source === 'custom') {
+      const data: any = sub.preAnalysisData || {};
+      const slug = data.name ? data.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Math.random().toString(36).substring(2, 7) : sub.id;
+      
+      await db.insert(projects).values({
+        source: 'custom',
+        projectType: 'repository',
+        sourceId: sub.url,
+        slug,
+        name: data.name || 'Unknown Project',
+        fullName: data.name || 'Unknown Project',
+        description: data.description,
+        sourceUrl: sub.url,
+        homepageUrl: data.homepageUrl || null,
+        readme: data.readme ? data.readme : null, // The db accepts string, it will be gzipped by the custom bytea type
+        categories: data.categories || [],
+        topics: data.topics || [],
+        ownerName: 'custom',
+        ownerAvatarUrl: data.avatar || null,
+        submitterId: sub.submitterId,
+      });
+    } else {
+      // Send to crawler
+      if (sub.source === 'github') {
+        await crawlerQueue.add('discover-repo', { owner: sub.sourceId?.split('/')[0], repo: sub.sourceId?.split('/')[1] });
+      } else {
+        await hfQueue.add('discover-hf', { modelId: sub.sourceId, type: sub.url.includes('/datasets/') ? 'dataset' : 'model' });
+      }
+    }
+
+    await db.update(projectSubmissions).set({ status: 'approved', reviewedAt: new Date(), reviewedBy: 'admin' }).where(eq(projectSubmissions.id, id));
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function actionRejectSubmission(id: string) {
+  try {
+    await db.update(projectSubmissions).set({ status: 'rejected', reviewedAt: new Date(), reviewedBy: 'admin' }).where(eq(projectSubmissions.id, id));
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: "Failed to reject project." };
+  }
+}
+
+export async function actionGetUserProjects() {
+  const session = await getSession();
+  if (!session?.userId) return { success: false, error: "Unauthorized" };
+
+  try {
+    const submissions = await db.select({
+      submission: projectSubmissions,
+      views: projects.views,
+      likes: projects.likes,
+      projectSlug: projects.slug
+    })
+    .from(projectSubmissions)
+    .leftJoin(projects, eq(projectSubmissions.url, projects.sourceUrl))
+    .where(eq(projectSubmissions.submitterId, session.userId))
+    .orderBy(desc(projectSubmissions.submittedAt));
+    
+    // Map the results so the UI doesn't have to change much, just add views/likes to the object
+    const result = submissions.map(row => ({
+      ...row.submission,
+      views: row.views || 0,
+      likes: row.likes || 0,
+      projectSlug: row.projectSlug
+    }));
+
+    return { success: true, projects: result };
+  } catch (error) {
+    console.error("Error fetching user projects:", error);
+    return { success: false, error: "Failed to fetch user projects" };
+  }
 }

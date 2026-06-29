@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { SourceBadge } from "@/components/common/source-badge";
 import { CopyLinkButton } from "@/components/common/copy-link-button";
+import { PageHeader } from "@/components/common/page-header";
 
 interface PageProps {
   params: Promise<{ locale: string; slug: string }>;
@@ -104,15 +105,12 @@ export default async function CollectionPage({ params }: PageProps) {
                 </span>
               </div>
 
-              <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-[var(--color-ink)] leading-tight">
-                {collection.title}
-              </h1>
-
-              {collection.description && (
-                <p className="text-sm sm:text-[15px] text-[var(--color-ink-muted-80)] leading-relaxed max-w-2xl">
-                  {collection.description}
-                </p>
-              )}
+              <PageHeader 
+                title={collection.title} 
+                subtitle={collection.description}
+                className="text-left !mt-4 !mb-4"
+                subtitleClassName="mx-0"
+              />
 
               {/* Stats row */}
               <div className="flex items-center gap-4 pt-1">

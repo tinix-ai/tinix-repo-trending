@@ -50,6 +50,7 @@
     "remark-gfm": "^4.0.1",
     "remark-toc": "^9.0.0",
     "sonner": "^2.0.7",
+    "svg-captcha": "^1.4.0",
     "tailwind-merge": "^3.3.0",
     "undici": "^8.4.1"
   },

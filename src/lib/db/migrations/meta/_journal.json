@@ -50,6 +50,13 @@
       "when": 1782057529982,
       "tag": "0006_uneven_strong_guy",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1782744356805,
+      "tag": "0007_volatile_betty_ross",
+      "breakpoints": true
     }
   ]
 }

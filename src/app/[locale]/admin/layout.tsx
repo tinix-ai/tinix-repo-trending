@@ -2,7 +2,7 @@
 
 import { Link, usePathname } from "@/i18n/routing";
 import { useSearchParams } from "next/navigation";
-import { Activity, BarChart2, Link2, Settings, FolderHeart, Layers } from "lucide-react";
+import { Activity, BarChart2, Link2, Settings, FolderHeart, Layers, Inbox, MessageSquare, Users } from "lucide-react";
 
 const ADMIN_NAV = [
   { href: "/admin?tab=overview", label: "Overview", icon: Activity },
@@ -10,6 +10,9 @@ const ADMIN_NAV = [
   { href: "/admin?tab=analytics", label: "Analytics", icon: BarChart2 },
   { href: "/admin/share-analytics", label: "Share Links", icon: Link2 },
   { href: "/admin?tab=categories", label: "Categories", icon: Layers },
+  { href: "/admin?tab=submissions", label: "Submissions", icon: Inbox },
+  { href: "/admin?tab=reviews", label: "Reviews", icon: MessageSquare },
+  { href: "/admin?tab=users", label: "Users", icon: Users },
   { href: "/admin?tab=queues", label: "Settings", icon: Settings },
 ];
 
@@ -67,7 +70,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
       </div>
 
-      <main className="page-container pt-16 pb-8">
+      <main className="page-container py-8">
         {children}
       </main>
     </div>

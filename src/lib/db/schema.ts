@@ -59,8 +59,10 @@ export const projects = pgTable("projects", {
   lastCrawledAt: timestamp("last_crawled_at"),
   crawlInterval: integer("crawl_interval").default(1),
   nextCrawlAt: timestamp("next_crawl_at").defaultNow(),
+  submitterId: uuid("submitter_id").references(() => users.id),
 }, (table) => [
-  index("projects_next_crawl_idx").on(table.nextCrawlAt)
+  index("projects_next_crawl_idx").on(table.nextCrawlAt),
+  index("projects_submitter_idx").on(table.submitterId),
 ]);
 
 export const projectSnapshots = pgTable("project_snapshots", {
@@ -186,11 +188,13 @@ export const projectReviews = pgTable("project_reviews", {
   userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
   rating: integer("rating").notNull(), // 1 to 5
   reviewText: text("review_text"),
+  status: text("status").notNull().default("published"), // 'published' | 'pending' | 'rejected'
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => [
   index("project_reviews_project_idx").on(table.projectId),
   index("project_reviews_user_idx").on(table.userId),
+  index("project_reviews_status_idx").on(table.status),
 ]);
 
 export const projectVotes = pgTable("project_votes", {
@@ -199,11 +203,26 @@ export const projectVotes = pgTable("project_votes", {
   userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
   voteType: text("vote_type").notNull(), // 'like' | 'dislike'
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => [
   index("project_votes_project_idx").on(table.projectId),
   index("project_votes_user_idx").on(table.userId),
-  unique("project_votes_user_project_uq").on(table.projectId, table.userId)
+  unique("project_votes_user_project_uniq").on(table.userId, table.projectId),
 ]);
 
-
-
+export const projectSubmissions = pgTable("project_submissions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  url: text("url").notNull(),
+  source: text("source").notNull(), // 'github' | 'huggingface' | 'custom'
+  sourceId: text("source_id"), // e.g. 'owner/repo' or 'model_id'
+  status: text("status").notNull().default("pending"), // 'pending' | 'approved' | 'rejected'
+  preAnalysisData: jsonb("pre_analysis_data").default({}), // stores title, description, stars, avatar, etc.
+  submittedAt: timestamp("submitted_at").defaultNow().notNull(),
+  reviewedAt: timestamp("reviewed_at"),
+  reviewedBy: text("reviewed_by"), // can be user id or just 'admin'
+  submitterId: uuid("submitter_id").references(() => users.id),
+}, (table) => [
+  index("project_submissions_status_idx").on(table.status),
+  index("project_submissions_submitted_at_idx").on(table.submittedAt),
+  index("project_submissions_submitter_idx").on(table.submitterId),
+]);

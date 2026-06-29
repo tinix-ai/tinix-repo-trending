@@ -108,8 +108,7 @@ export function Header() {
   const NAV_ITEMS = [
     { href: "/", label: t("trending"), icon: Flame },
     { href: "/collection", label: t("collections"), icon: FolderHeart },
-    { href: "/live-mentions", label: t("liveMentions"), icon: MessageSquare },
-    { href: "/forum", label: t("forum"), icon: MessageSquare },
+    { href: "/community", label: t("community"), icon: MessageSquare },
     { href: "/categories", label: t("categories"), icon: Hash },
     { href: "/stats", label: t("stats"), icon: BarChart3 },
     { href: "/submit", label: t("submit"), icon: Plus },
@@ -194,15 +193,23 @@ export function Header() {
 
             {session?.authenticated ? (
               <div className="flex items-center gap-1.5 ml-1 mr-1">
-                <span className="text-[12px] font-medium text-[var(--color-ink-muted-80)] border-r border-[var(--color-divider-soft)] pr-2 py-1 max-w-[80px] truncate" title={session.user?.username}>
+                <div className="flex items-center gap-1 bg-[var(--color-bg-secondary)]/50 rounded-lg p-1 border border-[var(--color-divider-soft)]">
+                <span className="px-2 text-[11px] font-medium text-[var(--color-ink-muted-64)] max-w-[100px] truncate">
                   @{session.user?.username}
                 </span>
+                <Link
+                  href="/dashboard"
+                  className="rounded-md px-2 py-1.5 text-[11px] font-semibold text-[var(--color-ink)] hover:bg-[var(--color-bg-secondary)] transition-colors cursor-pointer"
+                >
+                  Dashboard
+                </Link>
                 <button
                   onClick={handleLogout}
                   className="rounded-md px-2 py-1.5 text-[11px] font-semibold text-red-500 hover:bg-red-500/10 transition-colors cursor-pointer"
                 >
                   Logout
                 </button>
+                </div>
               </div>
             ) : session !== null ? (
               <Link
@@ -272,17 +279,28 @@ export function Header() {
             </div>
             
             {session?.authenticated ? (
-              <div className="flex items-center justify-between px-3 py-2 border-t border-[var(--color-divider-soft)] text-xs text-[var(--color-ink-muted-80)]">
-                <span>Logged in as: <strong className="text-[var(--color-ink)]">@{session.user?.username}</strong></span>
-                <button
-                  onClick={() => {
-                    setMobileOpen(false);
-                    handleLogout();
-                  }}
-                  className="text-red-500 font-semibold cursor-pointer"
-                >
-                  Logout
-                </button>
+              <div className="flex flex-col border-t border-[var(--color-divider-soft)]">
+                <div className="flex items-center justify-between px-3 py-2 text-xs text-[var(--color-ink-muted-80)]">
+                  <span>Logged in as: <strong className="text-[var(--color-ink)]">@{session.user?.username}</strong></span>
+                </div>
+                <div className="flex items-center gap-2 px-3 pb-2">
+                  <Link
+                    href="/dashboard"
+                    onClick={() => setMobileOpen(false)}
+                    className="flex-1 text-center py-1.5 bg-[var(--color-bg-secondary)] text-[var(--color-ink)] text-xs font-semibold rounded-lg transition-colors"
+                  >
+                    Dashboard
+                  </Link>
+                  <button
+                    onClick={() => {
+                      setMobileOpen(false);
+                      handleLogout();
+                    }}
+                    className="flex-1 text-center py-1.5 bg-red-500/10 text-red-500 text-xs font-semibold rounded-lg transition-colors"
+                  >
+                    Logout
+                  </button>
+                </div>
               </div>
             ) : session !== null ? (
               <div className="px-3 py-2 border-t border-[var(--color-divider-soft)]">

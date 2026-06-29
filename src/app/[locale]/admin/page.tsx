@@ -11,6 +11,9 @@ import { CrawlerReport } from "@/components/admin/crawler-report";
 import { CrawlerStatusTable } from "@/components/admin/crawler-status-table";
 import { ScheduledJobsTable } from "@/components/admin/scheduled-jobs-table";
 import { AnalyticsDashboard } from "@/components/admin/analytics-dashboard";
+import { SubmissionsManager } from "@/components/admin/submissions-manager";
+import { ReviewsManager } from "@/components/admin/reviews-manager";
+import { UsersManager } from "@/components/admin/users-manager";
 import { Link } from "@/i18n/routing";
 import { getTranslations } from "next-intl/server";
 
@@ -21,7 +24,7 @@ interface AdminPageProps {
 export default async function AdminPage(props: AdminPageProps) {
   const searchParams = await props.searchParams;
   const tab = searchParams.tab || 'overview';
-  const currentTab = ['overview', 'queues', 'analytics', 'categories'].includes(tab) ? tab : 'overview';
+  const currentTab = ['overview', 'queues', 'analytics', 'categories', 'submissions', 'reviews', 'users'].includes(tab) ? tab : 'overview';
   
   const [{ count: totalProjects }] = await db.select({ count: sql`count(*)` }).from(projects);
   const [{ count: totalModels }] = await db.select({ count: sql`count(*)` }).from(projects).where(sql`${projects.projectType} = 'model'`);
@@ -42,10 +45,23 @@ export default async function AdminPage(props: AdminPageProps) {
       categoriesData = res.categories;
     }
   }
+  const tabTitles = {
+    overview: t("dashboard"),
+    queues: t("tabQueues"),
+    analytics: t("tabAnalytics"),
+    categories: t("tabCategories"),
+    submissions: t("tabSubmissions"),
+    users: "Users Management",
+  };
+  const pageTitle = tabTitles[currentTab as keyof typeof tabTitles] || t("dashboard");
   
   return (
     <div className="space-y-6">
-      <h1 className="text-xl font-bold text-[var(--color-ink)] tracking-tight mb-6">{t("dashboard")}</h1>
+      <div className="mt-6 md:mt-10 mb-8">
+        <h1 className="text-3xl md:text-[32px] font-bold tracking-tight text-[var(--color-ink)] leading-tight">
+          {pageTitle}
+        </h1>
+      </div>
 
       <div>
         {currentTab === 'overview' && (
@@ -124,6 +140,24 @@ export default async function AdminPage(props: AdminPageProps) {
         {currentTab === 'categories' && (
           <div className="space-y-6 animate-fade-in-up">
             <CategoriesManager initialCategories={categoriesData} />
+          </div>
+        )}
+
+        {currentTab === 'submissions' && (
+          <div className="space-y-6 animate-fade-in-up">
+            <SubmissionsManager />
+          </div>
+        )}
+
+        {currentTab === 'reviews' && (
+          <div className="space-y-6 animate-fade-in-up">
+            <ReviewsManager />
+          </div>
+        )}
+
+        {currentTab === 'users' && (
+          <div className="space-y-6 animate-fade-in-up">
+            <UsersManager />
           </div>
         )}
       </div>

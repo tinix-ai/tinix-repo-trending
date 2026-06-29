@@ -5,12 +5,15 @@ interface SourceBadgeProps {
   source: ProjectSource;
   projectType?: "repository" | "model" | "dataset";
   size?: "sm" | "md";
+  iconOnly?: boolean;
 }
 
-export function SourceBadge({ source, projectType = "repository", size = "sm" }: SourceBadgeProps) {
+export function SourceBadge({ source, projectType = "repository", size = "sm", iconOnly = false }: SourceBadgeProps) {
   const isSm = size === "sm";
-  const paddingCls = isSm ? "px-2 py-0.5 text-[10px]" : "px-2.5 py-1 text-xs";
-  const iconCls = isSm ? "w-3 h-3" : "w-3.5 h-3.5";
+  const paddingCls = iconOnly 
+    ? (isSm ? "p-1" : "p-1.5") 
+    : (isSm ? "px-2 py-0.5 text-[10px]" : "px-2.5 py-1 text-xs");
+  const iconCls = isSm ? "w-3.5 h-3.5" : "w-4 h-4";
 
   if (source === "github") {
     return (
@@ -19,7 +22,7 @@ export function SourceBadge({ source, projectType = "repository", size = "sm" }:
         title="GitHub Repository"
       >
         <Github className={iconCls} />
-        <span>Repository</span>
+        {!iconOnly && <span>Repository</span>}
       </span>
     );
   }
@@ -46,7 +49,7 @@ export function SourceBadge({ source, projectType = "repository", size = "sm" }:
           <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2z" />
           <path d="M8 15a5 5 0 0 0 8 0" />
         </svg>
-        <span>{label}</span>
+        {!iconOnly && <span>{label}</span>}
       </span>
     );
   }

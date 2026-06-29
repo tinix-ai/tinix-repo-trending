@@ -36,7 +36,7 @@ export interface ProjectQueryParams {
   limit?: number;
   offset?: number;
   filterType?: "trending" | "all" | "new";
-  sortBy?: "project" | "stars" | "trend" | "updated" | "views";
+  sortBy?: "project" | "stars" | "likes" | "trend" | "updated" | "views";
   sortOrder?: "asc" | "desc";
   license?: string;
   country?: string;
@@ -153,6 +153,9 @@ export async function getDynamicTrendingProjects(params: ProjectQueryParams): Pr
         orderFragment = isAsc 
           ? sql`ORDER BY (CASE WHEN source = 'github' THEN COALESCE(stars, 0) ELSE COALESCE(likes, 0) END) ASC NULLS FIRST` 
           : sql`ORDER BY (CASE WHEN source = 'github' THEN COALESCE(stars, 0) ELSE COALESCE(likes, 0) END) DESC NULLS LAST`;
+        break;
+      case "likes":
+        orderFragment = isAsc ? sql`ORDER BY COALESCE(likes, 0) ASC NULLS FIRST` : sql`ORDER BY COALESCE(likes, 0) DESC NULLS LAST`;
         break;
       case "trend":
         orderFragment = isAsc ? sql`ORDER BY momentum_score ASC` : sql`ORDER BY momentum_score DESC`;
@@ -1351,6 +1354,513 @@ export async function getRecentCollections(limit: number = 10) {
   } catch (error) {
     console.error("Error fetching recent collections:", error);
     return [];
+  }
+}
+
+export interface UnifiedActivityItem {
+  id: string;
+  type: 'user_review' | 'social_mention';
+  source: 'user' | 'reddit' | 'x' | 'hacker_news';
+  authorName: string;
+  authorAvatarUrl?: string;
+  content: string;
+  createdAt: Date;
+  rating?: number;        // user_review
+  score?: number;         // social_mention
+  commentsCount?: number; // social_mention
+  projectName: string;
+  projectSlug: string;
+  projectSource: string;
+  projectId: string;
+  url?: string;
+}
+
+export interface UnifiedActivityParams {
+  page?: number;
+  perPage?: number;
+  source?: 'all' | 'user' | 'reddit' | 'x' | 'hacker_news';
+  search?: string;
+  sort?: 'newest' | 'popular';
+}
+
+export async function getUnifiedCommunityFeed(params: UnifiedActivityParams = {}): Promise<{ data: UnifiedActivityItem[]; total: number; totalPages: number }> {
+  const { page = 1, perPage = 20, source = 'all', search, sort = 'newest' } = params;
+  const offset = (page - 1) * perPage;
+
+  try {
+    const searchVal = search && search.trim() ? `%${search.trim()}%` : null;
+
+    // Build the query fragments dynamically
+    const includeReviews = source === 'all' || source === 'user';
+    const includeMentions = source === 'all' || source !== 'user';
+
+    const reviewSearchCond = searchVal 
+      ? sql`AND (r.review_text ILIKE ${searchVal} OR u.username ILIKE ${searchVal} OR p.name ILIKE ${searchVal})`
+      : sql``;
+    
+    const mentionSearchCond = searchVal
+      ? sql`AND (m.content ILIKE ${searchVal} OR m.author ILIKE ${searchVal} OR p.name ILIKE ${searchVal})`
+      : sql``;
+
+    const mentionSourceCond = source !== 'all' && source !== 'user'
+      ? sql`AND m.source = ${source}`
+      : sql``;
+
+    const queries = [];
+    if (includeReviews) {
+      queries.push(sql`
+        SELECT 
+          r.id::text as "id",
+          'user_review' as "type",
+          'user' as "source",
+          u.username as "authorName",
+          NULL::text as "authorAvatarUrl",
+          r.review_text as "content",
+          r.created_at as "createdAt",
+          r.rating as "rating",
+          NULL::int as "score",
+          NULL::int as "commentsCount",
+          p.name as "projectName",
+          p.slug as "projectSlug",
+          p.source as "projectSource",
+          p.id::text as "projectId",
+          NULL::text as "url"
+        FROM project_reviews r
+        JOIN users u ON r.user_id = u.id
+        JOIN projects p ON r.project_id = p.id
+        WHERE 1=1 ${reviewSearchCond}
+      `);
+    }
+
+    if (includeMentions) {
+      queries.push(sql`
+        SELECT 
+          m.id::text as "id",
+          'social_mention' as "type",
+          m.source as "source",
+          m.author as "authorName",
+          m.author_avatar_url as "authorAvatarUrl",
+          m.content as "content",
+          m.mentioned_at as "createdAt",
+          NULL::int as "rating",
+          m.score as "score",
+          m.comments_count as "commentsCount",
+          p.name as "projectName",
+          p.slug as "projectSlug",
+          p.source as "projectSource",
+          p.id::text as "projectId",
+          m.url as "url"
+        FROM project_mentions m
+        JOIN projects p ON m.project_id = p.id
+        WHERE 1=1 ${mentionSourceCond} ${mentionSearchCond}
+      `);
+    }
+
+    if (queries.length === 0) {
+      return { data: [], total: 0, totalPages: 0 };
+    }
+
+    const unionSql = sql.join(queries, sql` UNION ALL `);
+
+    // Count query
+    const countSql = sql`
+      SELECT COUNT(*)::int as total
+      FROM (${unionSql}) q
+    `;
+    const [countResult] = await db.execute(countSql) as { total: number }[];
+    const total = Number(countResult?.total ?? 0);
+    const totalPages = Math.ceil(total / perPage);
+
+    // Order clause
+    const orderClause = sort === 'popular'
+      ? sql`ORDER BY COALESCE(q.score, q.rating * 10, 0) DESC, q."createdAt" DESC`
+      : sql`ORDER BY q."createdAt" DESC`;
+
+    // Data query
+    const dataSql = sql`
+      SELECT * FROM (${unionSql}) q
+      ${orderClause}
+      LIMIT ${perPage}
+      OFFSET ${offset}
+    `;
+
+    const result = await db.execute(dataSql);
+
+    const data: UnifiedActivityItem[] = result.map(row => {
+      const r = row as Record<string, unknown>;
+      return {
+        id: String(r.id),
+        type: r.type as 'user_review' | 'social_mention',
+        source: r.source as 'user' | 'reddit' | 'x' | 'hacker_news',
+        authorName: String(r.authorName),
+        authorAvatarUrl: r.authorAvatarUrl ? String(r.authorAvatarUrl) : undefined,
+        content: String(r.content),
+        createdAt: new Date(r.createdAt as string),
+        rating: r.rating !== null ? Number(r.rating) : undefined,
+        score: r.score !== null ? Number(r.score) : undefined,
+        commentsCount: r.commentsCount !== null ? Number(r.commentsCount) : undefined,
+        projectName: String(r.projectName),
+        projectSlug: String(r.projectSlug),
+        projectSource: String(r.projectSource),
+        projectId: String(r.projectId),
+        url: r.url ? String(r.url) : undefined,
+      };
+    });
+
+    return { data, total, totalPages };
+  } catch (error) {
+    console.error("Error fetching unified community feed:", error);
+    return { data: [], total: 0, totalPages: 0 };
+  }
+}
+
+export interface ForumThread {
+  id: string;
+  name: string;
+  fullName: string;
+  slug: string;
+  description: string | null;
+  ownerAvatarUrl: string | null;
+  totalActivity: number;
+  lastActivityTime: Date | null;
+  source: string;
+  projectType: string;
+  stars: number;
+  forks: number;
+  downloads: number;
+  likes: number;
+  lastActivity?: {
+    type: 'user' | 'reddit' | 'x' | 'hacker_news';
+    author: string;
+    time: Date;
+  } | null;
+}
+
+export interface ForumCategory {
+  id: string;
+  icon: string;
+  color: string;
+  threads: ForumThread[];
+}
+
+export async function getForumCategoriesWithThreads(): Promise<ForumCategory[]> {
+  try {
+    const cats = await db.execute(sql`SELECT * FROM categories`);
+    const result: ForumCategory[] = [];
+    
+    for (const cat of cats) {
+      const catId = String(cat.id);
+      
+      const threadsQuery = sql`
+        SELECT 
+          p.id, p.name, p.full_name as "fullName", p.slug, p.description, p.owner_avatar_url,
+          p.source, p.project_type as "projectType", p.stars, p.forks, p.downloads, p.likes,
+          COALESCE(r.count, 0) as reviews_count,
+          COALESCE(m.count, 0) as mentions_count,
+          (COALESCE(r.count, 0) + COALESCE(m.count, 0))::int as "totalActivity",
+          GREATEST(r.last_time, m.last_time) as "lastActivityTime"
+        FROM projects p
+        LEFT JOIN (
+          SELECT project_id, COUNT(*)::int as count, MAX(created_at) as last_time
+          FROM project_reviews
+          GROUP BY project_id
+        ) r ON p.id = r.project_id
+        LEFT JOIN (
+          SELECT project_id, COUNT(*)::int as count, MAX(mentioned_at) as last_time
+          FROM project_mentions
+          GROUP BY project_id
+        ) m ON p.id = m.project_id
+        WHERE p.categories @> ${JSON.stringify([catId])}::jsonb
+        ORDER BY "totalActivity" DESC, "lastActivityTime" DESC NULLS LAST
+        LIMIT 5
+      `;
+      
+      const threadsRes = await db.execute(threadsQuery);
+      const threads: ForumThread[] = [];
+      
+      for (const t of threadsRes) {
+        const projectId = String(t.id);
+        
+        const lastActQuery = sql`
+          SELECT q.type, q.author, q.time
+          FROM (
+            (
+              SELECT 'user' as type, u.username as author, r.created_at as time
+              FROM project_reviews r
+              JOIN users u ON r.user_id = u.id
+              WHERE r.project_id = ${projectId}
+              ORDER BY r.created_at DESC
+              LIMIT 1
+            )
+            UNION ALL
+            (
+              SELECT m.source as type, m.author, m.mentioned_at as time
+              FROM project_mentions m
+              WHERE m.project_id = ${projectId}
+              ORDER BY m.mentioned_at DESC
+              LIMIT 1
+            )
+          ) q
+          ORDER BY q.time DESC
+          LIMIT 1
+        `;
+        
+        const [lastActRes] = await db.execute(lastActQuery) as any[];
+        
+        threads.push({
+          id: projectId,
+          name: String(t.name),
+          fullName: String(t.fullName),
+          slug: String(t.slug),
+          description: t.description ? String(t.description) : null,
+          ownerAvatarUrl: t.owner_avatar_url ? String(t.owner_avatar_url) : null,
+          totalActivity: Number(t.totalActivity),
+          lastActivityTime: t.lastActivityTime ? new Date(t.lastActivityTime as string) : null,
+          source: String(t.source),
+          projectType: String(t.projectType),
+          stars: Number(t.stars || 0),
+          forks: Number(t.forks || 0),
+          downloads: Number(t.downloads || 0),
+          likes: Number(t.likes || 0),
+          lastActivity: lastActRes ? {
+            type: lastActRes.type as any,
+            author: String(lastActRes.author),
+            time: new Date(lastActRes.time as string)
+          } : null
+        });
+      }
+      
+      result.push({
+        id: catId,
+        icon: String(cat.icon),
+        color: String(cat.color),
+        threads
+      });
+    }
+    
+    return result;
+  } catch (error) {
+    console.error("Error fetching forum categories with threads:", error);
+    return [];
+  }
+}
+
+export async function getCategoryProjectsForForum(categorySlug: string, params: { page?: number; perPage?: number } = {}): Promise<{ data: ForumThread[]; total: number; totalPages: number; categoryName: string }> {
+  const { page = 1, perPage = 20 } = params;
+  const offset = (page - 1) * perPage;
+  try {
+    const cats = await db.execute(sql`SELECT id FROM categories`);
+    const match = cats.find(c => String(c.id).toLowerCase().replace(/\s+/g, '-') === categorySlug.toLowerCase());
+    
+    if (!match) {
+      return { data: [], total: 0, totalPages: 0, categoryName: categorySlug };
+    }
+    const categoryId = String(match.id);
+
+    const countQuery = sql`
+      SELECT COUNT(*)::int as total
+      FROM projects p
+      WHERE p.categories @> ${JSON.stringify([categoryId])}::jsonb
+    `;
+    const [countRes] = await db.execute(countQuery) as { total: number }[];
+    const total = Number(countRes?.total ?? 0);
+    const totalPages = Math.ceil(total / perPage);
+
+    const query = sql`
+      SELECT 
+        p.id, p.name, p.full_name as "fullName", p.slug, p.description, p.owner_avatar_url,
+        p.source, p.project_type as "projectType", p.stars, p.forks, p.downloads, p.likes,
+        COALESCE(r.count, 0) as reviews_count,
+        COALESCE(m.count, 0) as mentions_count,
+        (COALESCE(r.count, 0) + COALESCE(m.count, 0))::int as "totalActivity",
+        GREATEST(r.last_time, m.last_time) as "lastActivityTime"
+      FROM projects p
+      LEFT JOIN (
+        SELECT project_id, COUNT(*)::int as count, MAX(created_at) as last_time
+        FROM project_reviews
+        GROUP BY project_id
+      ) r ON p.id = r.project_id
+      LEFT JOIN (
+        SELECT project_id, COUNT(*)::int as count, MAX(mentioned_at) as last_time
+        FROM project_mentions
+        GROUP BY project_id
+      ) m ON p.id = m.project_id
+      WHERE p.categories @> ${JSON.stringify([categoryId])}::jsonb
+      ORDER BY "totalActivity" DESC, "lastActivityTime" DESC NULLS LAST
+      LIMIT ${perPage}
+      OFFSET ${offset}
+    `;
+
+    const threadsRes = await db.execute(query);
+    const data: ForumThread[] = [];
+
+    for (const t of threadsRes) {
+      const projectId = String(t.id);
+      
+      const lastActQuery = sql`
+        SELECT q.type, q.author, q.time
+        FROM (
+          (
+            SELECT 'user' as type, u.username as author, r.created_at as time
+            FROM project_reviews r
+            JOIN users u ON r.user_id = u.id
+            WHERE r.project_id = ${projectId}
+            ORDER BY r.created_at DESC
+            LIMIT 1
+          )
+          UNION ALL
+          (
+            SELECT m.source as type, m.author, m.mentioned_at as time
+            FROM project_mentions m
+            WHERE m.project_id = ${projectId}
+            ORDER BY m.mentioned_at DESC
+            LIMIT 1
+          )
+        ) q
+        ORDER BY q.time DESC
+        LIMIT 1
+      `;
+      
+      const [lastActRes] = await db.execute(lastActQuery) as any[];
+      
+      data.push({
+        id: projectId,
+        name: String(t.name),
+        fullName: String(t.fullName),
+        slug: String(t.slug),
+        description: t.description ? String(t.description) : null,
+        ownerAvatarUrl: t.owner_avatar_url ? String(t.owner_avatar_url) : null,
+        totalActivity: Number(t.totalActivity),
+        lastActivityTime: t.lastActivityTime ? new Date(t.lastActivityTime as string) : null,
+        source: String(t.source),
+        projectType: String(t.projectType),
+        stars: Number(t.stars || 0),
+        forks: Number(t.forks || 0),
+        downloads: Number(t.downloads || 0),
+        likes: Number(t.likes || 0),
+        lastActivity: lastActRes ? {
+          type: lastActRes.type as any,
+          author: String(lastActRes.author),
+          time: new Date(lastActRes.time as string)
+        } : null
+      });
+    }
+
+    return { data, total, totalPages, categoryName: categoryId };
+  } catch (error) {
+    console.error("Error fetching category projects for forum:", error);
+    return { data: [], total: 0, totalPages: 0, categoryName: categorySlug };
+  }
+}
+
+export async function getProjectThreadDetails(slug: string) {
+  try {
+    const [project] = await db.execute(sql`
+      SELECT id, name, full_name as "fullName", slug, description, ai_summary as "aiSummary", 
+             owner_avatar_url as "ownerAvatarUrl", source, source_url as "sourceUrl", 
+             homepage_url as "homepageUrl", stars, likes, views
+      FROM projects
+      WHERE slug = ${slug}
+      LIMIT 1
+    `) as any[];
+    return project || null;
+  } catch (error) {
+    console.error("Error fetching project thread details:", error);
+    return null;
+  }
+}
+
+export async function getProjectThreadReplies(projectId: string, params: { page?: number; perPage?: number } = {}): Promise<{ data: UnifiedActivityItem[]; total: number; totalPages: number }> {
+  const { page = 1, perPage = 20 } = params;
+  const offset = (page - 1) * perPage;
+
+  try {
+    const reviewSql = sql`
+      SELECT 
+        r.id::text as "id",
+        'user_review' as "type",
+        'user' as "source",
+        u.username as "authorName",
+        NULL::text as "authorAvatarUrl",
+        r.review_text as "content",
+        r.created_at as "createdAt",
+        r.rating as "rating",
+        NULL::int as "score",
+        NULL::int as "commentsCount",
+        p.name as "projectName",
+        p.slug as "projectSlug",
+        p.source as "projectSource",
+        p.id::text as "projectId",
+        NULL::text as "url"
+      FROM project_reviews r
+      JOIN users u ON r.user_id = u.id
+      JOIN projects p ON r.project_id = p.id
+      WHERE r.project_id = ${projectId}
+    `;
+
+    const mentionSql = sql`
+      SELECT 
+        m.id::text as "id",
+        'social_mention' as "type",
+        m.source as "source",
+        m.author as "authorName",
+        m.author_avatar_url as "authorAvatarUrl",
+        m.content as "content",
+        m.mentioned_at as "createdAt",
+        NULL::int as "rating",
+        m.score as "score",
+        m.comments_count as "commentsCount",
+        p.name as "projectName",
+        p.slug as "projectSlug",
+        p.source as "projectSource",
+        p.id::text as "projectId",
+        m.url as "url"
+      FROM project_mentions m
+      JOIN projects p ON m.project_id = p.id
+      WHERE m.project_id = ${projectId}
+    `;
+
+    const unionSql = sql.join([reviewSql, mentionSql], sql` UNION ALL `);
+
+    const countSql = sql`SELECT COUNT(*)::int as total FROM (${unionSql}) q`;
+    const [countResult] = await db.execute(countSql) as { total: number }[];
+    const total = Number(countResult?.total ?? 0);
+    const totalPages = Math.ceil(total / perPage);
+
+    const dataSql = sql`
+      SELECT * FROM (${unionSql}) q
+      ORDER BY q."createdAt" ASC
+      LIMIT ${perPage}
+      OFFSET ${offset}
+    `;
+
+    const result = await db.execute(dataSql);
+
+    const data: UnifiedActivityItem[] = result.map(row => {
+      const r = row as Record<string, unknown>;
+      return {
+        id: String(r.id),
+        type: r.type as 'user_review' | 'social_mention',
+        source: r.source as 'user' | 'reddit' | 'x' | 'hacker_news',
+        authorName: String(r.authorName),
+        authorAvatarUrl: r.authorAvatarUrl ? String(r.authorAvatarUrl) : undefined,
+        content: String(r.content),
+        createdAt: new Date(r.createdAt as string),
+        rating: r.rating !== null ? Number(r.rating) : undefined,
+        score: r.score !== null ? Number(r.score) : undefined,
+        commentsCount: r.commentsCount !== null ? Number(r.commentsCount) : undefined,
+        projectName: String(r.projectName),
+        projectSlug: String(r.projectSlug),
+        projectSource: String(r.projectSource),
+        projectId: String(r.projectId),
+        url: r.url ? String(r.url) : undefined,
+      };
+    });
+
+    return { data, total, totalPages };
+  } catch (error) {
+    console.error("Error fetching project thread replies:", error);
+    return { data: [], total: 0, totalPages: 0 };
   }
 }
 

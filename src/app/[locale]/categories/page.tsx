@@ -3,6 +3,7 @@ import { Link } from "@/i18n/routing";
 import { ChevronRight } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import { CategoryIcon } from "@/components/common/category-icon";
+import { PageHeader } from "@/components/common/page-header";
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
@@ -19,14 +20,10 @@ export default async function CategoriesPage() {
 
   return (
     <div className="page-container py-8 lg:py-12">
-      <div className="max-w-3xl mb-10">
-        <h1 className="text-3xl font-extrabold tracking-tight text-[var(--color-ink)] mb-3">
-          {t("header")}
-        </h1>
-        <p className="text-sm text-[var(--color-ink-muted-80)] leading-relaxed">
-          {t("subtitle")}
-        </p>
-      </div>
+      <PageHeader 
+        title={t("header")} 
+        subtitle={t("subtitle")} 
+      />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {categories.map((cat, i) => (

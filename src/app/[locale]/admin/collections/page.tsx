@@ -142,10 +142,10 @@ export default function CollectionsPage() {
 
   return (
     <div className="w-full">
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex justify-between items-center mt-6 md:mt-10 mb-8">
         <div>
-          <h1 className="text-xl font-bold text-[var(--color-ink)] tracking-tight flex items-center gap-2">
-            <FolderHeart className="text-[var(--color-ink-muted-64)]" size={20} />
+          <h1 className="text-3xl md:text-[32px] font-bold tracking-tight text-[var(--color-ink)] leading-tight flex items-center gap-3">
+            <FolderHeart className="text-[var(--color-action-blue)]" size={32} />
             Collections
           </h1>
         </div>

@@ -3,10 +3,10 @@
 import { Link, useRouter } from "@/i18n/routing";
 import type { RankedProject } from "@/types";
 import { formatNumber, timeAgo } from "@/lib/utils";
-import { Star, GitFork, Download, ArrowUpRight, ExternalLink, Eye, Share2 } from "lucide-react";
 import { Sparkline } from "@/components/common/sparkline";
 import { SourceBadge } from "@/components/common/source-badge";
 import { CategoryIcon } from "@/components/common/category-icon";
+import { ArrowUpRight, Github, GitFork, Eye, Globe, Code2, Link as LinkIcon, AlertCircle, Calendar, Package, Share2, Trophy, Flame, Sprout, Star, Rocket, Download, ExternalLink } from "lucide-react";
 import { ProjectAvatar } from "@/components/common/project-avatar";
 
 import { useState, useEffect } from "react";
@@ -15,6 +15,19 @@ import { useTranslations } from "next-intl";
 import { useComparison } from "@/hooks/use-comparison";
 import { evaluateProjectBadges } from "@/lib/badge-evaluator";
 import { ShareModal } from "@/components/leaderboard/share-modal";
+
+const getBadgeIcon = (type: string, className: string = "w-3.5 h-3.5") => {
+  switch (type) {
+    case "trophy-1": return <Trophy className={`${className} text-amber-500`} />;
+    case "trophy-2": return <Trophy className={`${className} text-slate-400`} />;
+    case "trophy-3": return <Trophy className={`${className} text-amber-700`} />;
+    case "trend": return <Flame className={`${className} text-red-500`} />;
+    case "star-magnet": return <Star className={`${className} text-blue-500`} />;
+    case "new": return <Sprout className={`${className} text-emerald-500`} />;
+    case "popular": return <Rocket className={`${className} text-purple-500`} />;
+    default: return null;
+  }
+};
 
 interface ProjectCardProps {
   project: RankedProject;
@@ -144,7 +157,7 @@ export function ProjectCard({ project, index, days: _days }: ProjectCardProps) {
                 </h3>
                 <ArrowUpRight className="h-3.5 w-3.5 text-[var(--color-text-muted)] opacity-0 group-hover/link:opacity-100 transition-all group-hover/link:translate-x-0.5 group-hover/link:-translate-y-0.5 shrink-0" />
               </Link>
-              <SourceBadge source={project.source} projectType={project.projectType} />
+              <SourceBadge source={project.source} projectType={project.projectType} iconOnly />
               {project.countryCode && (
                 <img
                   src={`https://flagcdn.com/w20/${project.countryCode.toLowerCase()}.png`}
@@ -164,15 +177,19 @@ export function ProjectCard({ project, index, days: _days }: ProjectCardProps) {
                 </span>
               )}
 
-              {badges.map((badge) => (
-                <span
-                  key={badge.id}
-                  className={`text-[10px] font-semibold tracking-wider uppercase px-1.5 py-0.5 rounded shrink-0 flex items-center gap-0.5 select-none ${badge.colorClass}`}
-                >
-                  <span>{badge.icon}</span>
-                  <span>{badge.label}</span>
-                </span>
-              ))}
+              {badges.length > 0 && (
+                <div className="flex items-center gap-0.5 shrink-0 ml-1">
+                  {badges.map((badge) => (
+                    <span
+                      key={badge.id}
+                      className="flex items-center justify-center w-6 h-6 rounded-full bg-[var(--color-surface-pearl)] border border-[var(--color-divider-soft)] shadow-sm hover:scale-110 transition-transform cursor-help shrink-0"
+                      title={badge.label}
+                    >
+                      {getBadgeIcon(badge.type, "w-3.5 h-3.5")}
+                    </span>
+                  ))}
+                </div>
+              )}
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -182,7 +199,7 @@ export function ProjectCard({ project, index, days: _days }: ProjectCardProps) {
                     addProject(project);
                   }
                 }}
-                className={`text-[10px] font-bold tracking-wider px-2 py-0.5 rounded transition-all cursor-pointer select-none shrink-0 ${
+                className={`text-[10px] font-bold tracking-wider px-2 py-0.5 rounded transition-all cursor-pointer select-none shrink-0 ml-1 ${
                   isCompared 
                     ? "bg-[var(--color-action-blue)] text-white" 
                     : "bg-[var(--color-surface-pearl)] text-[var(--color-ink-muted-80)] border border-[var(--color-border)] hover:bg-[var(--color-divider-soft)]"
@@ -195,9 +212,10 @@ export function ProjectCard({ project, index, days: _days }: ProjectCardProps) {
                   e.stopPropagation();
                   setIsShareOpen(true);
                 }}
-                className="text-[10px] font-bold tracking-wider px-2 py-0.5 rounded bg-[var(--color-surface-pearl)] text-[var(--color-action-blue)] border border-[var(--color-border)] hover:bg-[var(--color-divider-soft)] transition-all cursor-pointer select-none shrink-0 flex items-center gap-0.5"
+                className="flex items-center justify-center w-6 h-6 rounded-full bg-[var(--color-surface-pearl)] text-[var(--color-action-blue)] border border-[var(--color-border)] shadow-sm hover:bg-[var(--color-divider-soft)] hover:scale-110 transition-all cursor-pointer shrink-0"
+                title="Share & PR"
               >
-                <Share2 className="h-3 w-3" /> Share & PR
+                <Share2 className="h-3 w-3" />
               </button>
             </div>
 

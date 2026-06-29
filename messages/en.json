@@ -60,6 +60,7 @@
     "sortBy": "Sort by",
     "sortTrendDesc": "Highest Trending",
     "sortStarsDesc": "Most Stars",
+    "sortLikesDesc": "Most Likes",
     "sortStarsAsc": "Fewest Stars",
     "sortUpdatedDesc": "Recently Updated",
     "sortViewsDesc": "Most Viewed",
@@ -77,7 +78,8 @@
     "tracker": "Open Source Project Tracker",
     "liveMentions": "Discussions",
     "collections": "Collections",
-    "forum": "Forum"
+    "forum": "Forum",
+    "community": "Community"
   },
   "Submit": {
     "title": "Submit Project",
@@ -97,6 +99,7 @@
     "tabAnalytics": "Analytics",
     "tabScheduled": "Scheduled Tasks",
     "tabCategories": "Categories",
+    "tabSubmissions": "Submissions",
     "addCategory": "Add Category",
     "editCategory": "Edit Category",
     "categoryName": "Category Name (ID)",
@@ -302,5 +305,36 @@
     "title": "Page Not Found",
     "desc": "Sorry, we couldn't find the page you're looking for. It might have been moved or doesn't exist.",
     "backHome": "Back to Home"
+  },
+  "Dashboard": {
+    "title": "My Projects",
+    "subtitle": "Manage your submitted projects and track their performance.",
+    "noProjects": "No projects yet",
+    "noProjectsDesc": "You haven't submitted any projects yet. Submit your first project to see it here!",
+    "submitProject": "Submit Project",
+    "noDescription": "No description",
+    "statusApproved": "Approved",
+    "statusRejected": "Rejected",
+    "statusPending": "Pending Review",
+    "submittedAt": "Submitted {date}"
+  },
+  "SubmissionsManager": {
+    "filterAll": "All",
+    "filterPending": "Pending",
+    "filterApproved": "Approved",
+    "filterRejected": "Rejected",
+    "noSubmissions": "No Submissions",
+    "noSubmissionsDesc": "There are no {filter} submissions to show.",
+    "noDescription": "No description provided",
+    "unknownUser": "Unknown User",
+    "submittedAt": "Submitted: {date}",
+    "approve": "Approve",
+    "reject": "Reject",
+    "approveSuccess": "Submission approved and queued for crawling",
+    "rejectSuccess": "Submission rejected",
+    "actionFailed": "Action failed",
+    "statusApproved": "Approved",
+    "statusRejected": "Rejected",
+    "statusPending": "Pending Review"
   }
 }

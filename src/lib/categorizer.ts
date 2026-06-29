@@ -1,6 +1,7 @@
 import { db } from "./db";
 import { categories as categoriesTable } from "./db/schema";
 import { sql } from "drizzle-orm";
+import { STACKOVERFLOW_TAGS } from "./crawlers/discovery-keywords";
 
 interface CategoryConfig {
   id: string;
@@ -198,6 +199,17 @@ export const DEFAULT_CATEGORIES: CategoryConfig[] = [
     "3d", "simulation",
     "minecraft", "lua", "emulator"
   ]},
+  { id: "Vietnam Tech", icon: "🇻🇳", color: "#ef4444", keywords: [
+    "vietnam", "vietnamese", "tieng-viet", "zalo", "momo", "vnpay", "zalo-pay",
+    "vietnam-geodata", "viettel", "fpt", "vnpost", "vn", "zalo-mini-app", "vng",
+    "shopee-vn", "tiki", "sendo", "viet", "tiengviet", "viet-nam"
+  ]},
+  { id: "China Tech", icon: "🇨🇳", color: "#eab308", keywords: [
+    "china", "chinese", "wechat", "alipay", "bilibili", "douyin", "tencent",
+    "alibaba", "baidu", "zh-cn", "weibo", "mini-program", "chinese-nlp", "taobao",
+    "zh", "chinese-font", "chinese-translation", "wechat-applet", "dingtalk", "feishu",
+    "gitee", "xiaohongshu", "kuaishou", "jd.com", "pinduoduo"
+  ]},
   { id: "Robotics & IoT", icon: "🤖", color: "#0ea5e9", keywords: [
     "robotics", "ros",
     "iot", "raspberry-pi", "arduino", "esp32", "esp8266",
@@ -216,6 +228,7 @@ export const DEFAULT_CATEGORIES: CategoryConfig[] = [
     "adwords", "adshield", "analytics-dashboard", "growth-hacking", "customer-feedback",
     "ab-testing", "web-analytics", "metrics", "newsletter-sender", "subscribers"
   ]},
+  { id: "Ecosystem (Global)", icon: "🌐", color: "#64748b", keywords: STACKOVERFLOW_TAGS }
 ];
 
 export const CATEGORY_MAP: Record<string, string[]> = {};

@@ -4,6 +4,8 @@ import { searchGitHubRepos } from "./github-graphql";
 import { db } from "../db";
 import { sql } from "drizzle-orm";
 
+import { DISCOVERY_KEYWORDS } from "./discovery-keywords";
+
 interface DiscoveredRepo {
   owner: string;
   repo: string;
@@ -62,30 +64,8 @@ async function getPopularDatabaseTopics(limit = 30): Promise<string[]> {
 export async function discoverNewRepos(maxPages: number = 10): Promise<DiscoveredRepo[]> {
   const checkpointKey = "crawler:checkpoint:github-discovery";
 
-  const staticTopics = [
-    // Existing AI/ML topics
-    'ai', 'machine-learning', 'llm', 'deep-learning',
-    // Vibe Coding & AI Coding Tools
-    'vibe-coding', 'cursor-rules', 'mcp', 'mcp-server', 'ai-agent', 'ai-coding', 'copilot',
-    // Speech & Audio
-    'text-to-speech', 'speech-to-text', 'tts', 'asr', 'whisper', 'voice-clone',
-    // Data & Databases
-    'data-science', 'database', 'vector-database', 'data-engineering', 'data-analysis', 'analytics', 'vector-search',
-    // Developer Tools & Utilities
-    'developer-tools', 'self-hosted', 'productivity',
-    // General Tech, Web, Languages & Infrastructure
-    'react', 'vue', 'nextjs', 'typescript', 'nodejs', 'deno', 'bun',
-    'rust', 'go', 'webassembly', 'docker', 'kubernetes', 'terraform',
-    'redis', 'postgresql', 'sqlite', 'security', 'linux',
-    // Newly added static keywords from missing trending repos
-    'tui', 'terminal', 'markdown-editor', 'mesh-network', 'edge-computing',
-    'mental-health', 'whatsapp-crm', 'crm-system', 'ide-integration',
-    'model-serving', 'inference-engine', 'git-client', 'nlp', 'sandboxing',
-    'note-taking', 'knowledge-base', 'llm-agent'
-  ];
-
   const dbTopics = await getPopularDatabaseTopics(30);
-  const topics = Array.from(new Set([...staticTopics, ...dbTopics]));
+  const topics = Array.from(new Set([...DISCOVERY_KEYWORDS, ...dbTopics]));
 
   // Define global high-star ranges (no topic limits)
   const highStarRanges = [

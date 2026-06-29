@@ -2,7 +2,7 @@
 
 import React, { useState, use } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { LogIn, UserPlus, Key, User, ShieldAlert, ArrowLeft } from "lucide-react";
+import { LogIn, UserPlus, Key, User, ShieldAlert, ArrowLeft, RefreshCw } from "lucide-react";
 import Link from "next/link";
 
 interface Translations {
@@ -60,6 +60,31 @@ export default function LoginPage({ params }: { params: Promise<{ locale: string
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [captchaSvg, setCaptchaSvg] = useState<string | null>(null);
+  const [captchaInput, setCaptchaInput] = useState("");
+  const [captchaLoading, setCaptchaLoading] = useState(false);
+
+  const fetchCaptcha = async () => {
+    setCaptchaLoading(true);
+    try {
+      const res = await fetch("/api/captcha");
+      const data = await res.json();
+      if (data.svg) {
+        setCaptchaSvg(data.svg);
+      }
+    } catch (err) {
+      console.error("Failed to load captcha", err);
+    } finally {
+      setCaptchaLoading(false);
+    }
+  };
+
+  React.useEffect(() => {
+    if (mode === "register") {
+      fetchCaptcha();
+    }
+  }, [mode]);
+
   const t = localizations[locale] || localizations.vi;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -70,10 +95,15 @@ export default function LoginPage({ params }: { params: Promise<{ locale: string
     const url = mode === "login" ? "/api/auth/login" : "/api/auth/register";
 
     try {
+      const payload: any = { username, password };
+      if (mode === "register") {
+        payload.captchaText = captchaInput;
+      }
+
       const response = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify(payload),
       });
 
       const data = await response.json();
@@ -175,6 +205,46 @@ export default function LoginPage({ params }: { params: Promise<{ locale: string
                 />
               </div>
             </div>
+
+            {/* Captcha Input (Only for Register) */}
+            {mode === "register" && (
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-semibold text-[var(--color-ink-muted-64)] uppercase tracking-wider">
+                  Mã xác nhận
+                </label>
+                <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center p-2 bg-[var(--color-bg-secondary)] border border-[var(--color-divider-soft)] rounded-xl">
+                  <div className="flex items-center gap-2">
+                    <div 
+                      className="bg-white rounded-lg border border-[var(--color-divider-soft)] overflow-hidden min-w-[120px] min-h-[40px] flex items-center justify-center relative"
+                      dangerouslySetInnerHTML={{ __html: captchaSvg || "" }}
+                    >
+                      {captchaLoading && (
+                        <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
+                          <div className="w-4 h-4 border-2 border-[var(--color-action-blue)]/30 border-t-[var(--color-action-blue)] rounded-full animate-spin" />
+                        </div>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={fetchCaptcha}
+                      className="p-1.5 text-[var(--color-ink-muted-48)] hover:text-[var(--color-ink)] hover:bg-[var(--color-divider-soft)] rounded-lg transition-colors cursor-pointer"
+                      title="Tải lại mã"
+                    >
+                      <RefreshCw size={14} className={captchaLoading ? "animate-spin" : ""} />
+                    </button>
+                  </div>
+                  <input
+                    type="text"
+                    value={captchaInput}
+                    onChange={(e) => setCaptchaInput(e.target.value)}
+                    placeholder="Nhập mã..."
+                    required={mode === "register"}
+                    disabled={loading || captchaLoading}
+                    className="flex-1 w-full sm:w-auto px-3 py-2 bg-[var(--color-canvas)] border border-[var(--color-divider-soft)] rounded-lg text-sm text-[var(--color-ink)] placeholder-[var(--color-ink-muted-48)]/50 focus:outline-none focus:border-[var(--color-action-blue)] transition-colors"
+                  />
+                </div>
+              </div>
+            )}
 
             {/* Submit Button */}
             <button
