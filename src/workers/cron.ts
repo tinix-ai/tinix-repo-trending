@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { crawlerQueue, githubUpdaterQueue, hfUpdaterQueue, socialCrawlerQueue } from './queue';
+import { crawlerQueue, githubUpdaterQueue, socialCrawlerQueue } from './queue';
 import { db } from '../lib/db';
 import { projects, projectSnapshots, projectTrends, githubUsers, projectMentions } from '../lib/db/schema';
 import { discoverNewRepos } from '../lib/crawlers/github-discovery';
@@ -342,23 +342,27 @@ export async function runDailyUpdate(force = false) {
     }
   }
 
-  // 2. Process HuggingFace projects using batched REST fallback in cron.ts directly
+  // 2. Process HuggingFace projects inline via batch fetching
+  console.log(`[Cron] Batch updating ${huggingFaceProjects.length} HuggingFace projects (force: ${force})...`);
+  
   const HF_BATCH_SIZE = 50;
   for (let i = 0; i < huggingFaceProjects.length; i += HF_BATCH_SIZE) {
     const batch = huggingFaceProjects.slice(i, i + HF_BATCH_SIZE);
-    console.log(`[Cron Batch] Updating HuggingFace repositories batch ${Math.floor(i / HF_BATCH_SIZE) + 1}/${Math.ceil(huggingFaceProjects.length / HF_BATCH_SIZE)} (size: ${batch.length})...`);
+    console.log(`[Cron Batch] Updating HuggingFace batch ${Math.floor(i / HF_BATCH_SIZE) + 1}/${Math.ceil(huggingFaceProjects.length / HF_BATCH_SIZE)} (size: ${batch.length})...`);
     
-    const hfTargets = batch.map(p => {
-      const isDataset = p.sourceUrl?.includes('huggingface.co/datasets/');
-      return { id: p.sourceId, type: isDataset ? 'datasets' : 'models' as 'datasets' | 'models' };
-    });
+    const hfQueries = batch.map(p => ({
+      id: p.sourceId,
+      type: (p.sourceUrl?.includes('huggingface.co/datasets/') ? 'datasets' : 'models') as 'models' | 'datasets',
+      project: p
+    }));
 
     try {
-      const batchResults = await fetchHFBatch(hfTargets);
+      const batchResults = await fetchHFBatch(hfQueries);
       
       for (let j = 0; j < batchResults.length; j++) {
         const result = batchResults[j];
-        const project = batch[j];
+        const query = hfQueries[j];
+        const project = query.project;
 
         if (!result.exists) {
           console.warn(`[Cron Batch] HF Project ${project.sourceId} not found. Removing from database.`);
@@ -373,25 +377,27 @@ export async function runDailyUpdate(force = false) {
         }
 
         const data = result.data;
-        if (!data) continue;
+        if (!data) continue; // Rate limited, gated, or empty
 
         const likes = data.likes || 0;
         const downloads = data.downloads || 0;
+        const projectType = query.type === 'models' ? 'model' : 'dataset';
+
         const rawTags = data.tags || [];
         if (data.pipeline_tag) rawTags.push(data.pipeline_tag);
-        if (result.type === 'datasets' && data.task_categories) rawTags.push(...data.task_categories);
-
-        const canonicalCategories = await categorizeProject(rawTags, result.type === 'models' ? 'model' : 'dataset');
+        if (query.type === 'datasets' && data.task_categories) rawTags.push(...data.task_categories);
+        
+        const canonicalCategories = await categorizeProject(rawTags, projectType);
 
         try {
           await db.update(projects)
             .set({
               topics: rawTags,
               categories: canonicalCategories,
-              primaryLanguage: data.pipeline_tag || (result.type === 'datasets' ? data.task_categories?.[0] : '') || '',
-              likes: likes,
-              downloads: downloads,
-              sourceUpdatedAt: data.lastModified ? new Date(data.lastModified) : undefined,
+              primaryLanguage: data.pipeline_tag || (query.type === 'datasets' ? data.task_categories?.[0] : '') || '',
+              likes,
+              downloads,
+              sourceUpdatedAt: data.lastModified ? new Date(data.lastModified) : new Date(),
               lastCrawledAt: new Date(),
             })
             .where(eq(projects.id, project.id));
@@ -412,8 +418,8 @@ export async function runDailyUpdate(force = false) {
           if (existingSnap) {
             await db.update(projectSnapshots)
               .set({
-                likes: likes,
-                downloads: downloads,
+                likes,
+                downloads,
               })
               .where(eq(projectSnapshots.id, existingSnap.id));
           } else {
@@ -423,8 +429,8 @@ export async function runDailyUpdate(force = false) {
               watchers: 0,
               forks: 0,
               openIssues: 0,
-              likes: likes,
-              downloads: downloads,
+              likes,
+              downloads,
               snapshotDate: snapshotDateStr,
             });
           }
@@ -434,16 +440,16 @@ export async function runDailyUpdate(force = false) {
           await calculateProjectTrendInline(project.id);
           hfCount++;
         } catch (dbErr) {
-          console.error(`[Cron Batch] Failed to update project db for HF ${project.sourceId}:`, dbErr);
+          console.error(`[Cron Batch] Failed to update HF project db for ${project.sourceId}:`, dbErr);
         }
       }
     } catch (batchErr: unknown) {
       const err = batchErr instanceof Error ? batchErr : new Error(String(batchErr));
       if (err.message?.includes('[RateLimitError]')) {
-        console.warn('[Cron Batch] HuggingFace Rate Limit reached. Stopping subsequent HuggingFace update batches.');
+        console.warn('[Cron Batch] HuggingFace Rate Limit reached. Stopping subsequent HF update batches.');
         break;
       }
-      console.error(`[Cron Batch] Failed to process HF batch for ${hfTargets.map(r => r.id).join(', ')}:`, batchErr);
+      console.error(`[Cron Batch] Failed to process HF batch:`, batchErr);
     }
   }
 
@@ -463,7 +469,7 @@ export async function runDailySocialMentions() {
     // Criteria: weekly_stars >= 10 (GitHub) OR weekly_downloads >= 50 (HuggingFace)
     // Falls back to top projects by lifetime stars if trends data is missing.
     const result = await db.execute(sql`
-      SELECT DISTINCT p.id, p.full_name as "fullName", p.source
+      SELECT p.id, p.full_name as "fullName", p.source
       FROM projects p
       LEFT JOIN project_trends pt ON pt.project_id = p.id
       WHERE (

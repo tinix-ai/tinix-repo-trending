@@ -220,9 +220,11 @@ export function ProjectCard({ project, index, days: _days }: ProjectCardProps) {
             </div>
 
             {/* Description */}
-            <p className="text-[14px] text-[var(--color-text-secondary)] line-clamp-2 mt-1 leading-relaxed break-words">
-              {project.description}
-            </p>
+            {project.description && (
+              <p className="text-[14px] text-[var(--color-text-secondary)] line-clamp-2 mt-1 leading-relaxed break-words">
+                {project.description}
+              </p>
+            )}
 
             {/* Tags */}
             <div className="flex flex-wrap gap-1.5 mt-3 relative z-10">

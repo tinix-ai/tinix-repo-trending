@@ -493,7 +493,7 @@ export function CompareDashboard({ initialProjects }: CompareDashboardProps) {
                     {t("noHistoryData")}
                   </div>
                 ) : (
-                  <ResponsiveContainer width="100%" height="100%">
+                  <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                     <LineChart data={chartData} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="var(--color-divider-soft)" vertical={false} />
                       <XAxis dataKey="date" stroke="var(--color-ink-muted-48)" fontSize={10} tickLine={false} />
@@ -545,7 +545,7 @@ export function CompareDashboard({ initialProjects }: CompareDashboardProps) {
                     Đang tải phân tích đà tăng trưởng...
                   </div>
                 ) : (
-                  <ResponsiveContainer width="100%" height="100%">
+                  <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                     <BarChart data={velocityData} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="var(--color-divider-soft)" vertical={false} />
                       <XAxis dataKey="name" stroke="var(--color-ink-muted-48)" fontSize={10} tickLine={false} />

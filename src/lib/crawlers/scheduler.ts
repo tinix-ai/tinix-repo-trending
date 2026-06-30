@@ -59,13 +59,7 @@ export async function updateProjectCrawlSchedule(
           crawlInterval = 7; // Low growth: crawl weekly
         } else {
           // No growth (dailyStarsRate <= 0)
-          if (currentInterval < 7) {
-            crawlInterval = 7; // 1 week
-          } else if (currentInterval === 7) {
-            crawlInterval = 14; // 2 weeks
-          } else {
-            crawlInterval = 30; // 1 month
-          }
+          crawlInterval = Math.min(currentInterval + 1, 30); // Lùi dần thêm 1 ngày mỗi lần, tối đa 30 ngày
         }
       } else if (source === "huggingface") {
         const deltaLikes = (latest.likes || 0) - (previous.likes || 0);
@@ -86,13 +80,7 @@ export async function updateProjectCrawlSchedule(
           crawlInterval = 7; // Low growth
         } else {
           // No growth (dailyLikesRate <= 0 and dailyDownloadsRate <= 0)
-          if (currentInterval < 7) {
-            crawlInterval = 7; // 1 week
-          } else if (currentInterval === 7) {
-            crawlInterval = 14; // 2 weeks
-          } else {
-            crawlInterval = 30; // 1 month
-          }
+          crawlInterval = Math.min(currentInterval + 1, 30); // Lùi dần thêm 1 ngày mỗi lần, tối đa 30 ngày
         }
       }
     } else {
@@ -101,7 +89,8 @@ export async function updateProjectCrawlSchedule(
       );
     }
 
-    const nextCrawlAt = new Date(Date.now() + crawlInterval * 24 * 60 * 60 * 1000);
+    // Subtract 4 hours grace period to prevent schedule drift and ensure it runs in the next eligible cron cycle
+    const nextCrawlAt = new Date(Date.now() + crawlInterval * 24 * 60 * 60 * 1000 - 4 * 60 * 60 * 1000);
     
     await db
       .update(projects)

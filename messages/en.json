@@ -319,6 +319,7 @@
     "submittedAt": "Submitted {date}"
   },
   "SubmissionsManager": {
+    "delete": "Delete",
     "filterAll": "All",
     "filterPending": "Pending",
     "filterApproved": "Approved",

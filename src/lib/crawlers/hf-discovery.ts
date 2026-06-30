@@ -76,15 +76,40 @@ async function fetchHFTopList(baseUrl: string, maxPages = 5): Promise<any[]> {
       const res = await fetch(url, { headers });
 
       // Extract telemetry headers
-      const remaining = res.headers.get('x-rate-limit-remaining') || res.headers.get('ratelimit-remaining');
-      const reset = res.headers.get('x-rate-limit-reset') || res.headers.get('ratelimit-reset');
-      const limitHeader = res.headers.get('x-rate-limit-limit') || res.headers.get('ratelimit-limit') || '1000';
+      let remVal = 0, limitVal = 1000, resetVal = 60;
+      let rateLimitFound = false;
 
-      if (remaining) {
-        const remVal = parseInt(remaining, 10);
-        const limitVal = parseInt(limitHeader, 10);
-        const resetVal = reset ? parseInt(reset, 10) : 60;
+      const rateLimitHeader = res.headers.get('RateLimit');
+      const rateLimitPolicyHeader = res.headers.get('RateLimit-Policy');
+
+      if (rateLimitHeader) {
+        const rMatch = rateLimitHeader.match(/r=(\d+)/);
+        const tMatch = rateLimitHeader.match(/t=(\d+)/);
+        if (rMatch) remVal = parseInt(rMatch[1], 10);
+        if (tMatch) resetVal = parseInt(tMatch[1], 10);
+        rateLimitFound = true;
+      }
+
+      if (rateLimitPolicyHeader) {
+        const qMatch = rateLimitPolicyHeader.match(/q=(\d+)/);
+        if (qMatch) limitVal = parseInt(qMatch[1], 10);
+      }
+
+      // Fallback for legacy headers
+      if (!rateLimitFound) {
+        const remaining = res.headers.get('x-rate-limit-remaining') || res.headers.get('ratelimit-remaining');
+        const reset = res.headers.get('x-rate-limit-reset') || res.headers.get('ratelimit-reset');
+        const limitHeader = res.headers.get('x-rate-limit-limit') || res.headers.get('ratelimit-limit');
         
+        if (remaining) {
+          remVal = parseInt(remaining, 10);
+          if (limitHeader) limitVal = parseInt(limitHeader, 10);
+          if (reset) resetVal = parseInt(reset, 10);
+          rateLimitFound = true;
+        }
+      }
+
+      if (rateLimitFound) {
         // Import and use redisConnection (needs to be available in this file)
         const { redisConnection } = require('../../workers/queue');
         redisConnection.hset('system:hf:token', 'info', JSON.stringify({
@@ -154,9 +179,9 @@ export async function discoverHFTrending() {
 
     const todayStr = new Date().toISOString().split('T')[0];
 
-    // 1. DISCOVER MODELS (top 5000 by downloads)
-    console.log('[HF Discovery] Fetching top 5000 models...');
-    const models = await fetchHFTopList('https://huggingface.co/api/models?sort=downloads&limit=100&direction=-1', 50);
+    // 1. DISCOVER MODELS (top 1000 by trendingScore)
+    console.log('[HF Discovery] Fetching top 1000 trending models...');
+    const models = await fetchHFTopList('https://huggingface.co/api/models?sort=trendingScore&limit=100&direction=-1', 10);
     console.log(`[HF Discovery] Discovered ${models.length} unique models from API.`);
 
     let queuedModels = 0;
@@ -179,7 +204,7 @@ export async function discoverHFTrending() {
       } else {
         if (existing) {
           await db.update(projects)
-            .set({ nextCrawlAt: new Date(Date.now() + 24 * 60 * 60 * 1000) })
+            .set({ nextCrawlAt: new Date(Date.now() + 20 * 60 * 60 * 1000) }) // 24h - 4h grace period to prevent cron drift
             .where(eq(projects.id, existing.id));
         }
         await hfQueue.add('crawl-hf-model', {
@@ -193,9 +218,9 @@ export async function discoverHFTrending() {
     }
     console.log(`[HF Discovery] Models process summary: queued: ${queuedModels}, inline updated: ${inlineUpdatedModels}`);
 
-    // 2. DISCOVER DATASETS (top 5000 by downloads)
-    console.log('[HF Discovery] Fetching top 5000 datasets...');
-    const datasets = await fetchHFTopList('https://huggingface.co/api/datasets?sort=downloads&limit=100&direction=-1', 50);
+    // 2. DISCOVER DATASETS (top 1000 by trendingScore)
+    console.log('[HF Discovery] Fetching top 1000 trending datasets...');
+    const datasets = await fetchHFTopList('https://huggingface.co/api/datasets?sort=trendingScore&limit=100&direction=-1', 10);
     console.log(`[HF Discovery] Discovered ${datasets.length} unique datasets from API.`);
 
     let queuedDatasets = 0;
@@ -218,7 +243,7 @@ export async function discoverHFTrending() {
       } else {
         if (existing) {
           await db.update(projects)
-            .set({ nextCrawlAt: new Date(Date.now() + 24 * 60 * 60 * 1000) })
+            .set({ nextCrawlAt: new Date(Date.now() + 20 * 60 * 60 * 1000) }) // 24h - 4h grace period to prevent cron drift
             .where(eq(projects.id, existing.id));
         }
         await hfQueue.add('crawl-hf-dataset', {

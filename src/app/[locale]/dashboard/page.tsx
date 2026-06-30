@@ -4,6 +4,7 @@ import { actionGetUserProjects } from "@/app/actions";
 import { FolderGit2, Clock, CheckCircle2, XCircle, ExternalLink, Eye, Heart } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { DeleteSubmissionButton } from "@/components/dashboard/delete-submission-button";
 
 export default async function DashboardPage(props: { params: Promise<{ locale: string }> }) {
   const params = await props.params;
@@ -110,25 +111,28 @@ export default async function DashboardPage(props: { params: Promise<{ locale: s
                       )}
                     </div>
                     
-                    {p.projectSlug ? (
-                      <Link
-                        href={`/${locale}/projects/${p.projectSlug}`}
-                        className="p-2 rounded-full hover:bg-[var(--color-bg-secondary)] text-[var(--color-ink-muted-64)] hover:text-[var(--color-ink)] transition-colors"
-                        title="View Project Detail"
-                      >
-                        <ExternalLink className="w-5 h-5" />
-                      </Link>
-                    ) : p.url && !p.url.startsWith('custom://') ? (
-                      <a
-                        href={p.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="p-2 rounded-full hover:bg-[var(--color-bg-secondary)] text-[var(--color-ink-muted-64)] hover:text-[var(--color-ink)] transition-colors"
-                        title="Visit Source"
-                      >
-                        <ExternalLink className="w-5 h-5" />
-                      </a>
-                    ) : null}
+                    <div className="flex items-center gap-1">
+                      {p.projectSlug && p.projectId ? (
+                        <Link
+                          href={`/${locale}/project/${p.projectSlug.replace(/\//g, "-")}-${p.projectId}`}
+                          className="p-2 rounded-full hover:bg-[var(--color-bg-secondary)] text-[var(--color-ink-muted-64)] hover:text-[var(--color-ink)] transition-colors"
+                          title="View Project Detail"
+                        >
+                          <ExternalLink className="w-5 h-5" />
+                        </Link>
+                      ) : p.url && !p.url.startsWith('custom://') ? (
+                        <a
+                          href={p.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-2 rounded-full hover:bg-[var(--color-bg-secondary)] text-[var(--color-ink-muted-64)] hover:text-[var(--color-ink)] transition-colors"
+                          title="Visit Source"
+                        >
+                          <ExternalLink className="w-5 h-5" />
+                        </a>
+                      ) : null}
+                      <DeleteSubmissionButton id={p.id} />
+                    </div>
                   </div>
                 </div>
               );

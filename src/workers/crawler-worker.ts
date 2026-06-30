@@ -4,7 +4,7 @@ import Redis from 'ioredis';
 import { db } from '../lib/db';
 import { projects, projectSnapshots, projectTrends, projectMentions, githubUsers } from '../lib/db/schema';
 import { crawlHNMentions } from '../lib/crawlers/hn';
-import { crawlRedditMentions } from '../lib/crawlers/reddit';
+
 import * as zlib from 'zlib';
 import { sql, eq, and, isNotNull } from 'drizzle-orm';
 import { categorizeProject } from '../lib/categorizer';
@@ -38,6 +38,7 @@ interface CrawlJobData {
   owner: string;
   repo: string;
   projectId?: string;
+  overrideDescription?: string;
 }
 
 export async function handleGithubCrawlJob(job: Job<CrawlJobData>) {
@@ -242,7 +243,7 @@ export async function handleGithubCrawlJob(job: Job<CrawlJobData>) {
     
     let readme: Buffer | string | null = existingProject?.readme || null;
     let readmeSha: string | null = existingProject?.readmeSha || null;
-    let finalDescription = data.description || existingProject?.description || '';
+    let finalDescription = job.data.overrideDescription || data.description || existingProject?.description || '';
 
     const apiPushedAt = data.sourceUpdatedAt.getTime();
     const dbPushedAt = existingProject?.sourceUpdatedAt ? new Date(existingProject.sourceUpdatedAt).getTime() : 0;
@@ -555,13 +556,10 @@ export async function handleSocialCrawlJob(job: Job<SocialCrawlJobData>) {
       return { status: 'ignored', reason: 'project_not_found' };
     }
 
-    // 2. Run crawlers in parallel (HN and Reddit only; Twitter is handled in batch by cron)
-    const [hnMentions, redditMentions] = await Promise.all([
-      crawlHNMentions(project.fullName, project.name, project.sourceUrl, project.homepageUrl),
-      crawlRedditMentions(project.fullName, project.name, project.sourceUrl, project.homepageUrl)
-    ]);
+    // 2. Run crawlers (HN only; Twitter is handled in batch by cron)
+    const hnMentions = await crawlHNMentions(project.fullName, project.name, project.sourceUrl, project.homepageUrl);
 
-    const allMentions = [...hnMentions, ...redditMentions];
+    const allMentions = [...hnMentions];
     if (allMentions.length > 0) {
       console.log(`[Social Crawler] Inserting ${allMentions.length} mentions for ${project.fullName}`);
       for (const mention of allMentions) {

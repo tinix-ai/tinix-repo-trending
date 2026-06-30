@@ -33,6 +33,7 @@ const pauseScheduledMap: Record<string, boolean> = {};
 interface HFCrawlJobData {
   id: string; // e.g., 'meta-llama/Llama-2-7b'
   type: 'models' | 'datasets';
+  overrideDescription?: string;
 }
 
 export async function handleHFCrawlJob(job: Job<HFCrawlJobData>) {
@@ -64,15 +65,40 @@ export async function handleHFCrawlJob(job: Job<HFCrawlJobData>) {
 
         const response = await fetch(url, fetchOptions);
 
-        const remaining = response.headers.get('x-rate-limit-remaining') || response.headers.get('ratelimit-remaining');
-        const reset = response.headers.get('x-rate-limit-reset') || response.headers.get('ratelimit-reset');
-        const limitHeader = response.headers.get('x-rate-limit-limit') || response.headers.get('ratelimit-limit') || '1000';
+        let remVal = 0, limitVal = 1000, resetVal = 60;
+        let rateLimitFound = false;
 
-        if (remaining) {
-          const remVal = parseInt(remaining, 10);
-          const limitVal = parseInt(limitHeader, 10);
-          const resetVal = reset ? parseInt(reset, 10) : 60;
+        const rateLimitHeader = response.headers.get('RateLimit');
+        const rateLimitPolicyHeader = response.headers.get('RateLimit-Policy');
+
+        if (rateLimitHeader) {
+          const rMatch = rateLimitHeader.match(/r=(\d+)/);
+          const tMatch = rateLimitHeader.match(/t=(\d+)/);
+          if (rMatch) remVal = parseInt(rMatch[1], 10);
+          if (tMatch) resetVal = parseInt(tMatch[1], 10);
+          rateLimitFound = true;
+        }
+
+        if (rateLimitPolicyHeader) {
+          const qMatch = rateLimitPolicyHeader.match(/q=(\d+)/);
+          if (qMatch) limitVal = parseInt(qMatch[1], 10);
+        }
+
+        // Fallback for legacy headers
+        if (!rateLimitFound) {
+          const remaining = response.headers.get('x-rate-limit-remaining') || response.headers.get('ratelimit-remaining');
+          const reset = response.headers.get('x-rate-limit-reset') || response.headers.get('ratelimit-reset');
+          const limitHeader = response.headers.get('x-rate-limit-limit') || response.headers.get('ratelimit-limit');
           
+          if (remaining) {
+            remVal = parseInt(remaining, 10);
+            if (limitHeader) limitVal = parseInt(limitHeader, 10);
+            if (reset) resetVal = parseInt(reset, 10);
+            rateLimitFound = true;
+          }
+        }
+
+        if (rateLimitFound) {
           redisConnection.hset('system:hf:token', 'info', JSON.stringify({
             remaining: remVal,
             limit: limitVal,
@@ -84,7 +110,7 @@ export async function handleHFCrawlJob(job: Job<HFCrawlJobData>) {
           });
 
           if (remVal < 20) {
-            console.log(`${logPrefix} HF API rate limit is low: ${remaining} remaining. Resets in ${reset || 'unknown'}s`);
+            console.log(`${logPrefix} HF API rate limit is low: ${remVal} remaining. Resets in ${resetVal}s`);
           }
         }
 
@@ -96,8 +122,7 @@ export async function handleHFCrawlJob(job: Job<HFCrawlJobData>) {
               await setTimeout(2000); // Wait 2s before retry
               continue;
             } else {
-              const resetHeader = response.headers.get('x-rate-limit-reset') || response.headers.get('ratelimit-reset');
-              const resetSeconds = resetHeader ? parseInt(resetHeader, 10) : 60;
+              const resetSeconds = resetVal;
               const sleepMs = (resetSeconds + 5) * 1000;
               
               if (!pauseScheduledMap[job.queueName]) {
@@ -131,6 +156,12 @@ export async function handleHFCrawlJob(job: Job<HFCrawlJobData>) {
           }
           if (response.status === 404) {
             return { status: 404, data: null };
+          }
+          if (response.status >= 500) {
+            console.warn(`${logPrefix} HuggingFace API ${response.status} error. Retries left: ${maxRetries - 1}`);
+            maxRetries--;
+            await setTimeout(5000); // Wait 5s before retry
+            continue;
           }
           throw new Error(`HuggingFace API error: ${response.status} ${response.statusText}`);
         }
@@ -181,7 +212,7 @@ export async function handleHFCrawlJob(job: Job<HFCrawlJobData>) {
     const canonicalCategories = await categorizeProject(rawTags, projectType);
 
     let readme: Buffer | null = null;
-    let finalDescription = data.cardData?.summary || data.description || '';
+    let finalDescription = job.data.overrideDescription || data.cardData?.summary || data.description || '';
     try {
       const prefix = type === 'datasets' ? 'datasets/' : '';
       const readmeRes = await fetchHFWithRetry(`https://huggingface.co/${prefix}${id}/resolve/main/README.md`, true);

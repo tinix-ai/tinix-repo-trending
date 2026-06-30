@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import { Check, X, ExternalLink, Github, Loader2, User } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
-import { actionGetSubmissions, actionApproveSubmission, actionRejectSubmission } from "@/app/actions";
+import { actionGetSubmissions, actionApproveSubmission, actionRejectSubmission, actionDeleteSubmission } from "@/app/actions";
+import { Trash2 } from "lucide-react";
 
 interface Submission {
   id: string;
@@ -66,6 +67,25 @@ export function SubmissionsManager() {
       if (res.success) {
         toast.success(t("rejectSuccess"));
         setSubmissions(submissions.map(s => s.id === id ? { ...s, status: 'rejected' } : s));
+      } else {
+        toast.error(res.error || t("actionFailed"));
+      }
+    } catch (error) {
+      toast.error(t("actionFailed"));
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm(t("deleteConfirm") || "Are you sure you want to delete this submission?")) return;
+    
+    setProcessingId(id);
+    try {
+      const res = await actionDeleteSubmission(id);
+      if (res.success) {
+        toast.success(t("deleteSuccess") || "Submission deleted");
+        setSubmissions(submissions.filter(s => s.id !== id));
       } else {
         toast.error(res.error || t("actionFailed"));
       }
@@ -171,7 +191,7 @@ export function SubmissionsManager() {
                 </div>
               </div>
               
-              {sub.status === 'pending' && (
+              {sub.status === 'pending' ? (
                 <div className="flex items-center gap-2 sm:self-center">
                   <button
                     onClick={() => handleReject(sub.id)}
@@ -188,6 +208,26 @@ export function SubmissionsManager() {
                   >
                     {processingId === sub.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                     {t("approve")}
+                  </button>
+                  <div className="w-px h-6 bg-[var(--color-hairline)] mx-1" />
+                  <button
+                    onClick={() => handleDelete(sub.id)}
+                    disabled={processingId === sub.id}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-md)] text-[var(--color-ink-muted-64)] hover:text-red-500 hover:bg-red-50 text-[13px] font-medium transition-colors disabled:opacity-50 cursor-pointer"
+                    title={t("delete") || "Delete"}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 sm:self-center">
+                  <button
+                    onClick={() => handleDelete(sub.id)}
+                    disabled={processingId === sub.id}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-md)] text-[var(--color-ink-muted-64)] hover:text-red-500 hover:bg-red-50 text-[13px] font-medium transition-colors disabled:opacity-50 cursor-pointer"
+                    title={t("delete") || "Delete"}
+                  >
+                    {processingId === sub.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
                   </button>
                 </div>
               )}

@@ -32,6 +32,13 @@
   --color-action-blue: var(--color-action-blue);
   --color-action-blue-focus: var(--color-action-blue-focus);
   --color-action-blue-on-dark: var(--color-action-blue-on-dark);
+
+  --animate-custom-marquee: custom-marquee 40s linear infinite;
+
+  @keyframes custom-marquee {
+    0% { transform: translateX(0%); }
+    100% { transform: translateX(-50%); }
+  }
 }
 
 /* ─────────── Design Tokens (Apple Aesthetic) ─────────── */
@@ -850,6 +857,10 @@ body {
 
 .hover-spring:active {
   transform: translateY(-1px);
+}
+
+.animate-custom-marquee:hover {
+  animation-play-state: paused;
 }
 
 

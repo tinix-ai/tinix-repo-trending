@@ -74,7 +74,7 @@ export function ProjectHistoryChart({ data, source }: ProjectHistoryChartProps) 
 
   return (
     <div className="w-full h-full font-sans min-h-[180px] min-w-0">
-      <ResponsiveContainer width="99%" height={180}>
+      <ResponsiveContainer width="99%" height={180} minWidth={0} minHeight={0}>
         <AreaChart
           data={data}
           margin={{

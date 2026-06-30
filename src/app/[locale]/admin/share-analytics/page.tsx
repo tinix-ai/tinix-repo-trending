@@ -196,7 +196,7 @@ function OverviewTab({ stats, days }: { stats: FullStats; days: number }) {
           {daily.length === 0 ? (
             <EmptyState label="No traffic data yet" />
           ) : (
-            <ResponsiveContainer width="100%" height={220}>
+            <ResponsiveContainer width="100%" height={220} minWidth={0} minHeight={0}>
               <AreaChart data={daily} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="clickGrad" x1="0" y1="0" x2="0" y2="1">
@@ -226,7 +226,7 @@ function OverviewTab({ stats, days }: { stats: FullStats; days: number }) {
         <Card>
           <CardHeader title="Clicks by Day of Week" />
           <div style={{ padding: '20px' }}>
-            <ResponsiveContainer width="100%" height={160}>
+            <ResponsiveContainer width="100%" height={160} minWidth={0} minHeight={0}>
               <BarChart data={dowData} margin={{ top: 0, right: 0, left: -25, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--color-divider-soft)" vertical={false} />
                 <XAxis dataKey="label" tick={{ fontSize: 11, fill: 'var(--color-ink-muted-48)' }} axisLine={false} tickLine={false} />
@@ -246,7 +246,7 @@ function OverviewTab({ stats, days }: { stats: FullStats; days: number }) {
               <EmptyState label="No visitor data" />
             ) : (
               <>
-                <ResponsiveContainer width={120} height={120}>
+                <ResponsiveContainer width={120} height={120} minWidth={0} minHeight={0}>
                   <PieChart>
                     <Pie data={stats.visitorType} dataKey="visitors" nameKey="visitor_type" cx="50%" cy="50%" innerRadius={32} outerRadius={52} strokeWidth={0}>
                       {stats.visitorType.map((_, i) => (
@@ -301,7 +301,7 @@ function TrafficTab({ stats }: { stats: FullStats }) {
           }
         />
         <div style={{ padding: '20px' }}>
-          <ResponsiveContainer width="100%" height={220}>
+          <ResponsiveContainer width="100%" height={220} minWidth={0} minHeight={0}>
             <BarChart data={stats.trafficSources} layout="vertical" margin={{ top: 0, right: 40, left: 80, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--color-divider-soft)" horizontal={false} />
               <XAxis type="number" tick={{ fontSize: 11, fill: 'var(--color-ink-muted-48)' }} axisLine={false} tickLine={false} />
@@ -370,7 +370,7 @@ function GeoTab({ stats }: { stats: FullStats }) {
         <Card>
           <CardHeader title="Top Countries" />
           <div style={{ padding: '16px' }}>
-            <ResponsiveContainer width="100%" height={200}>
+            <ResponsiveContainer width="100%" height={200} minWidth={0} minHeight={0}>
               <PieChart>
                 <Pie data={stats.countryBreakdown.slice(0, 6)} dataKey="clicks" nameKey="country" cx="50%" cy="50%" innerRadius={40} outerRadius={80} strokeWidth={0}>
                   {stats.countryBreakdown.slice(0, 6).map((_, i) => (
@@ -385,7 +385,7 @@ function GeoTab({ stats }: { stats: FullStats }) {
         <Card>
           <CardHeader title="Distribution by Country" />
           <div style={{ padding: '20px' }}>
-            <ResponsiveContainer width="100%" height={200}>
+            <ResponsiveContainer width="100%" height={200} minWidth={0} minHeight={0}>
               <BarChart data={stats.countryBreakdown.slice(0, 10)} layout="vertical" margin={{ top: 0, right: 40, left: 60, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--color-divider-soft)" horizontal={false} />
                 <XAxis type="number" tick={{ fontSize: 11, fill: 'var(--color-ink-muted-48)' }} axisLine={false} tickLine={false} />
@@ -461,7 +461,7 @@ function DevicesTab({ stats }: { stats: FullStats }) {
         <Card>
           <CardHeader title="Device Split (Human Traffic)" />
           <div style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '24px' }}>
-            <ResponsiveContainer width={140} height={140}>
+            <ResponsiveContainer width={140} height={140} minWidth={0} minHeight={0}>
               <PieChart>
                 <Pie data={human} dataKey="human_clicks" nameKey="device" cx="50%" cy="50%" innerRadius={40} outerRadius={62} strokeWidth={0}>
                   {human.map((d) => <Cell key={d.device} fill={deviceColors[d.device] ?? '#6366f1'} />)}
@@ -496,7 +496,7 @@ function DevicesTab({ stats }: { stats: FullStats }) {
         <Card>
           <CardHeader title="All Traffic (incl. Bots)" />
           <div style={{ padding: '20px' }}>
-            <ResponsiveContainer width="100%" height={200}>
+            <ResponsiveContainer width="100%" height={200} minWidth={0} minHeight={0}>
               <BarChart data={stats.deviceBreakdown} margin={{ top: 0, right: 10, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--color-divider-soft)" vertical={false} />
                 <XAxis dataKey="device" tick={{ fontSize: 11, fill: 'var(--color-ink-muted-48)' }} axisLine={false} tickLine={false} />

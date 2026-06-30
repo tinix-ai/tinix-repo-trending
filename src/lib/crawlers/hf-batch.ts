@@ -19,6 +19,7 @@ export interface HFBatchResult {
   id: string;
   type: 'models' | 'datasets';
   exists: boolean;
+  isGated?: boolean;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data?: any;
 }
@@ -44,15 +45,40 @@ export async function fetchHFWithRetry(url: string, logPrefix: string, isText = 
 
     const response = await fetch(url, fetchOptions);
 
-    const remaining = response.headers.get('x-rate-limit-remaining') || response.headers.get('ratelimit-remaining');
-    const reset = response.headers.get('x-rate-limit-reset') || response.headers.get('ratelimit-reset');
-    const limitHeader = response.headers.get('x-rate-limit-limit') || response.headers.get('ratelimit-limit') || '1000';
+    let remVal = 0, limitVal = 1000, resetVal = 60;
+    let rateLimitFound = false;
 
-    if (remaining) {
-      const remVal = parseInt(remaining, 10);
-      const limitVal = parseInt(limitHeader, 10);
-      const resetVal = reset ? parseInt(reset, 10) : 60;
+    const rateLimitHeader = response.headers.get('RateLimit');
+    const rateLimitPolicyHeader = response.headers.get('RateLimit-Policy');
+
+    if (rateLimitHeader) {
+      const rMatch = rateLimitHeader.match(/r=(\d+)/);
+      const tMatch = rateLimitHeader.match(/t=(\d+)/);
+      if (rMatch) remVal = parseInt(rMatch[1], 10);
+      if (tMatch) resetVal = parseInt(tMatch[1], 10);
+      rateLimitFound = true;
+    }
+
+    if (rateLimitPolicyHeader) {
+      const qMatch = rateLimitPolicyHeader.match(/q=(\d+)/);
+      if (qMatch) limitVal = parseInt(qMatch[1], 10);
+    }
+
+    // Fallback for legacy headers
+    if (!rateLimitFound) {
+      const remaining = response.headers.get('x-rate-limit-remaining') || response.headers.get('ratelimit-remaining');
+      const reset = response.headers.get('x-rate-limit-reset') || response.headers.get('ratelimit-reset');
+      const limitHeader = response.headers.get('x-rate-limit-limit') || response.headers.get('ratelimit-limit');
       
+      if (remaining) {
+        remVal = parseInt(remaining, 10);
+        if (limitHeader) limitVal = parseInt(limitHeader, 10);
+        if (reset) resetVal = parseInt(reset, 10);
+        rateLimitFound = true;
+      }
+    }
+
+    if (rateLimitFound) {
       redisConnection.hset('system:hf:token', 'info', JSON.stringify({
         remaining: remVal,
         limit: limitVal,
@@ -64,7 +90,7 @@ export async function fetchHFWithRetry(url: string, logPrefix: string, isText = 
       });
 
       if (remVal < 20) {
-        console.log(`${logPrefix} HF API rate limit is low: ${remaining} remaining. Resets in ${reset || 'unknown'}s`);
+        console.log(`${logPrefix} HF API rate limit is low: ${remVal} remaining. Resets in ${resetVal}s`);
       }
     }
 
@@ -76,13 +102,16 @@ export async function fetchHFWithRetry(url: string, logPrefix: string, isText = 
           await setTimeout(2000); // Wait 2s before retry
           continue;
         } else {
-          const resetHeader = response.headers.get('x-rate-limit-reset') || response.headers.get('ratelimit-reset');
-          const resetSeconds = resetHeader ? parseInt(resetHeader, 10) : 60;
+          const resetSeconds = resetVal;
           throw new Error(`[RateLimitError] HuggingFace API rate limited. Resets in ${resetSeconds} seconds.`);
         }
       }
       if (response.status === 404) {
         return { status: 404, data: null };
+      }
+      if (response.status === 401 || response.status === 403) {
+        // Gated model without token or insufficient permissions
+        return { status: response.status, data: null };
       }
       throw new Error(`HuggingFace API error: ${response.status} ${response.statusText}`);
     }
@@ -110,6 +139,9 @@ export async function fetchHFBatch(
         const result = await fetchHFWithRetry(url, logPrefix);
         if (result.status === 404) {
           return { id: project.id, type: project.type, exists: false };
+        }
+        if (result.status === 401 || result.status === 403) {
+           return { id: project.id, type: project.type, exists: true, data: null, isGated: true };
         }
         return { id: project.id, type: project.type, exists: true, data: result.data };
       } catch (err: unknown) {

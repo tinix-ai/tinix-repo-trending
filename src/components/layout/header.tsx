@@ -187,7 +187,7 @@ export function Header() {
           </nav>
 
           {/* Right actions */}
-          <div className="flex items-center gap-1 shrink-0">
+          <div className="hidden md:flex items-center gap-1 shrink-0">
             <LanguageSwitcher />
             <ThemeToggle />
 
@@ -235,7 +235,7 @@ export function Header() {
           {/* Mobile menu button */}
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
-            className="lg:hidden flex items-center justify-center h-11 w-11 rounded-lg text-[var(--color-ink-muted-80)] cursor-pointer"
+            className="lg:hidden ml-auto flex items-center justify-center h-11 w-11 rounded-lg text-[var(--color-ink-muted-80)] cursor-pointer"
             aria-label="Toggle menu"
           >
             {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}

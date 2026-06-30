@@ -116,7 +116,7 @@ export async function discoverNewRepos(maxPages: number = 10): Promise<Discovere
         console.log(`[Discovery] Low Stars (50..200) - Topic: ${topic} (${t + 1}/${topics.length}), Page: ${p}/${topicMaxPages} using cursor: ${topicCursor || 'null'}...`);
 
         try {
-          const query = `("${topic}" in:name,description OR topic:${topic}) stars:50..200 sort:updated-desc`;
+          const query = `topic:${topic} stars:50..200 sort:updated-desc`;
           const data = await searchGitHubRepos(query, 100, topicCursor);
           const items = data.nodes || [];
 

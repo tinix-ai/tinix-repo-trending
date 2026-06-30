@@ -86,6 +86,16 @@ export async function getDynamicTrendingProjects(params: ProjectQueryParams): Pr
       // Exclude projects with zero growth
       filters.push(sql`momentum_score > 0`);
 
+      // Only show projects that have been updated to the latest snapshot date available in the database
+      // to prevent mixing old day's high statistics with the current day's newly updated statistics.
+      if (days === 1) {
+        filters.push(sql`EXISTS (
+          SELECT 1 FROM project_snapshots s 
+          WHERE s.project_id = scored.project_id 
+            AND s.snapshot_date = (SELECT COALESCE(max(snapshot_date), CURRENT_DATE) FROM project_snapshots)
+        )`);
+      }
+
       // Apply dynamic noise filtering based on the time window
       if (days === 7) {
         filters.push(sql`((source = 'github' AND stars_gained >= 2) OR (source = 'huggingface' AND downloads_gained >= 20) OR (source NOT IN ('github', 'huggingface')))`);
@@ -208,6 +218,7 @@ export async function getDynamicTrendingProjects(params: ProjectQueryParams): Pr
           p.categories,
           p.location,
           p.country_code,
+          t.updated_at as trend_updated_at,
           GREATEST(COALESCE(
             CASE 
               WHEN p.source = 'github' THEN ${starsGainedCol}

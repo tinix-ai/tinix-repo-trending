@@ -373,7 +373,7 @@ export function AnalyticsDashboard({ analyticsData, report }: AnalyticsDashboard
             <div className="flex flex-col sm:flex-row items-center gap-6 justify-around min-h-64">
               {/* Pie Chart */}
               <div className="h-48 w-48 relative flex items-center justify-center shrink-0">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                   <PieChart>
                     <Pie
                       data={stalenessChartData}
@@ -450,7 +450,7 @@ export function AnalyticsDashboard({ analyticsData, report }: AnalyticsDashboard
                 </div>
               ) : (
                 <div className="h-60 w-full">
-                  <ResponsiveContainer width="100%" height="100%">
+                  <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                     <BarChart data={commonErrors} layout="vertical" margin={{ left: 15, right: 15, top: 5, bottom: 5 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="var(--color-divider-soft)" horizontal={false} vertical={true} />
                       <XAxis type="number" stroke="var(--color-ink-muted-48)" fontSize={10} tickLine={false} />
@@ -481,7 +481,7 @@ export function AnalyticsDashboard({ analyticsData, report }: AnalyticsDashboard
             <p className="text-xs text-[var(--color-ink-muted-48)]">Most populated AI/ML categories across platforms</p>
           </div>
           <div className="h-80 w-full">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
               <BarChart data={categories} layout="vertical" margin={{ left: 20, right: 20, top: 10, bottom: 10 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--color-divider-soft)" horizontal={true} vertical={false} />
                 <XAxis type="number" stroke="var(--color-ink-muted-48)" fontSize={11} />
@@ -504,7 +504,7 @@ export function AnalyticsDashboard({ analyticsData, report }: AnalyticsDashboard
             <p className="text-xs text-[var(--color-ink-muted-48)]">Language distribution for GitHub repositories</p>
           </div>
           <div className="h-80 w-full">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
               <BarChart data={languages} margin={{ left: 10, right: 10, top: 10, bottom: 10 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--color-divider-soft)" horizontal={true} vertical={false} />
                 <XAxis dataKey="name" stroke="var(--color-ink-muted-48)" fontSize={11} tickLine={false} />
@@ -532,7 +532,7 @@ export function AnalyticsDashboard({ analyticsData, report }: AnalyticsDashboard
             <p className="text-xs text-[var(--color-ink-muted-48)]">GitHub vs HuggingFace project ratios</p>
           </div>
           <div className="h-64 w-full flex items-center justify-center">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
               <PieChart>
                 <Pie
                   data={sourceData}
@@ -564,7 +564,7 @@ export function AnalyticsDashboard({ analyticsData, report }: AnalyticsDashboard
             <p className="text-xs text-[var(--color-ink-muted-48)]">Space saved by Gzip binary storage of READMEs</p>
           </div>
           <div className="h-64 w-full">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
               <BarChart data={compressionChartData} margin={{ left: 10, right: 10, top: 10, bottom: 10 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--color-divider-soft)" horizontal={true} vertical={false} />
                 <XAxis dataKey="name" stroke="var(--color-ink-muted-48)" fontSize={11} tickLine={false} />

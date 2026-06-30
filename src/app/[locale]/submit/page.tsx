@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Send, CheckCircle2, AlertCircle, Loader2, ArrowRight, Github, ExternalLink, PenLine } from "lucide-react";
-import { PageHeader } from "@/components/common/page-header";
+
 import { actionPreAnalyzeUrl, actionSubmitProject } from "@/app/actions";
 
 type Step = 'input' | 'preview' | 'custom_form' | 'success';
@@ -86,154 +86,252 @@ export default function SubmitPage() {
   };
 
   return (
-    <main className="min-h-screen bg-[var(--color-canvas)] pb-24">
-      {/* Edge-to-edge Hero Tile */}
-      <section className="apple-tile-light py-24 sm:py-32 border-b border-[var(--color-divider-soft)] relative overflow-hidden">
-        {/* Subtle background glow */}
-        <div className="absolute inset-0 bg-gradient-to-b from-[var(--color-action-blue)]/5 to-transparent pointer-events-none" />
+    <main className="min-h-screen bg-[var(--color-canvas)] flex flex-col items-center pt-10 sm:pt-16 pb-24 px-4 relative overflow-hidden">
+      {/* Premium Background Effects */}
+      <div className="absolute top-[-20%] left-[20%] w-[60%] h-[60%] bg-[var(--color-action-blue)]/5 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-[var(--color-action-blue)]/5 rounded-full blur-[100px] pointer-events-none" />
+      
+      <div className="w-full max-w-xl z-10">
         
-        <div className="page-container relative z-10 flex flex-col items-center text-center">
-          <div className="inline-flex h-12 w-12 items-center justify-center rounded-[var(--radius-lg)] bg-[var(--color-bg-secondary)] border border-[var(--color-hairline)] mb-2">
-            <Send className="h-5 w-5 text-[var(--color-action-blue)]" />
+        {/* Sleek, integrated Header */}
+        <div className="text-center mb-8 animate-fade-in-up">
+          <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-[var(--color-action-blue)] to-blue-600 shadow-lg shadow-blue-500/20 mb-5 relative">
+            <div className="absolute inset-0 bg-white/20 rounded-2xl border border-white/30"></div>
+            <Send className="h-6 w-6 text-white relative z-10 ml-0.5" />
           </div>
-          
-          <PageHeader 
-            title={t("title")} 
-            subtitle={t("subtitle")} 
-            className="!mt-2"
-          />
+          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-[var(--color-ink)] mb-3">
+            {t("title")}
+          </h1>
+          <p className="text-[15px] text-[var(--color-ink-muted-64)] max-w-md mx-auto leading-relaxed">
+            {t("subtitle")}
+          </p>
         </div>
-      </section>
 
-      {/* Main Content */}
-      <section className="pt-12">
-        <div className="page-container max-w-xl">
+        {/* Main Content Card Wrapper */}
+        <div className="relative animate-fade-in-up" style={{ animationDelay: '100ms' }}>
           
           {step !== 'success' && (
-            <div className="flex bg-[var(--color-bg-secondary)] p-1 rounded-[var(--radius-pill)] border border-[var(--color-divider-soft)] mb-8 w-max mx-auto animate-fade-in-up">
+            <div className="flex bg-[var(--color-bg-secondary)] p-1 rounded-[var(--radius-pill)] border border-[var(--color-divider-soft)] mb-8 w-max mx-auto shadow-sm relative z-20">
               <button 
                 onClick={() => { setSubmissionType('link'); setStep('input'); setError(""); }} 
-                className={`px-6 py-2 rounded-full text-sm font-semibold transition-all select-none ${submissionType === 'link' ? 'bg-[var(--color-ink)] text-[var(--color-canvas)] shadow-md' : 'text-[var(--color-ink-muted-64)] hover:text-[var(--color-ink)]'}`}
+                className={`px-6 py-2 rounded-full text-sm font-semibold transition-all select-none ${submissionType === 'link' ? 'bg-[var(--color-ink)] text-[var(--color-canvas)] shadow-md scale-[1.02]' : 'text-[var(--color-ink-muted-64)] hover:text-[var(--color-ink)]'}`}
               >
                 Link Repository (GH/HF)
               </button>
               <button 
                 onClick={() => { setSubmissionType('custom'); setStep('custom_form'); setPreAnalysisData({}); setError(""); }} 
-                className={`px-6 py-2 rounded-full text-sm font-semibold transition-all select-none ${submissionType === 'custom' ? 'bg-[var(--color-ink)] text-[var(--color-canvas)] shadow-md' : 'text-[var(--color-ink-muted-64)] hover:text-[var(--color-ink)]'}`}
+                className={`px-6 py-2 rounded-full text-sm font-semibold transition-all select-none ${submissionType === 'custom' ? 'bg-[var(--color-ink)] text-[var(--color-canvas)] shadow-md scale-[1.02]' : 'text-[var(--color-ink-muted-64)] hover:text-[var(--color-ink)]'}`}
               >
                 Custom Project
               </button>
             </div>
           )}
 
-          {step === 'input' && submissionType === 'link' && (
-            <div className="glass-card hover-spring p-6 sm:p-10 animate-fade-in-up">
-              <form onSubmit={handlePreAnalyze} className="flex flex-col gap-6">
-                <div className="flex flex-col gap-2">
-                  <label htmlFor="url" className="text-xs font-semibold uppercase tracking-wider text-[var(--color-ink-muted-80)] ml-1">
-                    URL
-                  </label>
-                  <input
-                    type="url"
-                    id="url"
-                    name="url"
-                    value={url}
-                    onChange={(e) => setUrl(e.target.value)}
-                    placeholder={t("inputPlaceholder")}
-                    required
-                    autoComplete="off"
-                    disabled={isPending}
-                    className="w-full h-11 rounded-[var(--radius-pill)] border border-[var(--color-hairline)] bg-[var(--color-canvas)] px-5 text-sm text-[var(--color-ink)] placeholder:text-[var(--color-ink-muted-48)] outline-none transition-all duration-200 focus:border-[var(--color-action-blue)] focus:ring-1 focus:ring-[var(--color-action-blue)] disabled:opacity-50 disabled:cursor-not-allowed"
-                  />
-                </div>
-
-                {error && (
-                  <div className="flex items-start gap-3 rounded-[var(--radius-md)] bg-[var(--color-status-error)]/10 border border-[var(--color-status-error)]/20 p-4 text-[var(--color-status-error)]">
-                    <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
-                    <p className="text-sm font-medium">{error}</p>
+          <div className="bg-[var(--color-bg-primary)]/80 backdrop-blur-xl border border-[var(--color-divider-soft)] shadow-2xl shadow-black/5 rounded-[24px] overflow-hidden">
+            
+            {step === 'input' && submissionType === 'link' && (
+              <div className="p-6 sm:p-10">
+                <form onSubmit={handlePreAnalyze} className="flex flex-col gap-6">
+                  <div className="flex flex-col gap-2.5">
+                    <label htmlFor="url" className="text-xs font-semibold uppercase tracking-wider text-[var(--color-ink-muted-64)] ml-1">
+                      Repository URL
+                    </label>
+                    <div className="relative group">
+                      <div className="absolute -inset-0.5 bg-gradient-to-r from-[var(--color-action-blue)] to-blue-400 rounded-[var(--radius-xl)] opacity-0 group-focus-within:opacity-20 transition duration-300 blur-sm"></div>
+                      <input
+                        type="url"
+                        id="url"
+                        name="url"
+                        value={url}
+                        onChange={(e) => setUrl(e.target.value)}
+                        placeholder={t("inputPlaceholder")}
+                        required
+                        autoComplete="off"
+                        disabled={isPending}
+                        className="relative w-full h-12 rounded-[var(--radius-xl)] border border-[var(--color-divider-soft)] bg-[var(--color-canvas)] px-5 text-sm text-[var(--color-ink)] placeholder:text-[var(--color-ink-muted-48)] outline-none transition-all duration-200 focus:border-[var(--color-action-blue)] focus:ring-1 focus:ring-[var(--color-action-blue)] disabled:opacity-50 shadow-inner"
+                      />
+                    </div>
                   </div>
-                )}
 
-                <button
-                  type="submit"
-                  disabled={isPending || !url.trim()}
-                  className="group relative flex h-11 w-full items-center justify-center gap-2 overflow-hidden rounded-[var(--radius-pill)] bg-[var(--color-ink)] text-[var(--color-canvas)] text-sm font-medium transition-all duration-300 hover:bg-[var(--color-ink)]/90 active:scale-[0.95] disabled:opacity-70 disabled:pointer-events-none mt-2 cursor-pointer"
-                >
-                  {isPending ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      <span>Analyzing...</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>Continue</span>
-                      <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-                    </>
-                  )}
-                </button>
-              </form>
-            </div>
-          )}
-
-          {step === 'preview' && sourceInfo && (
-            <div className="flex flex-col gap-6 animate-fade-in-up">
-              <div className="glass-card p-6 sm:p-8">
-                <h3 className="text-apple-body-strong text-[var(--color-ink)] mb-6 text-center">
-                  Project Preview
-                </h3>
-                
-                <div className="bg-[var(--color-bg-secondary)] rounded-[var(--radius-xl)] border border-[var(--color-hairline)] p-5 mb-6 flex flex-col items-center text-center gap-4">
-                  {preAnalysisData?.avatar ? (
-                    <img src={preAnalysisData.avatar} alt="Avatar" className="w-16 h-16 rounded-[var(--radius-lg)] object-cover bg-white p-1" />
-                  ) : (
-                    <div className="w-16 h-16 rounded-[var(--radius-lg)] bg-[var(--color-bg-primary)] flex items-center justify-center text-[var(--color-ink-muted-64)]">
-                      {sourceInfo.source === 'github' ? <Github className="w-8 h-8" /> : <span className="text-2xl">🤗</span>}
+                  {error && (
+                    <div className="flex items-start gap-3 rounded-[var(--radius-lg)] bg-[var(--color-status-error)]/10 border border-[var(--color-status-error)]/20 p-4 text-[var(--color-status-error)] animate-fade-in">
+                      <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
+                      <p className="text-sm font-medium">{error}</p>
                     </div>
                   )}
-                  
-                  <div>
-                    <div className="flex items-center justify-center gap-2 mb-2">
-                      <span className="px-2 py-0.5 rounded-full bg-[var(--color-bg-primary)] border border-[var(--color-hairline)] text-[var(--color-ink-muted-64)] text-[10px] font-medium uppercase tracking-wider">
+
+                  <button
+                    type="submit"
+                    disabled={isPending || !url.trim()}
+                    className="group relative flex h-12 w-full items-center justify-center gap-2 overflow-hidden rounded-[var(--radius-xl)] bg-[var(--color-ink)] text-[var(--color-canvas)] text-sm font-semibold transition-all duration-300 hover:bg-[var(--color-ink)]/90 hover:shadow-lg active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none mt-2 cursor-pointer"
+                  >
+                    {isPending ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span>Analyzing...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>Continue</span>
+                        <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                      </>
+                    )}
+                  </button>
+                </form>
+              </div>
+            )}
+
+            {step === 'preview' && sourceInfo && (
+              <div className="flex flex-col animate-fade-in">
+                <div className="p-6 sm:p-10 border-b border-[var(--color-divider-soft)] bg-gradient-to-b from-[var(--color-bg-secondary)] to-[var(--color-bg-primary)]">
+                  <div className="flex flex-col items-center text-center gap-4">
+                    <div className="relative">
+                      {preAnalysisData?.avatar ? (
+                        <img src={preAnalysisData.avatar} alt="Avatar" className="w-20 h-20 rounded-[var(--radius-xl)] object-cover bg-white p-1 shadow-md border border-[var(--color-divider-soft)]" />
+                      ) : (
+                        <div className="w-20 h-20 rounded-[var(--radius-xl)] bg-[var(--color-bg-secondary)] border border-[var(--color-divider-soft)] flex items-center justify-center text-[var(--color-ink-muted-64)] shadow-inner">
+                          {sourceInfo.source === 'github' ? <Github className="w-10 h-10" /> : <span className="text-3xl">🤗</span>}
+                        </div>
+                      )}
+                      <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-[var(--color-bg-secondary)] border border-[var(--color-divider-soft)] text-[var(--color-ink)] text-[10px] font-bold uppercase tracking-wider shadow-sm flex items-center gap-1.5 whitespace-nowrap">
+                        {sourceInfo.source === 'github' ? <Github className="w-3 h-3" /> : '🤗'}
                         {sourceInfo.source}
-                      </span>
+                      </div>
                     </div>
-                    <h4 className="text-xl font-bold text-[var(--color-ink)] mb-2">{preAnalysisData?.name}</h4>
-                    <p className="text-sm text-[var(--color-ink-muted-64)]">{preAnalysisData?.fullName}</p>
-                  </div>
-                  
-                  <div className="flex items-center justify-center gap-6 mt-2">
+                    
+                    <div className="mt-4">
+                      <h4 className="text-2xl font-bold text-[var(--color-ink)] mb-1">{preAnalysisData?.name}</h4>
+                      <p className="text-sm font-medium text-[var(--color-ink-muted-64)]">{preAnalysisData?.fullName}</p>
+                    </div>
+                    
                     {preAnalysisData?.stars !== undefined && (
-                      <div className="flex flex-col items-center">
-                        <span className="text-[11px] uppercase tracking-wider text-[var(--color-ink-muted-48)] font-semibold mb-1">Stars/Likes</span>
-                        <span className="text-lg font-bold text-[var(--color-ink)]">{preAnalysisData.stars.toLocaleString()}</span>
+                      <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[var(--color-action-blue)]/5 border border-[var(--color-action-blue)]/20 mt-1">
+                        <span className="text-lg font-bold text-[var(--color-action-blue)]">{preAnalysisData.stars.toLocaleString()}</span>
+                        <span className="text-xs font-semibold text-[var(--color-action-blue)]/70 uppercase tracking-widest">{sourceInfo.source === 'github' ? 'Stars' : 'Likes'}</span>
                       </div>
                     )}
+                    
+                    <textarea
+                      value={preAnalysisData?.description || ''}
+                      onChange={(e) => setPreAnalysisData({ ...preAnalysisData, description: e.target.value })}
+                      placeholder="Enter a short description..."
+                      className="mt-4 w-full max-w-sm text-sm text-[var(--color-ink-muted-80)] bg-[var(--color-canvas)] border border-[var(--color-divider-soft)] rounded-xl p-3 outline-none focus:border-[var(--color-action-blue)] focus:ring-1 focus:ring-[var(--color-action-blue)] resize-none shadow-inner"
+                      rows={3}
+                    />
                   </div>
-                  
-                  <p className="text-sm text-[var(--color-ink-muted-80)] max-w-sm mt-2">
-                    {preAnalysisData?.description || "No description provided"}
-                  </p>
                 </div>
 
-                {error && (
-                  <div className="flex items-start gap-3 rounded-[var(--radius-md)] bg-[var(--color-status-error)]/10 border border-[var(--color-status-error)]/20 p-4 text-[var(--color-status-error)] mb-6">
-                    <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
-                    <p className="text-sm font-medium">{error}</p>
-                  </div>
-                )}
+                <div className="p-6 sm:p-10 bg-[var(--color-canvas)]/50">
+                  {error && (
+                    <div className="flex items-start gap-3 rounded-[var(--radius-lg)] bg-[var(--color-status-error)]/10 border border-[var(--color-status-error)]/20 p-4 text-[var(--color-status-error)] mb-6 animate-fade-in">
+                      <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
+                      <p className="text-sm font-medium">{error}</p>
+                    </div>
+                  )}
 
-                <div className="flex flex-col sm:flex-row gap-3">
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <button
+                      onClick={() => { setStep('input'); setError(""); }}
+                      disabled={isPending}
+                      className="flex-1 h-12 flex items-center justify-center rounded-[var(--radius-xl)] border border-[var(--color-divider-soft)] bg-[var(--color-canvas)] text-[var(--color-ink)] text-sm font-semibold transition-colors hover:bg-[var(--color-bg-secondary)] active:scale-[0.98] disabled:opacity-50 cursor-pointer shadow-sm"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleSubmit}
+                      disabled={isPending}
+                      className="flex-[2] group relative flex h-12 items-center justify-center gap-2 overflow-hidden rounded-[var(--radius-xl)] bg-[var(--color-action-blue)] text-white text-sm font-semibold transition-all hover:bg-[var(--color-action-blue-focus)] hover:shadow-lg active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none cursor-pointer"
+                    >
+                      {isPending ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <span>Submitting...</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>{t("button")}</span>
+                          <Send className="h-4 w-4" />
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {step === 'custom_form' && submissionType === 'custom' && (
+              <div className="p-6 sm:p-10 animate-fade-in">
+                <form onSubmit={handleSubmitCustom} className="flex flex-col gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div className="flex flex-col gap-2">
+                      <label className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-ink-muted-64)] ml-1">Project Name *</label>
+                      <input
+                        type="text"
+                        value={preAnalysisData?.name || ''}
+                        onChange={(e) => setPreAnalysisData({ ...preAnalysisData, name: e.target.value })}
+                        placeholder="e.g. TiniX Workflow"
+                        className="w-full h-11 rounded-[var(--radius-lg)] border border-[var(--color-divider-soft)] bg-[var(--color-canvas)] px-4 text-sm text-[var(--color-ink)] outline-none transition-colors focus:border-[var(--color-action-blue)] focus:ring-1 focus:ring-[var(--color-action-blue)]"
+                        required
+                      />
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <label className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-ink-muted-64)] ml-1">Homepage URL</label>
+                      <input
+                        type="url"
+                        value={preAnalysisData?.homepageUrl || ''}
+                        onChange={(e) => setPreAnalysisData({ ...preAnalysisData, homepageUrl: e.target.value })}
+                        placeholder="https://example.com"
+                        className="w-full h-11 rounded-[var(--radius-lg)] border border-[var(--color-divider-soft)] bg-[var(--color-canvas)] px-4 text-sm text-[var(--color-ink)] outline-none transition-colors focus:border-[var(--color-action-blue)] focus:ring-1 focus:ring-[var(--color-action-blue)]"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-2">
+                    <label className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-ink-muted-64)] ml-1">Short Description *</label>
+                    <textarea
+                      value={preAnalysisData?.description || ''}
+                      onChange={(e) => setPreAnalysisData({ ...preAnalysisData, description: e.target.value })}
+                      placeholder="A crisp, one-sentence tagline for the project."
+                      className="w-full min-h-[80px] py-3 rounded-[var(--radius-lg)] border border-[var(--color-divider-soft)] bg-[var(--color-canvas)] px-4 text-sm text-[var(--color-ink)] outline-none transition-colors focus:border-[var(--color-action-blue)] focus:ring-1 focus:ring-[var(--color-action-blue)] resize-y"
+                      required
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-2">
+                    <label className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-ink-muted-64)] ml-1 flex justify-between items-center">
+                      <span>Readme (Markdown)</span>
+                      <span className="text-[10px] text-[var(--color-ink-muted-48)] normal-case tracking-normal">Optional</span>
+                    </label>
+                    <textarea
+                      value={preAnalysisData?.readme || ''}
+                      onChange={(e) => setPreAnalysisData({ ...preAnalysisData, readme: e.target.value })}
+                      placeholder="# Introduction&#10;Describe your project in detail..."
+                      className="w-full min-h-[160px] font-mono py-3 rounded-[var(--radius-lg)] border border-[var(--color-divider-soft)] bg-[var(--color-canvas)] px-4 text-sm text-[var(--color-ink)] outline-none transition-colors focus:border-[var(--color-action-blue)] focus:ring-1 focus:ring-[var(--color-action-blue)] resize-y"
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-2">
+                    <label className="text-[11px] font-bold uppercase tracking-wider text-[var(--color-ink-muted-64)] ml-1">Logo / Avatar URL</label>
+                    <input
+                      type="url"
+                      value={preAnalysisData?.avatar || ''}
+                      onChange={(e) => setPreAnalysisData({ ...preAnalysisData, avatar: e.target.value })}
+                      placeholder="https://example.com/logo.png"
+                      className="w-full h-11 rounded-[var(--radius-lg)] border border-[var(--color-divider-soft)] bg-[var(--color-canvas)] px-4 text-sm text-[var(--color-ink)] outline-none transition-colors focus:border-[var(--color-action-blue)] focus:ring-1 focus:ring-[var(--color-action-blue)]"
+                    />
+                  </div>
+
+                  {error && (
+                    <div className="flex items-start gap-3 rounded-[var(--radius-lg)] bg-[var(--color-status-error)]/10 border border-[var(--color-status-error)]/20 p-4 text-[var(--color-status-error)] animate-fade-in">
+                      <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
+                      <p className="text-sm font-medium">{error}</p>
+                    </div>
+                  )}
+
                   <button
-                    onClick={() => { setStep('input'); setError(""); }}
-                    disabled={isPending}
-                    className="flex-1 h-11 flex items-center justify-center rounded-[var(--radius-pill)] border border-[var(--color-hairline)] bg-[var(--color-canvas)] text-[var(--color-ink)] text-sm font-medium transition-colors hover:bg-[var(--color-bg-secondary)] disabled:opacity-50 cursor-pointer"
-                  >
-                    Back
-                  </button>
-                  <button
-                    onClick={handleSubmit}
-                    disabled={isPending}
-                    className="flex-[2] group relative flex h-11 items-center justify-center gap-2 overflow-hidden rounded-[var(--radius-pill)] bg-[var(--color-action-blue)] text-white text-sm font-medium transition-all hover:bg-[var(--color-action-blue-focus)] active:scale-[0.98] disabled:opacity-70 disabled:pointer-events-none cursor-pointer"
+                    type="submit"
+                    disabled={isPending || !preAnalysisData?.name || !preAnalysisData?.description}
+                    className="group relative flex h-12 w-full items-center justify-center gap-2 overflow-hidden rounded-[var(--radius-xl)] bg-[var(--color-action-blue)] text-white text-sm font-semibold transition-all duration-300 hover:bg-[var(--color-action-blue-focus)] hover:shadow-lg active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none mt-2 cursor-pointer"
                   >
                     {isPending ? (
                       <>
@@ -242,144 +340,49 @@ export default function SubmitPage() {
                       </>
                     ) : (
                       <>
-                        <span>{t("button")}</span>
-                        <Send className="h-3.5 w-3.5" />
+                        <span>Submit Custom Project</span>
+                        <Send className="h-4 w-4" />
                       </>
                     )}
                   </button>
+                </form>
+              </div>
+            )}
+
+            {step === 'success' && (
+              <div className="p-10 sm:p-14 flex flex-col items-center text-center animate-fade-in">
+                <div className="w-20 h-20 bg-gradient-to-br from-emerald-400 to-emerald-600 text-white rounded-full flex items-center justify-center mb-6 shadow-lg shadow-emerald-500/20 ring-8 ring-emerald-500/10">
+                  <CheckCircle2 className="w-10 h-10" />
+                </div>
+                <h3 className="text-2xl sm:text-3xl font-bold tracking-tight text-[var(--color-ink)] mb-4">Project Submitted!</h3>
+                <p className="text-[15px] text-[var(--color-ink-muted-64)] mb-10 max-w-sm leading-relaxed">
+                  Your project is now in the queue. An admin will review it shortly. Track the status from your Dashboard.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+                  <button
+                    onClick={() => { setSubmissionType('link'); setStep('input'); setUrl(""); setPreAnalysisData({}); }}
+                    className="h-12 px-8 flex items-center justify-center rounded-[var(--radius-pill)] border border-[var(--color-divider-soft)] bg-[var(--color-canvas)] text-[var(--color-ink)] text-sm font-semibold transition-colors hover:bg-[var(--color-bg-secondary)] active:scale-[0.98] cursor-pointer shadow-sm"
+                  >
+                    Submit Another
+                  </button>
+                  <a 
+                    href="/dashboard"
+                    className="h-12 px-8 flex items-center justify-center rounded-[var(--radius-pill)] bg-[var(--color-ink)] text-[var(--color-canvas)] text-sm font-semibold transition-all hover:bg-[var(--color-ink)]/90 hover:shadow-lg active:scale-[0.98] cursor-pointer"
+                  >
+                    Go to Dashboard
+                  </a>
                 </div>
               </div>
-            </div>
-          )}
-
-          {step === 'custom_form' && submissionType === 'custom' && (
-            <div className="glass-card p-6 sm:p-8 animate-fade-in-up">
-              <h3 className="text-apple-body-strong text-[var(--color-ink)] mb-6 text-center flex items-center justify-center gap-2">
-                <PenLine className="w-5 h-5 text-[var(--color-action-blue)]" />
-                Custom Project Details
-              </h3>
-              
-              <form onSubmit={handleSubmitCustom} className="flex flex-col gap-5">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                  <div className="flex flex-col gap-2">
-                    <label className="text-xs font-semibold uppercase tracking-wider text-[var(--color-ink-muted-80)] ml-1">Project Name *</label>
-                    <input
-                      type="text"
-                      value={preAnalysisData?.name || ''}
-                      onChange={(e) => setPreAnalysisData({ ...preAnalysisData, name: e.target.value })}
-                      placeholder="e.g. Awesome SaaS"
-                      className="w-full h-11 rounded-[var(--radius-md)] border border-[var(--color-hairline)] bg-[var(--color-bg-secondary)] px-4 text-sm text-[var(--color-ink)] outline-none focus:border-[var(--color-action-blue)] focus:ring-1 focus:ring-[var(--color-action-blue)]"
-                      required
-                    />
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <label className="text-xs font-semibold uppercase tracking-wider text-[var(--color-ink-muted-80)] ml-1">Homepage URL</label>
-                    <input
-                      type="url"
-                      value={preAnalysisData?.homepageUrl || ''}
-                      onChange={(e) => setPreAnalysisData({ ...preAnalysisData, homepageUrl: e.target.value })}
-                      placeholder="https://example.com"
-                      className="w-full h-11 rounded-[var(--radius-md)] border border-[var(--color-hairline)] bg-[var(--color-bg-secondary)] px-4 text-sm text-[var(--color-ink)] outline-none focus:border-[var(--color-action-blue)] focus:ring-1 focus:ring-[var(--color-action-blue)]"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-2">
-                  <label className="text-xs font-semibold uppercase tracking-wider text-[var(--color-ink-muted-80)] ml-1">Short Description *</label>
-                  <textarea
-                    value={preAnalysisData?.description || ''}
-                    onChange={(e) => setPreAnalysisData({ ...preAnalysisData, description: e.target.value })}
-                    placeholder="A one sentence tagline for the project."
-                    className="w-full min-h-[80px] py-3 rounded-[var(--radius-md)] border border-[var(--color-hairline)] bg-[var(--color-bg-secondary)] px-4 text-sm text-[var(--color-ink)] outline-none focus:border-[var(--color-action-blue)] focus:ring-1 focus:ring-[var(--color-action-blue)] resize-y"
-                    required
-                  />
-                </div>
-
-                <div className="flex flex-col gap-2">
-                  <label className="text-xs font-semibold uppercase tracking-wider text-[var(--color-ink-muted-80)] ml-1 flex justify-between items-center">
-                    <span>Readme (Markdown)</span>
-                    <span className="text-[10px] text-[var(--color-ink-muted-48)] font-normal normal-case">Optional, highly recommended</span>
-                  </label>
-                  <textarea
-                    value={preAnalysisData?.readme || ''}
-                    onChange={(e) => setPreAnalysisData({ ...preAnalysisData, readme: e.target.value })}
-                    placeholder="# Introduction&#10;Describe your project in detail..."
-                    className="w-full min-h-[250px] font-mono py-3 rounded-[var(--radius-md)] border border-[var(--color-hairline)] bg-[var(--color-bg-secondary)] px-4 text-sm text-[var(--color-ink)] outline-none focus:border-[var(--color-action-blue)] focus:ring-1 focus:ring-[var(--color-action-blue)] resize-y"
-                  />
-                </div>
-
-                <div className="flex flex-col gap-2">
-                  <label className="text-xs font-semibold uppercase tracking-wider text-[var(--color-ink-muted-80)] ml-1">Logo / Avatar URL</label>
-                  <input
-                    type="url"
-                    value={preAnalysisData?.avatar || ''}
-                    onChange={(e) => setPreAnalysisData({ ...preAnalysisData, avatar: e.target.value })}
-                    placeholder="https://example.com/logo.png"
-                    className="w-full h-11 rounded-[var(--radius-md)] border border-[var(--color-hairline)] bg-[var(--color-bg-secondary)] px-4 text-sm text-[var(--color-ink)] outline-none focus:border-[var(--color-action-blue)] focus:ring-1 focus:ring-[var(--color-action-blue)]"
-                  />
-                </div>
-
-                {error && (
-                  <div className="flex items-start gap-3 rounded-[var(--radius-md)] bg-[var(--color-status-error)]/10 border border-[var(--color-status-error)]/20 p-4 text-[var(--color-status-error)] mt-2">
-                    <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
-                    <p className="text-sm font-medium">{error}</p>
-                  </div>
-                )}
-
-                <button
-                  type="submit"
-                  disabled={isPending || !preAnalysisData?.name || !preAnalysisData?.description}
-                  className="group relative flex h-11 w-full items-center justify-center gap-2 overflow-hidden rounded-[var(--radius-pill)] bg-[var(--color-action-blue)] text-white text-sm font-medium transition-all duration-300 hover:bg-[var(--color-action-blue-focus)] active:scale-[0.98] disabled:opacity-70 disabled:pointer-events-none mt-4 cursor-pointer"
-                >
-                  {isPending ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      <span>Submitting...</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>Submit Custom Project</span>
-                      <Send className="h-4 w-4" />
-                    </>
-                  )}
-                </button>
-              </form>
-            </div>
-          )}
-
-          {step === 'success' && (
-            <div className="glass-card p-10 flex flex-col items-center text-center animate-fade-in-up">
-              <div className="w-16 h-16 bg-[var(--color-action-green)]/10 text-[var(--color-action-green)] rounded-full flex items-center justify-center mb-6">
-                <CheckCircle2 className="w-8 h-8" />
-              </div>
-              <h3 className="text-2xl font-bold tracking-tight text-[var(--color-ink)] mb-3">Project Submitted!</h3>
-              <p className="text-[var(--color-ink-muted-80)] mb-8">
-                Your project has been placed in the approval queue. An administrator will review it before it enters the global ranking. You can view the status in your Dashboard.
-              </p>
-              <div className="flex gap-4">
-                <button
-                  onClick={() => { setSubmissionType('link'); setStep('input'); setUrl(""); setPreAnalysisData({}); }}
-                  className="h-11 px-6 flex items-center justify-center rounded-[var(--radius-pill)] bg-[var(--color-bg-secondary)] text-[var(--color-ink)] text-sm font-medium transition-colors hover:bg-[var(--color-hairline)] cursor-pointer"
-                >
-                  Submit another project
-                </button>
-                <a 
-                  href="/dashboard/projects"
-                  className="h-11 px-6 flex items-center justify-center rounded-[var(--radius-pill)] bg-[var(--color-action-blue)] text-white text-sm font-medium transition-colors hover:bg-[var(--color-action-blue-focus)] cursor-pointer"
-                >
-                  Go to My Projects
-                </a>
-              </div>
-            </div>
-          )}
-
+            )}
+          </div>
+          
           {step !== 'success' && (
-            <div className="mt-8 text-center text-sm text-[var(--color-ink-muted-48)]">
+            <div className="mt-8 text-center text-[13px] text-[var(--color-ink-muted-48)] px-4">
               <p>{t("spamNote")}</p>
             </div>
           )}
         </div>
-      </section>
+      </div>
     </main>
   );
 }

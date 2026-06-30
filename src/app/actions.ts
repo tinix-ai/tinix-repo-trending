@@ -1289,9 +1289,17 @@ export async function actionApproveSubmission(id: string) {
     } else {
       // Send to crawler
       if (sub.source === 'github') {
-        await crawlerQueue.add('discover-repo', { owner: sub.sourceId?.split('/')[0], repo: sub.sourceId?.split('/')[1] });
+        await crawlerQueue.add('discover-repo', { 
+          owner: sub.sourceId?.split('/')[0], 
+          repo: sub.sourceId?.split('/')[1],
+          overrideDescription: (sub.preAnalysisData as { description?: string })?.description
+        });
       } else {
-        await hfQueue.add('discover-hf', { modelId: sub.sourceId, type: sub.url.includes('/datasets/') ? 'dataset' : 'model' });
+        await hfQueue.add('discover-hf', { 
+          modelId: sub.sourceId, 
+          type: sub.url.includes('/datasets/') ? 'dataset' : 'model',
+          overrideDescription: (sub.preAnalysisData as { description?: string })?.description
+        });
       }
     }
 
@@ -1311,6 +1319,30 @@ export async function actionRejectSubmission(id: string) {
   }
 }
 
+export async function actionDeleteSubmission(id: string) {
+  try {
+    const session = await getSession();
+    if (!session?.userId) return { success: false, error: "Unauthorized" };
+
+    const submission = await db.select().from(projectSubmissions).where(eq(projectSubmissions.id, id)).limit(1);
+    if (submission.length === 0) return { success: false, error: "Not found" };
+
+    // Allow if user is admin OR if user is the submitter
+    if (session.role !== 'admin' && submission[0].submitterId !== session.userId) {
+      return { success: false, error: "Unauthorized to delete this submission" };
+    }
+
+    // Delete the submission record
+    // Note: We do NOT delete from the projects table here because an approved project 
+    // might have snapshots, reviews, and belong to the community. 
+
+    await db.delete(projectSubmissions).where(eq(projectSubmissions.id, id));
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: "Failed to delete submission." };
+  }
+}
+
 export async function actionGetUserProjects() {
   const session = await getSession();
   if (!session?.userId) return { success: false, error: "Unauthorized" };
@@ -1320,7 +1352,8 @@ export async function actionGetUserProjects() {
       submission: projectSubmissions,
       views: projects.views,
       likes: projects.likes,
-      projectSlug: projects.slug
+      projectSlug: projects.slug,
+      projectId: projects.id
     })
     .from(projectSubmissions)
     .leftJoin(projects, eq(projectSubmissions.url, projects.sourceUrl))
@@ -1332,7 +1365,8 @@ export async function actionGetUserProjects() {
       ...row.submission,
       views: row.views || 0,
       likes: row.likes || 0,
-      projectSlug: row.projectSlug
+      projectSlug: row.projectSlug,
+      projectId: row.projectId
     }));
 
     return { success: true, projects: result };

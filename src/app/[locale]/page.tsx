@@ -672,7 +672,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="apple-tile-parchment w-full py-20">
+      <section className="apple-tile-parchment w-full pt-6 pb-20 md:py-16">
         <div className="page-container grid grid-cols-1 xl:grid-cols-[1fr_280px] gap-8">
           <div className="min-w-0">
             {/* Platform Switcher Tabs above Filter Card */}
@@ -720,7 +720,7 @@ export default function HomePage() {
             {selectedSource === "huggingface" && (
               <div className="flex items-center gap-2 mb-5">
                 <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--color-ink-muted-48)] mr-1">Type</span>
-                <div className="flex items-center gap-1 p-0.5 bg-[var(--color-surface-elevated)] rounded-lg border border-[var(--color-divider-soft)]">
+                <div className="flex items-center gap-1 p-0.5 bg-[var(--color-surface-elevated)] rounded-lg border border-[var(--color-divider-soft)] w-full sm:w-auto overflow-x-auto hide-scrollbar">
                   <button
                     onClick={() => handleProjectTypeChange("")}
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer ${
@@ -764,10 +764,10 @@ export default function HomePage() {
               {/* Row 1: Primary Navigation & Time */}
               <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-[var(--color-divider-soft)] pb-4">
                 {/* Type Filter */}
-                <div className="flex items-center gap-1 p-1 bg-[var(--color-canvas)] rounded-xl border border-[var(--color-hairline)] w-max">
+                <div className="flex items-center gap-1 p-1 bg-[var(--color-canvas)] rounded-xl border border-[var(--color-hairline)] w-full sm:w-auto overflow-x-auto hide-scrollbar">
                   <button
                     onClick={() => handleFilterChange("trending")}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+                    className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
                       filterType === "trending"
                         ? "bg-[var(--color-surface-elevated)] text-[var(--color-ink)] shadow-sm border border-[var(--color-border)]"
                         : "text-[var(--color-ink-muted-80)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-pearl)]"
@@ -778,7 +778,7 @@ export default function HomePage() {
                   </button>
                   <button
                     onClick={() => handleFilterChange("all")}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+                    className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
                       filterType === "all"
                         ? "bg-[var(--color-surface-elevated)] text-[var(--color-ink)] shadow-sm border border-[var(--color-border)]"
                         : "text-[var(--color-ink-muted-80)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-pearl)]"
@@ -789,7 +789,7 @@ export default function HomePage() {
                   </button>
                   <button
                     onClick={() => handleFilterChange("new")}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+                    className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
                       filterType === "new"
                         ? "bg-[var(--color-surface-elevated)] text-[var(--color-ink)] shadow-sm border border-[var(--color-border)]"
                         : "text-[var(--color-ink-muted-80)] hover:text-[var(--color-ink)] hover:bg-[var(--color-surface-pearl)]"

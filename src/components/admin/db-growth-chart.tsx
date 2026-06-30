@@ -18,7 +18,7 @@ export function DBGrowthChart({ data }: DBGrowthChartProps) {
 
   return (
     <div className="w-full h-16 mt-4 select-none">
-      <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
         <AreaChart data={data} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
           <defs>
             <linearGradient id="growthGlow" x1="0" y1="0" x2="0" y2="1">

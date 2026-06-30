@@ -4,7 +4,7 @@ import { db } from '@/lib/db';
 import { projects } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 
-export const runtime = 'edge';
+
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);

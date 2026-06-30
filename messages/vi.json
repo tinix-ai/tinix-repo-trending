@@ -319,6 +319,7 @@
     "submittedAt": "Đã gửi {date}"
   },
   "SubmissionsManager": {
+    "delete": "Xóa",
     "filterAll": "Tất cả",
     "filterPending": "Chờ duyệt",
     "filterApproved": "Đã duyệt",

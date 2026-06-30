@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
-import svgCaptcha from "svg-captcha";
 import { createHash } from "crypto";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
+  const svgCaptcha = (await import("svg-captcha")).default;
   const captcha = svgCaptcha.create({
     size: 5,
     ignoreChars: '0o1i',
