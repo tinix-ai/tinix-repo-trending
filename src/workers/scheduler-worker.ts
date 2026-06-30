@@ -3,6 +3,7 @@ import { Worker, Job } from 'bullmq';
 import { schedulerQueue, redisConnection } from './queue';
 import { runDailyDiscovery, runDailyUpdate, runDailySocialMentions } from './cron';
 import { startMemoryReporting } from './metrics';
+import { evaluateAndRecordAchievements } from '../lib/achievements';
 
 
 console.log('[Scheduler Worker] Starting...');
@@ -34,9 +35,11 @@ const schedulerWorker = new Worker('scheduler-queue', async (job: Job) => {
         }
       }
     } else if (job.name === 'daily-update') {
-      await runDailyUpdate(!!job.data?.force);
+      await runDailyUpdate(!!job.data?.force, job);
     } else if (job.name === 'social-mentions') {
       await runDailySocialMentions();
+    } else if (job.name === 'generate-achievements') {
+      await evaluateAndRecordAchievements();
     } else {
       console.warn(`[Scheduler Worker] Unknown job name: ${job.name}`);
     }
@@ -51,6 +54,7 @@ const schedulerWorker = new Worker('scheduler-queue', async (job: Job) => {
     password: process.env.REDIS_PASSWORD || undefined,
   },
   concurrency: 1, // Sequential: scheduled tasks are heavyweight batch operations
+  lockDuration: 600000, // 10 minutes lock duration to prevent stalling on heavy CPU/DB bound jobs like daily-update
 });
 
 schedulerWorker.on('completed', async (job) => {
@@ -105,6 +109,12 @@ async function setupRepeatableJobs() {
   await schedulerQueue.add('social-mentions', {}, {
     repeat: { pattern: '15 1,13 * * *', tz: 'Asia/Ho_Chi_Minh' },
     jobId: 'repeat-social-mentions'
+  });
+
+  // 4. Generate Achievements: Run once daily at 12:15 AM GMT+7
+  await schedulerQueue.add('generate-achievements', {}, {
+    repeat: { pattern: '15 0 * * *', tz: 'Asia/Ho_Chi_Minh' },
+    jobId: 'repeat-generate-achievements'
   });
 
 

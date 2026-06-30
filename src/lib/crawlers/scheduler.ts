@@ -9,9 +9,10 @@ import { eq, desc } from "drizzle-orm";
   */
 export async function updateProjectCrawlSchedule(
   projectId: string,
-  source: "github" | "huggingface"
+  source: "github" | "huggingface",
+  isForce: boolean = false
 ): Promise<void> {
-  console.log(`[Scheduler] Recalculating crawl schedule for project ${projectId} (${source})...`);
+  console.log(`[Scheduler] Recalculating crawl schedule for project ${projectId} (${source}, force: ${isForce})...`);
   
   try {
     // Fetch the current project to check its existing crawlInterval
@@ -59,7 +60,7 @@ export async function updateProjectCrawlSchedule(
           crawlInterval = 7; // Low growth: crawl weekly
         } else {
           // No growth (dailyStarsRate <= 0)
-          crawlInterval = Math.min(currentInterval + 1, 30); // Lùi dần thêm 1 ngày mỗi lần, tối đa 30 ngày
+          crawlInterval = isForce ? currentInterval : Math.min(currentInterval + 1, 30); // Lùi dần thêm 1 ngày mỗi lần, tối đa 30 ngày
         }
       } else if (source === "huggingface") {
         const deltaLikes = (latest.likes || 0) - (previous.likes || 0);
@@ -80,7 +81,7 @@ export async function updateProjectCrawlSchedule(
           crawlInterval = 7; // Low growth
         } else {
           // No growth (dailyLikesRate <= 0 and dailyDownloadsRate <= 0)
-          crawlInterval = Math.min(currentInterval + 1, 30); // Lùi dần thêm 1 ngày mỗi lần, tối đa 30 ngày
+          crawlInterval = isForce ? currentInterval : Math.min(currentInterval + 1, 30); // Lùi dần thêm 1 ngày mỗi lần, tối đa 30 ngày
         }
       }
     } else {

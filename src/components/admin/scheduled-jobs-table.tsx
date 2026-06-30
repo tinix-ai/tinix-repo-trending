@@ -92,6 +92,7 @@ export function ScheduledJobsTable() {
                       if (j.name === 'daily-discovery') return 'Daily Discovery (scanning GitHub and HuggingFace for trending projects)';
                       if (j.name === 'daily-update') return 'Daily Update (generating metrics update queue)';
                       if (j.name === 'social-mentions') return 'Social Mentions Update (scanning HN and Reddit for projects with > 100 stars)';
+                      if (j.name === 'generate-achievements') return 'Generate Achievements (computing top rankings and milestones)';
                       return j.name;
                     })
                     .join(', ')

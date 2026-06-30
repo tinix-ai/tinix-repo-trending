@@ -24,6 +24,7 @@ import { ProjectTabs } from "@/components/project/project-tabs";
 import { ProjectHistoryChart } from "@/components/project/history-chart";
 import { TopicsList } from "@/components/project/topics-list";
 import { SimilarProjects } from "@/components/project/similar-projects";
+import { AchievementBadges } from "@/components/project/achievement-badges";
 import { getTranslations } from "next-intl/server";
 import type { ProjectMention } from "@/types";
 import { ShareButton } from "@/components/project/share-button";
@@ -212,7 +213,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
             </p>
 
             {/* Stats Bar */}
-            <div className="flex flex-wrap items-center gap-x-8 gap-y-3 py-3 border-y border-[var(--color-divider-soft)] mt-2">
+            <div className="flex flex-wrap items-center gap-x-8 gap-y-3 py-3 border-y border-[var(--color-divider-soft)] mt-4">
               {isGithub && (
                 <>
                   <div className="flex items-center gap-1.5">
@@ -294,7 +295,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
           
           {/* Left Column: Chart & README */}
           <div className="min-w-0 space-y-8">
-            
+            <AchievementBadges projectId={project.id} projectName={project.fullName} achievements={project.achievements} />
             {/* Tabs Component (README & Social Mentions) */}
             <ProjectTabs 
               projectId={project.id}

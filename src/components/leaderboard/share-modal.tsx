@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import type { RankedProject } from "@/types";
 import { X, Copy, Check, Share2, ExternalLink, Code } from "lucide-react";
 
@@ -14,14 +15,16 @@ interface ShareModalProps {
 export function ShareModal({ project, days, isOpen, onClose }: ShareModalProps) {
   const [copied, setCopied] = useState<string | null>(null);
   const [origin, setOrigin] = useState("https://tinix-repo-trending.vercel.app");
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     if (typeof window !== "undefined") {
       setOrigin(window.location.origin);
     }
   }, []);
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
   const projectSlug = project.slug.replace(/\//g, "-");
   const projectUrl = `${origin}/project/${projectSlug}-${project.id}`;
@@ -62,10 +65,14 @@ export function ShareModal({ project, days, isOpen, onClose }: ShareModalProps) 
     );
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+  const modalContent = (
+    <div 
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in"
+      onClick={(e) => e.stopPropagation()}
+      onMouseMove={(e) => e.stopPropagation()}
+    >
       {/* Backdrop click to close */}
-      <div className="absolute inset-0" onClick={onClose}></div>
+      <div className="absolute inset-0" onClick={(e) => { e.stopPropagation(); onClose(); }}></div>
 
       {/* Modal Card */}
       <div className="relative w-full max-w-lg overflow-hidden bg-white dark:bg-[#1C1C1E] border border-[var(--color-border)] rounded-2xl shadow-2xl animate-in zoom-in-95 duration-200">
@@ -228,4 +235,6 @@ export function ShareModal({ project, days, isOpen, onClose }: ShareModalProps) 
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 }

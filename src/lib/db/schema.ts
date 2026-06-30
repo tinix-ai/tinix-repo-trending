@@ -226,3 +226,16 @@ export const projectSubmissions = pgTable("project_submissions", {
   index("project_submissions_submitted_at_idx").on(table.submittedAt),
   index("project_submissions_submitter_idx").on(table.submitterId),
 ]);
+export const projectAchievements = pgTable("project_achievements", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  projectId: uuid("project_id").references(() => projects.id, { onDelete: "cascade" }).notNull(),
+  achievementType: text("achievement_type").notNull(),
+  rank: integer("rank").notNull(),
+  scope: text("scope").notNull(),
+  period: text("period").notNull(),
+  achievedAt: date("achieved_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("project_achievements_project_idx").on(table.projectId),
+  unique("project_achievements_unique").on(table.projectId, table.achievementType, table.scope, table.period, table.achievedAt),
+]);

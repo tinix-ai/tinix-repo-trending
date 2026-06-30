@@ -1,10 +1,11 @@
 import 'dotenv/config';
-import { crawlerQueue, githubUpdaterQueue, socialCrawlerQueue } from './queue';
+import { Job } from 'bullmq';
+import { crawlerQueue, githubUpdaterQueue, socialCrawlerQueue, hfQueue } from './queue';
 import { db } from '../lib/db';
 import { projects, projectSnapshots, projectTrends, githubUsers, projectMentions } from '../lib/db/schema';
 import { discoverNewRepos } from '../lib/crawlers/github-discovery';
 import { discoverGithubTrendingRepos } from '../lib/crawlers/github-trending-scraper';
-import { discoverHFTrending } from '../lib/crawlers/hf-discovery';
+import { fetchHFTopList, updateHFProjectMetricsInline } from '../lib/crawlers/hf-discovery';
 import { eq, lte, or, and, isNull, sql, asc } from 'drizzle-orm';
 import { fetchGitHubBatch, fetchPublicRepoREST } from '../lib/crawlers/github-graphql';
 import { fetchHFBatch } from '../lib/crawlers/hf-batch';
@@ -14,19 +15,29 @@ import { categorizeProject } from '../lib/categorizer';
 import { crawlTwitterMentionsBatched, TwitterProjectTarget } from '../lib/crawlers/twitter';
 import { calculateProjectTrendInline } from '../lib/db/trends';
 
+
 /**
  * Job 1: Daily Discovery
  * Scans GitHub and HuggingFace for new AI/ML repos/models and adds them to the crawler queue.
  */
 export async function runDailyDiscovery(source?: 'github' | 'huggingface') {
-  console.log(`[Cron] Running Daily Discovery${source ? ` for ${source}` : ''}...`);
-  
-  // 1. GitHub Discovery
-  if (!source || source === 'github') {
-    const searchRepos = await discoverNewRepos();
-    console.log(`[Cron] Discovered ${searchRepos.length} trending repos from Search API.`);
+  console.log(`[Cron] Running Discovery (source: ${source || 'all'})...`);
 
-    let htmlRepos: { owner: string; repo: string; stars: number }[] = [];
+  // --- 1. FETCH ALL DISCOVERY ITEMS ---
+  let newRepos: any[] = [];
+  let hfModels: any[] = [];
+  let hfDatasets: any[] = [];
+
+  if (!source || source === 'github') {
+    let searchRepos: any[] = [];
+    try {
+      searchRepos = await discoverNewRepos();
+      console.log(`[Cron] Discovered ${searchRepos.length} trending repos from GitHub Search API.`);
+    } catch (searchErr) {
+      console.error(`[Cron] GitHub Search API Discovery failed:`, searchErr);
+    }
+
+    let htmlRepos: any[] = [];
     try {
       htmlRepos = await discoverGithubTrendingRepos();
       console.log(`[Cron] Discovered ${htmlRepos.length} trending repos from HTML Trending Scraper.`);
@@ -34,74 +45,133 @@ export async function runDailyDiscovery(source?: 'github' | 'huggingface') {
       console.error(`[Cron] HTML Trending Scraper failed, falling back to Search API only:`, htmlErr);
     }
 
-    // Combine and deduplicate
     const combinedReposMap = new Map<string, { owner: string; repo: string; stars: number }>();
-    
-    // Add Search API results
-    for (const repo of searchRepos) {
-      const key = `${repo.owner.toLowerCase()}/${repo.repo.toLowerCase()}`;
-      combinedReposMap.set(key, repo);
-    }
-
-    // Add HTML Scraper results
+    for (const repo of searchRepos) combinedReposMap.set(`${repo.owner.toLowerCase()}/${repo.repo.toLowerCase()}`, repo);
     for (const repo of htmlRepos) {
       const key = `${repo.owner.toLowerCase()}/${repo.repo.toLowerCase()}`;
-      if (!combinedReposMap.has(key)) {
-        combinedReposMap.set(key, repo);
-      }
+      if (!combinedReposMap.has(key)) combinedReposMap.set(key, repo);
     }
 
-    const newRepos = Array.from(combinedReposMap.values());
+    newRepos = Array.from(combinedReposMap.values());
     console.log(`[Cron] Combined unique GitHub repositories for crawling: ${newRepos.length}`);
+  }
 
+  if (!source || source === 'huggingface') {
+    console.log('[HF Discovery] Fetching top 1000 trending models...');
+    hfModels = await fetchHFTopList('https://huggingface.co/api/models?sort=trendingScore&limit=100&direction=-1', 10);
+    console.log(`[HF Discovery] Discovered ${hfModels.length} unique models from API.`);
+
+    console.log('[HF Discovery] Fetching top 1000 trending datasets...');
+    hfDatasets = await fetchHFTopList('https://huggingface.co/api/datasets?sort=trendingScore&limit=100&direction=-1', 10);
+    console.log(`[HF Discovery] Discovered ${hfDatasets.length} unique datasets from API.`);
+  }
+
+  // --- 2. PREPARE DB MAPS ---
+  const existingGHMap = new Map();
+  if (newRepos.length > 0) {
     const existingGitHub = await db.select({ 
       id: projects.id, 
       sourceId: projects.sourceId, 
       crawlInterval: projects.crawlInterval 
     }).from(projects).where(eq(projects.source, 'github'));
-    const existingGHMap = new Map(existingGitHub.map(p => [
-      p.sourceId, 
-      { id: p.id, crawlInterval: p.crawlInterval }
-    ]));
+    for (const p of existingGitHub) existingGHMap.set(p.sourceId, p);
+  }
 
-    let queuedCount = 0;
-    for (const repo of newRepos) {
-      const sourceId = `${repo.owner}/${repo.repo}`;
-      const existing = existingGHMap.get(sourceId);
-      
-      if (!existing) {
-        // New repo: crawl immediately
-        await crawlerQueue.add('crawl-repo', {
-          owner: repo.owner,
-          repo: repo.repo,
-        }, {
-          jobId: `discovery-${sourceId}`,
-        });
-        queuedCount++;
-      } else {
-        // Existing repo but discovered as trending: reset crawl interval to daily and schedule NOW.
-        // We only update crawlInterval and nextCrawlAt in the DB, and let runDailyUpdate
-        // (running 30 mins later) naturally select and enqueue it in githubUpdaterQueue to avoid double-queueing.
-        // Crucial optimization: If it's currently under 30-day backoff due to SAML SSO/permission denied,
-        // do not reset it so we do not flood the logs with SSO errors repeatedly.
-        if (existing.crawlInterval !== 30) {
-          await db.update(projects)
-            .set({
-              crawlInterval: 1,
-              nextCrawlAt: new Date(),
-            })
-            .where(eq(projects.id, existing.id));
-          queuedCount++;
+  const existingHFMap = new Map();
+  if (hfModels.length > 0 || hfDatasets.length > 0) {
+    const existingHF = await db.select({
+      id: projects.id,
+      sourceId: projects.sourceId,
+      sourceUpdatedAt: projects.sourceUpdatedAt,
+      readme: projects.readme
+    }).from(projects).where(eq(projects.source, 'huggingface'));
+    for (const p of existingHF) existingHFMap.set(p.sourceId, { ...p, hasReadme: !!p.readme });
+  }
+
+  // --- 3. INTERLEAVED BATCH PROCESSING ---
+  const BATCH_SIZE = 50;
+  let ghIndex = 0;
+  let hfModelIndex = 0;
+  let hfDatasetIndex = 0;
+
+  const todayStr = new Date().toISOString().split('T')[0];
+  let ghQueuedCount = 0;
+  let hfModelQueued = 0, hfModelInline = 0;
+  let hfDatasetQueued = 0, hfDatasetInline = 0;
+
+  console.log(`[Cron] Starting interleaved discovery processing...`);
+
+  while (ghIndex < newRepos.length || hfModelIndex < hfModels.length || hfDatasetIndex < hfDatasets.length) {
+    
+    // Process GH batch
+    if (ghIndex < newRepos.length) {
+      const batch = newRepos.slice(ghIndex, ghIndex + BATCH_SIZE);
+      for (const repo of batch) {
+        const sourceId = `${repo.owner}/${repo.repo}`;
+        const existing = existingGHMap.get(sourceId);
+        
+        if (!existing) {
+          await crawlerQueue.add('crawl-repo', { owner: repo.owner, repo: repo.repo }, { jobId: `discovery-${sourceId}` });
+          ghQueuedCount++;
+        } else if (existing.crawlInterval !== 30) {
+          await db.update(projects).set({ crawlInterval: 1, nextCrawlAt: new Date() }).where(eq(projects.id, existing.id));
+          ghQueuedCount++;
         }
       }
+      ghIndex += BATCH_SIZE;
     }
-    console.log(`[Cron] Queued ${queuedCount} GitHub repos for crawling/update (new/trending reset).`);
+
+    // Process HF Models batch
+    if (hfModelIndex < hfModels.length) {
+      const batch = hfModels.slice(hfModelIndex, hfModelIndex + BATCH_SIZE);
+      for (const model of batch) {
+        const existing = existingHFMap.get(model.id);
+        const modelLastModified = model.lastModified ? new Date(model.lastModified) : null;
+        const isNew = !existing;
+        const isOutdated = !!(existing && modelLastModified && existing.sourceUpdatedAt && (modelLastModified.getTime() > new Date(existing.sourceUpdatedAt).getTime()));
+        const needsReadme = !!(existing && !existing.hasReadme);
+        const needsFullCrawl = isNew || isOutdated || needsReadme;
+
+        if (!needsFullCrawl && existing) {
+          await updateHFProjectMetricsInline(existing.id, model.likes || 0, model.downloads || 0);
+          hfModelInline++;
+        } else {
+          if (existing) await db.update(projects).set({ nextCrawlAt: new Date(Date.now() + 20 * 60 * 60 * 1000) }).where(eq(projects.id, existing.id));
+          await hfQueue.add('crawl-hf-model', { id: model.id, type: 'models' }, { jobId: `hf-model-${model.id}-${todayStr}` });
+          hfModelQueued++;
+        }
+      }
+      hfModelIndex += BATCH_SIZE;
+    }
+
+    // Process HF Datasets batch
+    if (hfDatasetIndex < hfDatasets.length) {
+      const batch = hfDatasets.slice(hfDatasetIndex, hfDatasetIndex + BATCH_SIZE);
+      for (const dataset of batch) {
+        const existing = existingHFMap.get(dataset.id);
+        const datasetLastModified = dataset.lastModified ? new Date(dataset.lastModified) : null;
+        const isNew = !existing;
+        const isOutdated = !!(existing && datasetLastModified && existing.sourceUpdatedAt && (datasetLastModified.getTime() > new Date(existing.sourceUpdatedAt).getTime()));
+        const needsReadme = !!(existing && !existing.hasReadme);
+        const needsFullCrawl = isNew || isOutdated || needsReadme;
+
+        if (!needsFullCrawl && existing) {
+          await updateHFProjectMetricsInline(existing.id, dataset.likes || 0, dataset.downloads || 0);
+          hfDatasetInline++;
+        } else {
+          if (existing) await db.update(projects).set({ nextCrawlAt: new Date(Date.now() + 20 * 60 * 60 * 1000) }).where(eq(projects.id, existing.id));
+          await hfQueue.add('crawl-hf-dataset', { id: dataset.id, type: 'datasets' }, { jobId: `hf-dataset-${dataset.id}-${todayStr}` });
+          hfDatasetQueued++;
+        }
+      }
+      hfDatasetIndex += BATCH_SIZE;
+    }
   }
 
-  // 2. HuggingFace Discovery
-  if (!source || source === 'huggingface') {
-    await discoverHFTrending();
-  }
+  console.log(`[Cron] Discovery finished.`);
+  console.log(`[Cron] GH: Queued ${ghQueuedCount}.`);
+  console.log(`[Cron] HF Models: Queued ${hfModelQueued}, Inline ${hfModelInline}.`);
+  console.log(`[Cron] HF Datasets: Queued ${hfDatasetQueued}, Inline ${hfDatasetInline}.`);
 }
 
 /**
@@ -126,7 +196,7 @@ function crawlIntervalToPriority(interval: number | null): number {
   }
 }
 
-export async function runDailyUpdate(force = false) {
+export async function runDailyUpdate(force = false, job?: Job) {
   console.log(`[Cron] Running Daily Update for tracked repos (force: ${force})...`);
 
   const selectFields = {
@@ -136,6 +206,7 @@ export async function runDailyUpdate(force = false) {
     sourceUrl: projects.sourceUrl,
     crawlInterval: projects.crawlInterval,
     nextCrawlAt: projects.nextCrawlAt,
+    lastCrawledAt: projects.lastCrawledAt,
     countryCode: projects.countryCode,
   };
 
@@ -146,8 +217,8 @@ export async function runDailyUpdate(force = false) {
         .orderBy(asc(projects.crawlInterval), asc(projects.nextCrawlAt))
     : await db.select(selectFields).from(projects)
         .where(or(
-          isNull(projects.nextCrawlAt),
-          lte(projects.nextCrawlAt, new Date())
+          isNull(projects.lastCrawledAt),
+          sql`(NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Ho_Chi_Minh')::date - (${projects.lastCrawledAt} AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Ho_Chi_Minh')::date >= COALESCE(${projects.crawlInterval}, 1)`
         ))
         .orderBy(asc(projects.crawlInterval), asc(projects.nextCrawlAt));
 
@@ -157,305 +228,358 @@ export async function runDailyUpdate(force = false) {
   let ghCount = 0;
   let hfCount = 0;
 
-  // 1. Process GitHub projects using GraphQL batching (50 repos per request)
+  // Process GitHub and HuggingFace in interleaved batches
   const GITHUB_BATCH_SIZE = 50;
-  for (let i = 0; i < githubProjects.length; i += GITHUB_BATCH_SIZE) {
-    const batch = githubProjects.slice(i, i + GITHUB_BATCH_SIZE);
-    console.log(`[Cron Batch] Updating GitHub repositories batch ${Math.floor(i / GITHUB_BATCH_SIZE) + 1}/${Math.ceil(githubProjects.length / GITHUB_BATCH_SIZE)} (size: ${batch.length})...`);
-    
-    const repoCoords = batch.map(p => {
-      const [owner, name] = p.sourceId.split('/');
-      return { owner, name };
-    });
+  const HF_BATCH_SIZE = 50;
+  
+  let ghIndex = 0;
+  let hfIndex = 0;
+  let stopGithub = false;
+  let stopHF = false;
+  
+  let ghConsecutiveErrors = 0;
+  let hfConsecutiveErrors = 0;
 
-    try {
-      const batchResults = await fetchGitHubBatch(repoCoords);
+  console.log(`[Cron] Batch updating ${githubProjects.length} GitHub repos, ${huggingFaceProjects.length} HuggingFace projects (force: ${force})...`);
+
+  const now = new Date();
+  const todayStr = new Date(now.getTime() + 7 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+  while (ghIndex < githubProjects.length || hfIndex < huggingFaceProjects.length) {
+    // --- GitHub Batch ---
+    if (!stopGithub && ghIndex < githubProjects.length) {
+      const batch = githubProjects.slice(ghIndex, ghIndex + GITHUB_BATCH_SIZE);
+      console.log(`[Cron Batch] Updating GitHub repositories batch ${Math.floor(ghIndex / GITHUB_BATCH_SIZE) + 1}/${Math.ceil(githubProjects.length / GITHUB_BATCH_SIZE)} (size: ${batch.length})...`);
       
-      for (let j = 0; j < batchResults.length; j++) {
-        const result = batchResults[j];
-        const project = batch[j];
-        const [owner, repo] = project.sourceId.split('/');
+      const repoCoords = batch.map(p => {
+        const [owner, name] = p.sourceId.split('/');
+        return { owner, name };
+      });
 
-        if (result.permissionDenied) {
-          console.warn(`[Cron Batch] Project ${project.sourceId} returned permission denied/SAML SSO. Attempting anonymous REST fallback...`);
-          const restResult = await fetchPublicRepoREST(owner, repo);
-          if (restResult.exists && restResult.data) {
-            console.log(`[Cron Batch] REST fallback succeeded for public repo ${project.sourceId}.`);
-            result.permissionDenied = false;
-            result.data = restResult.data;
-          } else {
-            console.warn(`[Cron Batch] Project ${project.sourceId} REST fallback failed or private. Skipping update, setting 30-day backoff, and keeping database record.`);
-            try {
-              await db.update(projects)
-                .set({
-                  crawlInterval: 30,
-                  nextCrawlAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-                  lastCrawledAt: new Date(),
-                })
-                .where(eq(projects.id, project.id));
-            } catch (dbErr) {
-              console.error(`[Cron Batch] Failed to update next crawl for restricted project ${project.sourceId}:`, dbErr);
-            }
-            continue;
-          }
-        }
-
-        if (!result.exists) {
-          console.warn(`[Cron Batch] Project ${project.sourceId} not found on GitHub. Removing from database.`);
-          try {
-            await db.delete(projectTrends).where(eq(projectTrends.projectId, project.id));
-            await db.delete(projectSnapshots).where(eq(projectSnapshots.projectId, project.id));
-            await db.delete(projects).where(eq(projects.id, project.id));
-          } catch (delErr) {
-            console.error(`[Cron Batch] Failed to delete non-existent project ${project.sourceId}:`, delErr);
-          }
-          continue;
-        }
-
-        const data = result.data;
-        if (!data) continue;
-
-        // Check rename
-        const isRenamed = data.fullName.toLowerCase() !== project.sourceId.toLowerCase();
-        if (isRenamed) {
-          // If renamed, fall back to single job in githubUpdaterQueue to handle rename merges properly
-          console.log(`[Cron Batch] Rename detected for ${project.sourceId} -> ${data.fullName}. Enqueuing to single updater queue.`);
-          const dateSuffix = force ? `force-${Date.now()}` : new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().split('T')[0];
-          await githubUpdaterQueue.add('crawl-repo', {
-            owner,
-            repo,
-            projectId: project.id,
-          }, {
-            jobId: `update-gh-rename-${project.id}-${dateSuffix}`,
-            priority: 1, // High priority for renames
-          });
-          continue;
-        }
-
-        // Process categories & location
-        const canonicalCategories = await categorizeProject(data.topics, 'repository');
+      try {
+        const batchResults = await fetchGitHubBatch(repoCoords);
         
-        const ownerLocation = data.location;
-        let ownerCountryCode = null;
-        if (ownerLocation) {
-          const parsedCountry = parseCountryFromProfile({
-            location: ownerLocation,
-            email: data.email || undefined,
-            blog: data.blog || undefined,
-            company: data.company || undefined
-          });
-          ownerCountryCode = parsedCountry || null;
-        }
+        const updatePromises = batchResults.map(async (result, j) => {
+          const project = batch[j];
+          const [owner, repo] = project.sourceId.split('/');
 
-        // Update cache in github_users
-        try {
-          await db.insert(githubUsers)
-            .values({
-              username: data.ownerName,
+          if (result.permissionDenied) {
+            console.warn(`[Cron Batch] Project ${project.sourceId} returned permission denied/SAML SSO. Attempting anonymous REST fallback...`);
+            const restResult = await fetchPublicRepoREST(owner, repo);
+            if (restResult.exists && restResult.data) {
+              console.log(`[Cron Batch] REST fallback succeeded for public repo ${project.sourceId}.`);
+              result.permissionDenied = false;
+              result.data = restResult.data;
+            } else {
+              console.warn(`[Cron Batch] Project ${project.sourceId} REST fallback failed or private. Skipping update, setting 30-day backoff, and keeping database record.`);
+              try {
+                await db.update(projects)
+                  .set({
+                    crawlInterval: 30,
+                    nextCrawlAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+                    lastCrawledAt: new Date(),
+                  })
+                  .where(eq(projects.id, project.id));
+              } catch (dbErr) {
+                console.error(`[Cron Batch] Failed to update next crawl for restricted project ${project.sourceId}:`, dbErr);
+              }
+              return;
+            }
+          }
+
+          if (!result.exists) {
+            console.warn(`[Cron Batch] Project ${project.sourceId} not found on GitHub. Removing from database.`);
+            try {
+              await db.delete(projectTrends).where(eq(projectTrends.projectId, project.id));
+              await db.delete(projectSnapshots).where(eq(projectSnapshots.projectId, project.id));
+              await db.delete(projects).where(eq(projects.id, project.id));
+            } catch (delErr) {
+              console.error(`[Cron Batch] Failed to delete non-existent project ${project.sourceId}:`, delErr);
+            }
+            return;
+          }
+
+          const data = result.data;
+          if (!data) return;
+
+          // Check rename
+          const isRenamed = data.fullName.toLowerCase() !== project.sourceId.toLowerCase();
+          if (isRenamed) {
+            console.log(`[Cron Batch] Rename detected for ${project.sourceId} -> ${data.fullName}. Enqueuing to single updater queue.`);
+            const dateSuffix = force ? `force-${Date.now()}` : new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().split('T')[0];
+            await githubUpdaterQueue.add('crawl-repo', {
+              owner,
+              repo,
+              projectId: project.id,
+            }, {
+              jobId: `update-gh-rename-${project.id}-${dateSuffix}`,
+              priority: 1, // High priority for renames
+            });
+            return;
+          }
+
+          // Process categories & location
+          const canonicalCategories = await categorizeProject(data.topics, 'repository');
+          
+          const ownerLocation = data.location;
+          let ownerCountryCode = null;
+          if (ownerLocation) {
+            const parsedCountry = parseCountryFromProfile({
               location: ownerLocation,
-              countryCode: ownerCountryCode || 'UNKNOWN',
-              updatedAt: new Date()
-            })
-            .onConflictDoUpdate({
-              target: githubUsers.username,
-              set: {
+              email: data.email || undefined,
+              blog: data.blog || undefined,
+              company: data.company || undefined
+            });
+            ownerCountryCode = parsedCountry || null;
+          }
+
+          // Update cache in github_users
+          try {
+            await db.insert(githubUsers)
+              .values({
+                username: data.ownerName,
                 location: ownerLocation,
                 countryCode: ownerCountryCode || 'UNKNOWN',
                 updatedAt: new Date()
-              }
-            });
-        } catch (cacheErr) {
-          console.warn(`[Cron Batch] Failed to update owner cache for ${data.ownerName}:`, cacheErr);
-        }
+              })
+              .onConflictDoUpdate({
+                target: githubUsers.username,
+                set: {
+                  location: ownerLocation,
+                  countryCode: ownerCountryCode || 'UNKNOWN',
+                  updatedAt: new Date()
+                }
+              });
+          } catch (cacheErr) {
+            console.warn(`[Cron Batch] Failed to update owner cache for ${data.ownerName}:`, cacheErr);
+          }
 
-        // Update project info
-        try {
-          await db.update(projects)
-            .set({
-              name: data.name,
-              fullName: data.fullName,
-              description: data.description || '',
-              homepageUrl: data.homepageUrl,
-              primaryLanguage: data.primaryLanguage,
-              license: data.license,
-              topics: data.topics,
-              categories: canonicalCategories,
-              location: ownerLocation,
-              countryCode: ownerCountryCode,
-              stars: data.stars,
-              forks: data.forks,
-              watchers: data.watchers,
-              openIssues: data.openIssues,
-              sourceUpdatedAt: data.sourceUpdatedAt,
-              lastCrawledAt: new Date(),
-            })
-            .where(eq(projects.id, project.id));
-
-          // Record snapshot
-          const snapshotDateStr = new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().split('T')[0];
-          const [existingSnap] = await db
-            .select({ id: projectSnapshots.id })
-            .from(projectSnapshots)
-            .where(
-              and(
-                eq(projectSnapshots.projectId, project.id),
-                eq(projectSnapshots.snapshotDate, snapshotDateStr)
-              )
-            )
-            .limit(1);
-
-          if (existingSnap) {
-            await db.update(projectSnapshots)
+          // Update project info
+          try {
+            await db.update(projects)
               .set({
+                name: data.name,
+                fullName: data.fullName,
+                description: data.description || '',
+                homepageUrl: data.homepageUrl,
+                primaryLanguage: data.primaryLanguage,
+                license: data.license,
+                topics: data.topics,
+                categories: canonicalCategories,
+                location: ownerLocation,
+                countryCode: ownerCountryCode,
+                stars: data.stars,
+                forks: data.forks,
+                watchers: data.watchers,
+                openIssues: data.openIssues,
+                sourceUpdatedAt: data.sourceUpdatedAt,
+                lastCrawledAt: new Date(),
+              })
+              .where(eq(projects.id, project.id));
+
+            // Record snapshot
+            const snapshotDateStr = new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().split('T')[0];
+            const [existingSnap] = await db
+              .select({ id: projectSnapshots.id })
+              .from(projectSnapshots)
+              .where(
+                and(
+                  eq(projectSnapshots.projectId, project.id),
+                  eq(projectSnapshots.snapshotDate, snapshotDateStr)
+                )
+              )
+              .limit(1);
+
+            if (existingSnap) {
+              await db.update(projectSnapshots)
+                .set({
+                  stars: data.stars,
+                  forks: data.forks,
+                  openIssues: data.openIssues,
+                  watchers: data.watchers,
+                })
+                .where(eq(projectSnapshots.id, existingSnap.id));
+            } else {
+              await db.insert(projectSnapshots).values({
+                projectId: project.id,
                 stars: data.stars,
                 forks: data.forks,
                 openIssues: data.openIssues,
                 watchers: data.watchers,
-              })
-              .where(eq(projectSnapshots.id, existingSnap.id));
-          } else {
-            await db.insert(projectSnapshots).values({
-              projectId: project.id,
-              stars: data.stars,
-              forks: data.forks,
-              openIssues: data.openIssues,
-              watchers: data.watchers,
-              snapshotDate: snapshotDateStr,
-            });
-          }
+                snapshotDate: snapshotDateStr,
+              });
+            }
 
-          // Recalculate schedule
-          await updateProjectCrawlSchedule(project.id, 'github');
-          await calculateProjectTrendInline(project.id);
-          ghCount++;
-        } catch (dbErr) {
-          console.error(`[Cron Batch] Failed to update project db for ${project.sourceId}:`, dbErr);
+            // Recalculate schedule
+            const isAlreadyCrawledToday = project.lastCrawledAt && new Date(project.lastCrawledAt.getTime() + 7 * 60 * 60 * 1000).toISOString().split('T')[0] === todayStr;
+            const skipIntervalIncrement = force || isAlreadyCrawledToday;
+            await updateProjectCrawlSchedule(project.id, 'github', skipIntervalIncrement);
+            await calculateProjectTrendInline(project.id);
+            ghCount++;
+          } catch (dbErr) {
+            console.error(`[Cron Batch] Failed to update project db for ${project.sourceId}:`, dbErr);
+          }
+        });
+
+        await Promise.all(updatePromises);
+        ghConsecutiveErrors = 0; // Reset consecutive errors on successful batch
+      } catch (batchErr: unknown) {
+        ghConsecutiveErrors++;
+        const err = batchErr instanceof Error ? batchErr : new Error(String(batchErr));
+        if (err.message?.includes('[RateLimitError]')) {
+          console.warn('[Cron Batch] GitHub Rate Limit reached. Stopping subsequent GitHub update batches.');
+          stopGithub = true;
+        } else {
+          console.error(`[Cron Batch] Failed to process batch for ${repoCoords.map(r => `${r.owner}/${r.name}`).join(', ')}:`, batchErr);
+          if (ghConsecutiveErrors >= 5) {
+            console.error('[Cron Batch] Too many consecutive GitHub batch errors (5+). Aborting subsequent GitHub updates.');
+            stopGithub = true;
+          }
         }
       }
-    } catch (batchErr: unknown) {
-      const err = batchErr instanceof Error ? batchErr : new Error(String(batchErr));
-      if (err.message?.includes('[RateLimitError]')) {
-        console.warn('[Cron Batch] GitHub Rate Limit reached. Stopping subsequent GitHub update batches.');
-        break;
-      }
-      console.error(`[Cron Batch] Failed to process batch for ${repoCoords.map(r => `${r.owner}/${r.name}`).join(', ')}:`, batchErr);
+      ghIndex += GITHUB_BATCH_SIZE;
+    } else if (ghIndex < githubProjects.length) {
+      ghIndex = githubProjects.length;
     }
-  }
 
-  // 2. Process HuggingFace projects inline via batch fetching
-  console.log(`[Cron] Batch updating ${huggingFaceProjects.length} HuggingFace projects (force: ${force})...`);
-  
-  const HF_BATCH_SIZE = 50;
-  for (let i = 0; i < huggingFaceProjects.length; i += HF_BATCH_SIZE) {
-    const batch = huggingFaceProjects.slice(i, i + HF_BATCH_SIZE);
-    console.log(`[Cron Batch] Updating HuggingFace batch ${Math.floor(i / HF_BATCH_SIZE) + 1}/${Math.ceil(huggingFaceProjects.length / HF_BATCH_SIZE)} (size: ${batch.length})...`);
-    
-    const hfQueries = batch.map(p => ({
-      id: p.sourceId,
-      type: (p.sourceUrl?.includes('huggingface.co/datasets/') ? 'datasets' : 'models') as 'models' | 'datasets',
-      project: p
-    }));
-
-    try {
-      const batchResults = await fetchHFBatch(hfQueries);
+    // --- HuggingFace Batch ---
+    if (!stopHF && hfIndex < huggingFaceProjects.length) {
+      const batch = huggingFaceProjects.slice(hfIndex, hfIndex + HF_BATCH_SIZE);
+      console.log(`[Cron Batch] Updating HuggingFace batch ${Math.floor(hfIndex / HF_BATCH_SIZE) + 1}/${Math.ceil(huggingFaceProjects.length / HF_BATCH_SIZE)} (size: ${batch.length})...`);
       
-      for (let j = 0; j < batchResults.length; j++) {
-        const result = batchResults[j];
-        const query = hfQueries[j];
-        const project = query.project;
+      const hfQueries = batch.map(p => ({
+        id: p.sourceId,
+        type: (p.sourceUrl?.includes('huggingface.co/datasets/') ? 'datasets' : 'models') as 'models' | 'datasets',
+        project: p
+      }));
 
-        if (!result.exists) {
-          console.warn(`[Cron Batch] HF Project ${project.sourceId} not found. Removing from database.`);
-          try {
-            await db.delete(projectTrends).where(eq(projectTrends.projectId, project.id));
-            await db.delete(projectSnapshots).where(eq(projectSnapshots.projectId, project.id));
-            await db.delete(projects).where(eq(projects.id, project.id));
-          } catch (delErr) {
-            console.error(`[Cron Batch] Failed to delete non-existent HF project ${project.sourceId}:`, delErr);
-          }
-          continue;
-        }
-
-        const data = result.data;
-        if (!data) continue; // Rate limited, gated, or empty
-
-        const likes = data.likes || 0;
-        const downloads = data.downloads || 0;
-        const projectType = query.type === 'models' ? 'model' : 'dataset';
-
-        const rawTags = data.tags || [];
-        if (data.pipeline_tag) rawTags.push(data.pipeline_tag);
-        if (query.type === 'datasets' && data.task_categories) rawTags.push(...data.task_categories);
+      try {
+        const batchResults = await fetchHFBatch(hfQueries);
         
-        const canonicalCategories = await categorizeProject(rawTags, projectType);
+        const updatePromises = batchResults.map(async (result, j) => {
+          const query = hfQueries[j];
+          const project = query.project;
 
-        try {
-          await db.update(projects)
-            .set({
-              topics: rawTags,
-              categories: canonicalCategories,
-              primaryLanguage: data.pipeline_tag || (query.type === 'datasets' ? data.task_categories?.[0] : '') || '',
-              likes,
-              downloads,
-              sourceUpdatedAt: data.lastModified ? new Date(data.lastModified) : new Date(),
-              lastCrawledAt: new Date(),
-            })
-            .where(eq(projects.id, project.id));
+          if (!result.exists) {
+            console.warn(`[Cron Batch] HF Project ${project.sourceId} not found. Removing from database.`);
+            try {
+              await db.delete(projectTrends).where(eq(projectTrends.projectId, project.id));
+              await db.delete(projectSnapshots).where(eq(projectSnapshots.projectId, project.id));
+              await db.delete(projects).where(eq(projects.id, project.id));
+            } catch (delErr) {
+              console.error(`[Cron Batch] Failed to delete non-existent HF project ${project.sourceId}:`, delErr);
+            }
+            return;
+          }
 
-          // Record snapshot
-          const snapshotDateStr = new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().split('T')[0];
-          const [existingSnap] = await db
-            .select({ id: projectSnapshots.id })
-            .from(projectSnapshots)
-            .where(
-              and(
-                eq(projectSnapshots.projectId, project.id),
-                eq(projectSnapshots.snapshotDate, snapshotDateStr)
-              )
-            )
-            .limit(1);
+          const data = result.data;
+          if (!data) return; // Rate limited, gated, or empty
 
-          if (existingSnap) {
-            await db.update(projectSnapshots)
+          const likes = data.likes || 0;
+          const downloads = data.downloads || 0;
+          const projectType = query.type === 'models' ? 'model' : 'dataset';
+
+          const rawTags = data.tags || [];
+          if (data.pipeline_tag) rawTags.push(data.pipeline_tag);
+          if (query.type === 'datasets' && data.task_categories) rawTags.push(...data.task_categories);
+          
+          const canonicalCategories = await categorizeProject(rawTags, projectType);
+
+          try {
+            await db.update(projects)
               .set({
+                topics: rawTags,
+                categories: canonicalCategories,
+                primaryLanguage: data.pipeline_tag || (query.type === 'datasets' ? data.task_categories?.[0] : '') || '',
                 likes,
                 downloads,
+                sourceUpdatedAt: data.lastModified ? new Date(data.lastModified) : new Date(),
+                lastCrawledAt: new Date(),
               })
-              .where(eq(projectSnapshots.id, existingSnap.id));
-          } else {
-            await db.insert(projectSnapshots).values({
-              projectId: project.id,
-              stars: 0,
-              watchers: 0,
-              forks: 0,
-              openIssues: 0,
-              likes,
-              downloads,
-              snapshotDate: snapshotDateStr,
-            });
-          }
+              .where(eq(projects.id, project.id));
 
-          // Recalculate schedule
-          await updateProjectCrawlSchedule(project.id, 'huggingface');
-          await calculateProjectTrendInline(project.id);
-          hfCount++;
-        } catch (dbErr) {
-          console.error(`[Cron Batch] Failed to update HF project db for ${project.sourceId}:`, dbErr);
+            // Record snapshot
+            const snapshotDateStr = new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().split('T')[0];
+            const [existingSnap] = await db
+              .select({ id: projectSnapshots.id })
+              .from(projectSnapshots)
+              .where(
+                and(
+                  eq(projectSnapshots.projectId, project.id),
+                  eq(projectSnapshots.snapshotDate, snapshotDateStr)
+                )
+              )
+              .limit(1);
+
+            if (existingSnap) {
+              await db.update(projectSnapshots)
+                .set({
+                  likes,
+                  downloads,
+                })
+                .where(eq(projectSnapshots.id, existingSnap.id));
+            } else {
+              await db.insert(projectSnapshots).values({
+                projectId: project.id,
+                stars: 0,
+                watchers: 0,
+                forks: 0,
+                openIssues: 0,
+                likes,
+                downloads,
+                snapshotDate: snapshotDateStr,
+              });
+            }
+
+            // Recalculate schedule
+            const isAlreadyCrawledToday = project.lastCrawledAt && new Date(project.lastCrawledAt.getTime() + 7 * 60 * 60 * 1000).toISOString().split('T')[0] === todayStr;
+            const skipIntervalIncrement = force || isAlreadyCrawledToday;
+            await updateProjectCrawlSchedule(project.id, 'huggingface', skipIntervalIncrement);
+            await calculateProjectTrendInline(project.id);
+            hfCount++;
+          } catch (dbErr) {
+            console.error(`[Cron Batch] Failed to update HF project db for ${project.sourceId}:`, dbErr);
+          }
+        });
+
+        await Promise.all(updatePromises);
+        hfConsecutiveErrors = 0; // Reset consecutive errors on successful batch
+      } catch (batchErr: unknown) {
+        hfConsecutiveErrors++;
+        const err = batchErr instanceof Error ? batchErr : new Error(String(batchErr));
+        if (err.message?.includes('[RateLimitError]')) {
+          console.warn('[Cron Batch] HuggingFace Rate Limit reached. Stopping subsequent HF update batches.');
+          stopHF = true;
+        } else {
+          console.error(`[Cron Batch] Failed to process HF batch:`, batchErr);
+          if (hfConsecutiveErrors >= 5) {
+            console.error('[Cron Batch] Too many consecutive HuggingFace batch errors (5+). Aborting subsequent HuggingFace updates.');
+            stopHF = true;
+          }
         }
       }
-    } catch (batchErr: unknown) {
-      const err = batchErr instanceof Error ? batchErr : new Error(String(batchErr));
-      if (err.message?.includes('[RateLimitError]')) {
-        console.warn('[Cron Batch] HuggingFace Rate Limit reached. Stopping subsequent HF update batches.');
-        break;
-      }
-      console.error(`[Cron Batch] Failed to process HF batch:`, batchErr);
+      hfIndex += HF_BATCH_SIZE;
+    } else if (hfIndex < huggingFaceProjects.length) {
+      hfIndex = huggingFaceProjects.length;
     }
+
+    // Report progress to BullMQ (serves as keep-alive/heartbeat to prevent stalled job locks)
+    if (job) {
+      const totalProjects = githubProjects.length + huggingFaceProjects.length;
+      if (totalProjects > 0) {
+        const progress = Math.min(100, Math.round(((ghIndex + hfIndex) / totalProjects) * 100));
+        await job.updateProgress(progress).catch((err: any) => 
+          console.warn(`[Cron] Failed to update BullMQ progress: ${err.message}`)
+        );
+      }
+    }
+
+    // Yield to the event loop to allow BullMQ to renew locks
+    await new Promise(resolve => setTimeout(resolve, 100));
   }
 
   console.log(`[Cron] Completed Daily Update. Batch updated ${ghCount}/${githubProjects.length} GitHub repos, ${hfCount}/${huggingFaceProjects.length} HuggingFace models (force: ${force}).`);
 }
-
 
 /**
  * Job 4: Daily Social Mentions Fetcher

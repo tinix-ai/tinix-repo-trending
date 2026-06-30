@@ -560,7 +560,7 @@ export async function getProjectById(id: string) {
     }
 
     const r = result[0] as Record<string, unknown>;
-    return {
+    const project = {
       id: r.id as string,
       source: r.source as "github" | "huggingface" | "paperwithcode",
       projectType: (r.project_type || 'repository') as "repository" | "model" | "dataset",
@@ -591,7 +591,27 @@ export async function getProjectById(id: string) {
       openIssues: Number(r.current_issues),
       downloads: Number(r.current_downloads),
       views: Number(r.views || 0),
+      achievements: [] as any[], // Default empty array, populated below
     };
+
+    // Fetch achievements
+    const achievementsResult = await db.execute(sql`
+      SELECT achievement_type, rank, scope, period, achieved_at
+      FROM project_achievements
+      WHERE project_id = ${id}
+      ORDER BY achieved_at DESC, rank ASC
+      LIMIT 10
+    `);
+    
+    project.achievements = achievementsResult.map((a: any) => ({
+      achievementType: a.achievement_type,
+      rank: Number(a.rank),
+      scope: a.scope,
+      period: a.period,
+      achievedAt: typeof a.achieved_at === 'string' ? a.achieved_at : ((a.achieved_at as Date)?.toISOString()),
+    }));
+
+    return project;
   } catch (error) {
     console.error("Error fetching project by ID:", error);
     return null;
@@ -618,7 +638,7 @@ export async function getProjectBySlug(slug: string) {
     }
 
     const r = result[0] as Record<string, unknown>;
-    return {
+    const project = {
       id: r.id as string,
       source: r.source as "github" | "huggingface" | "paperwithcode",
       projectType: (r.project_type || 'repository') as "repository" | "model" | "dataset",
@@ -648,7 +668,27 @@ export async function getProjectBySlug(slug: string) {
       openIssues: Number(r.current_issues),
       downloads: Number(r.current_downloads),
       views: Number(r.views || 0),
+      achievements: [] as any[],
     };
+
+    // Fetch achievements
+    const achievementsResult = await db.execute(sql`
+      SELECT achievement_type, rank, scope, period, achieved_at
+      FROM project_achievements
+      WHERE project_id = ${project.id}
+      ORDER BY achieved_at DESC, rank ASC
+      LIMIT 10
+    `);
+    
+    project.achievements = achievementsResult.map((a: any) => ({
+      achievementType: a.achievement_type,
+      rank: Number(a.rank),
+      scope: a.scope,
+      period: a.period,
+      achievedAt: typeof a.achieved_at === 'string' ? a.achieved_at : ((a.achieved_at as Date)?.toISOString()),
+    }));
+
+    return project;
   } catch (error) {
     console.error("Error fetching project by slug:", error);
     return null;

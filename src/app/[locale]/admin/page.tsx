@@ -14,6 +14,7 @@ import { AnalyticsDashboard } from "@/components/admin/analytics-dashboard";
 import { SubmissionsManager } from "@/components/admin/submissions-manager";
 import { ReviewsManager } from "@/components/admin/reviews-manager";
 import { UsersManager } from "@/components/admin/users-manager";
+import { AchievementsManager } from "@/components/admin/achievements-manager";
 import { Link } from "@/i18n/routing";
 import { getTranslations } from "next-intl/server";
 
@@ -24,7 +25,7 @@ interface AdminPageProps {
 export default async function AdminPage(props: AdminPageProps) {
   const searchParams = await props.searchParams;
   const tab = searchParams.tab || 'overview';
-  const currentTab = ['overview', 'queues', 'analytics', 'categories', 'submissions', 'reviews', 'users'].includes(tab) ? tab : 'overview';
+  const currentTab = ['overview', 'queues', 'analytics', 'categories', 'submissions', 'reviews', 'users', 'achievements'].includes(tab) ? tab : 'overview';
   
   const [{ count: totalProjects }] = await db.select({ count: sql`count(*)` }).from(projects);
   const [{ count: totalModels }] = await db.select({ count: sql`count(*)` }).from(projects).where(sql`${projects.projectType} = 'model'`);
@@ -52,15 +53,14 @@ export default async function AdminPage(props: AdminPageProps) {
     categories: t("tabCategories"),
     submissions: t("tabSubmissions"),
     users: "Users Management",
+    achievements: "Achievements Dashboard",
   };
   const pageTitle = tabTitles[currentTab as keyof typeof tabTitles] || t("dashboard");
   
   return (
     <div className="space-y-6">
       <div className="mt-6 md:mt-10 mb-8">
-        <h1 className="text-3xl md:text-[32px] font-bold tracking-tight text-[var(--color-ink)] leading-tight">
-          {pageTitle}
-        </h1>
+        <h1 className="text-[28px] font-bold text-[var(--color-ink)]">{pageTitle}</h1>
       </div>
 
       <div>
@@ -158,6 +158,12 @@ export default async function AdminPage(props: AdminPageProps) {
         {currentTab === 'users' && (
           <div className="space-y-6 animate-fade-in-up">
             <UsersManager />
+          </div>
+        )}
+
+        {currentTab === 'achievements' && (
+          <div className="space-y-6 animate-fade-in-up">
+            <AchievementsManager />
           </div>
         )}
       </div>

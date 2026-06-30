@@ -9,7 +9,7 @@ import type { RankedProject } from "@/types";
 import { redisConnection, crawlerQueue, hfQueue, githubUpdaterQueue, hfUpdaterQueue, schedulerQueue, socialCrawlerQueue } from "@/workers/queue";
 import { githubPool } from "@/lib/crawlers/github-pool";
 import { db } from "@/lib/db";
-import { projects, categories as categoriesTable, projectReviews, users, projectSubmissions } from "@/lib/db/schema";
+import { projects, categories as categoriesTable, projectReviews, users, projectSubmissions, projectAchievements } from "@/lib/db/schema";
 import { eq, sql, ilike, or, desc } from "drizzle-orm";
 import { getSession } from "@/lib/auth";
 import { ensureCategoriesLoaded, categorizeProject } from "@/lib/categorizer";
@@ -777,6 +777,8 @@ export async function triggerJobNow(name: string) {
       ]);
     } else if (name === 'social-mentions') {
       await socialCrawlerQueue.resume();
+    } else if (name === 'generate-achievements') {
+      // No downstream queues to resume
     }
 
     return { success: true, message: `Triggered ${name} manually` };
@@ -1373,5 +1375,67 @@ export async function actionGetUserProjects() {
   } catch (error) {
     console.error("Error fetching user projects:", error);
     return { success: false, error: "Failed to fetch user projects" };
+  }
+}
+
+export async function fetchAdminAchievementsStats() {
+  try {
+    const [{ total }] = await db.select({ total: sql<number>`count(*)` }).from(projectAchievements);
+    const resultGH = await db.select({ total: sql<number>`count(*)` })
+      .from(projectAchievements)
+      .leftJoin(projects, eq(projectAchievements.projectId, projects.id))
+      .where(eq(projects.source, 'github'));
+      
+    const resultHF = await db.select({ total: sql<number>`count(*)` })
+      .from(projectAchievements)
+      .leftJoin(projects, eq(projectAchievements.projectId, projects.id))
+      .where(eq(projects.source, 'huggingface'));
+
+    const [{ recentCount }] = await db.select({ recentCount: sql<number>`count(*)` })
+      .from(projectAchievements)
+      .where(sql`${projectAchievements.createdAt} >= NOW() - INTERVAL '7 days'`);
+
+    return {
+      success: true,
+      stats: {
+        total,
+        githubTotal: resultGH[0]?.total || 0,
+        hfTotal: resultHF[0]?.total || 0,
+        recentCount
+      }
+    };
+  } catch (error) {
+    console.error("Error fetching achievements stats:", error);
+    return { success: false, error: "Failed to fetch stats" };
+  }
+}
+
+export async function fetchAdminAchievementsList(limit = 50, offset = 0) {
+  try {
+    const list = await db.select({
+      id: projectAchievements.id,
+      achievementType: projectAchievements.achievementType,
+      rank: projectAchievements.rank,
+      scope: projectAchievements.scope,
+      period: projectAchievements.period,
+      achievedAt: projectAchievements.achievedAt,
+      createdAt: projectAchievements.createdAt,
+      projectName: projects.name,
+      projectFullName: projects.fullName,
+      projectSource: projects.source,
+      projectId: projects.id,
+    })
+    .from(projectAchievements)
+    .leftJoin(projects, eq(projectAchievements.projectId, projects.id))
+    .orderBy(desc(projectAchievements.achievedAt), desc(projectAchievements.createdAt))
+    .limit(limit)
+    .offset(offset);
+
+    const [{ total }] = await db.select({ total: sql<number>`count(*)` }).from(projectAchievements);
+
+    return { success: true, list, total };
+  } catch (error) {
+    console.error("Error fetching achievements list:", error);
+    return { success: false, error: "Failed to fetch list" };
   }
 }

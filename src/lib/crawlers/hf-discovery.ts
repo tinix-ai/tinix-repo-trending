@@ -8,7 +8,7 @@ import { calculateProjectTrendInline } from '../db/trends';
 /**
  * Helper function to update HF project metrics directly in the DB when no full crawl is needed
  */
-async function updateHFProjectMetricsInline(
+export async function updateHFProjectMetricsInline(
   projectId: string,
   likes: number,
   downloads: number
@@ -56,7 +56,7 @@ async function updateHFProjectMetricsInline(
 /**
  * Fetches models or datasets in pages using the Link header up to a certain page count
  */
-async function fetchHFTopList(baseUrl: string, maxPages = 5): Promise<any[]> {
+export async function fetchHFTopList(baseUrl: string, maxPages = 5): Promise<any[]> {
   const items: any[] = [];
   let url: string | null = baseUrl;
   let page = 0;
@@ -152,112 +152,3 @@ async function fetchHFTopList(baseUrl: string, maxPages = 5): Promise<any[]> {
  * Discovers trending/popular models and datasets from HuggingFace.
  * Fetches top 5000 items without any thresholds or keyword restrictions.
  */
-export async function discoverHFTrending() {
-  console.log('[HF Discovery] Starting global discovery of top 5000 Models and Datasets...');
-
-  try {
-    // Fetch all existing HuggingFace projects to match against
-    const existingHF = await db.select({
-      id: projects.id,
-      sourceId: projects.sourceId,
-      sourceUpdatedAt: projects.sourceUpdatedAt,
-      readme: projects.readme
-    })
-      .from(projects)
-      .where(eq(projects.source, 'huggingface'));
-
-    const existingHFMap = new Map(
-      existingHF.map(p => [
-        p.sourceId,
-        {
-          id: p.id,
-          sourceUpdatedAt: p.sourceUpdatedAt,
-          hasReadme: !!p.readme
-        }
-      ])
-    );
-
-    const todayStr = new Date().toISOString().split('T')[0];
-
-    // 1. DISCOVER MODELS (top 1000 by trendingScore)
-    console.log('[HF Discovery] Fetching top 1000 trending models...');
-    const models = await fetchHFTopList('https://huggingface.co/api/models?sort=trendingScore&limit=100&direction=-1', 10);
-    console.log(`[HF Discovery] Discovered ${models.length} unique models from API.`);
-
-    let queuedModels = 0;
-    let inlineUpdatedModels = 0;
-
-    for (const model of models) {
-      const existing = existingHFMap.get(model.id);
-      const modelLastModified = model.lastModified ? new Date(model.lastModified) : null;
-      
-      const isNew = !existing;
-      const isOutdated = !!(existing && modelLastModified && existing.sourceUpdatedAt && 
-        (modelLastModified.getTime() > new Date(existing.sourceUpdatedAt).getTime()));
-      const needsReadme = !!(existing && !existing.hasReadme);
-      
-      const needsFullCrawl = isNew || isOutdated || needsReadme;
-
-      if (!needsFullCrawl && existing) {
-        await updateHFProjectMetricsInline(existing.id, model.likes || 0, model.downloads || 0);
-        inlineUpdatedModels++;
-      } else {
-        if (existing) {
-          await db.update(projects)
-            .set({ nextCrawlAt: new Date(Date.now() + 20 * 60 * 60 * 1000) }) // 24h - 4h grace period to prevent cron drift
-            .where(eq(projects.id, existing.id));
-        }
-        await hfQueue.add('crawl-hf-model', {
-          id: model.id,
-          type: 'models'
-        }, {
-          jobId: `hf-model-${model.id}-${todayStr}`
-        });
-        queuedModels++;
-      }
-    }
-    console.log(`[HF Discovery] Models process summary: queued: ${queuedModels}, inline updated: ${inlineUpdatedModels}`);
-
-    // 2. DISCOVER DATASETS (top 1000 by trendingScore)
-    console.log('[HF Discovery] Fetching top 1000 trending datasets...');
-    const datasets = await fetchHFTopList('https://huggingface.co/api/datasets?sort=trendingScore&limit=100&direction=-1', 10);
-    console.log(`[HF Discovery] Discovered ${datasets.length} unique datasets from API.`);
-
-    let queuedDatasets = 0;
-    let inlineUpdatedDatasets = 0;
-
-    for (const dataset of datasets) {
-      const existing = existingHFMap.get(dataset.id);
-      const datasetLastModified = dataset.lastModified ? new Date(dataset.lastModified) : null;
-
-      const isNew = !existing;
-      const isOutdated = !!(existing && datasetLastModified && existing.sourceUpdatedAt && 
-        (datasetLastModified.getTime() > new Date(existing.sourceUpdatedAt).getTime()));
-      const needsReadme = !!(existing && !existing.hasReadme);
-
-      const needsFullCrawl = isNew || isOutdated || needsReadme;
-
-      if (!needsFullCrawl && existing) {
-        await updateHFProjectMetricsInline(existing.id, dataset.likes || 0, dataset.downloads || 0);
-        inlineUpdatedDatasets++;
-      } else {
-        if (existing) {
-          await db.update(projects)
-            .set({ nextCrawlAt: new Date(Date.now() + 20 * 60 * 60 * 1000) }) // 24h - 4h grace period to prevent cron drift
-            .where(eq(projects.id, existing.id));
-        }
-        await hfQueue.add('crawl-hf-dataset', {
-          id: dataset.id,
-          type: 'datasets'
-        }, {
-          jobId: `hf-dataset-${dataset.id}-${todayStr}`
-        });
-        queuedDatasets++;
-      }
-    }
-    console.log(`[HF Discovery] Datasets process summary: queued: ${queuedDatasets}, inline updated: ${inlineUpdatedDatasets}`);
-
-  } catch (error) {
-    console.error('[HF Discovery] Error during HF discovery:', error);
-  }
-}

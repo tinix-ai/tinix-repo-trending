@@ -82,13 +82,7 @@ export function QueueControlPanel() {
   const t = useTranslations("Admin");
   const locale = useLocale();
 
-  const discoveryGroupText = locale === 'vi'
-    ? 'Trình thu thập tìm mới (Discovery Crawlers)'
-    : 'Discovery Crawlers';
-    
-  const updaterGroupText = locale === 'vi'
-    ? 'Trình cập nhật & Bộ lập lịch (Metrics Updaters & Scheduler)'
-    : 'Metrics Updaters & Scheduler';
+
   const [stats, setStats] = useState<DetailedStats | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [countdown, setCountdown] = useState(15);
@@ -119,11 +113,12 @@ export function QueueControlPanel() {
   const isUpdateEnqueuing = isSchedulerJobActive('daily-update');
   const isDiscoveryEnqueuing = isSchedulerJobActive('daily-discovery');
   const isSocialEnqueuing = isSchedulerJobActive('social-mentions');
+  const isAchievementEnqueuing = isSchedulerJobActive('generate-achievements');
 
   const isQueueActionLoading = (source: SourceType) => {
     return Array.from(loadingActions).some(key => {
       return key.endsWith(`-${source}`) || 
-             (source === 'scheduler' && (key === 'trigger-daily-discovery' || key === 'trigger-daily-update' || key === 'trigger-social-mentions'));
+             (source === 'scheduler' && (key === 'trigger-daily-discovery' || key === 'trigger-daily-update' || key === 'trigger-social-mentions' || key === 'trigger-generate-achievements'));
     });
   };
 
@@ -434,7 +429,7 @@ export function QueueControlPanel() {
             </div>
           )}
           {source === 'scheduler' && (
-            <div className="grid grid-cols-3 gap-1.5 w-full mt-2 pt-2 border-t border-dashed border-slate-100 dark:border-slate-800/80">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-1.5 w-full mt-2 pt-2 border-t border-dashed border-slate-100 dark:border-slate-800/80">
               <ActionButton
                 icon={Play}
                 label={isDiscoveryEnqueuing ? "Discovery..." : "Discovery"}
@@ -457,6 +452,14 @@ export function QueueControlPanel() {
                 onClick={() => handleTriggerJob('social-mentions')}
                 loading={loadingActions.has('trigger-social-mentions') || isSocialEnqueuing}
                 disabled={isAnyActionLoading || isSocialEnqueuing}
+                variant="primary"
+              />
+              <ActionButton
+                icon={Play}
+                label={isAchievementEnqueuing ? "Achievements..." : "Achievements"}
+                onClick={() => handleTriggerJob('generate-achievements')}
+                loading={loadingActions.has('trigger-generate-achievements') || isAchievementEnqueuing}
+                disabled={isAnyActionLoading || isAchievementEnqueuing}
                 variant="primary"
               />
             </div>
@@ -544,36 +547,13 @@ export function QueueControlPanel() {
 
       {/* Queue cards */}
       {stats ? (
-        <div className="space-y-6">
-          {/* Discovery Crawlers Group */}
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 px-1">
-              <span className="w-1.5 h-4 bg-blue-500 rounded-full"></span>
-              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                {discoveryGroupText}
-              </h4>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {renderQueueCard('github', 'GitHub Crawler', stats.github)}
-              {renderQueueCard('huggingface', 'HF Crawler', stats.huggingface)}
-            </div>
-          </div>
-
-          {/* Metrics Updaters & Scheduler Group */}
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 px-1">
-              <span className="w-1.5 h-4 bg-amber-500 rounded-full"></span>
-              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                {updaterGroupText}
-              </h4>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {renderQueueCard('github-updater', 'GH Updater', stats.githubUpdater)}
-              {renderQueueCard('hf-updater', 'HF Updater', stats.hfUpdater)}
-              {renderQueueCard('social', 'Social Crawler', stats.social)}
-              {renderQueueCard('scheduler', 'Scheduler', stats.scheduler)}
-            </div>
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {renderQueueCard('github', 'GitHub Crawler', stats.github)}
+          {renderQueueCard('huggingface', 'HF Crawler', stats.huggingface)}
+          {renderQueueCard('github-updater', 'GH Updater', stats.githubUpdater)}
+          {renderQueueCard('hf-updater', 'HF Updater', stats.hfUpdater)}
+          {renderQueueCard('social', 'Social Crawler', stats.social)}
+          {renderQueueCard('scheduler', 'Scheduler', stats.scheduler)}
         </div>
       ) : (
         <div className="apple-utility-card flex items-center justify-center py-12">

@@ -422,8 +422,8 @@ export function ProjectTabs({
                       <div className="flex items-center gap-2">
                         <div 
                           className="bg-white rounded-lg border border-[var(--color-divider-soft)] overflow-hidden min-w-[150px] min-h-[50px] flex items-center justify-center relative"
-                          dangerouslySetInnerHTML={{ __html: captchaSvg || "" }}
                         >
+                          <div dangerouslySetInnerHTML={{ __html: captchaSvg || "" }} className="w-full h-full flex items-center justify-center" />
                           {captchaLoading && (
                             <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
                               <div className="w-5 h-5 border-2 border-[var(--color-action-blue)]/30 border-t-[var(--color-action-blue)] rounded-full animate-spin" />
