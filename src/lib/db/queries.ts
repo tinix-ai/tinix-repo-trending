@@ -446,7 +446,7 @@ export async function getGlobalStats() {
             (p.source = 'huggingface' AND p.downloads >= 1000) OR
             (p.source NOT IN ('github', 'huggingface'))
         ) as trending_projects,
-        (SELECT COUNT(*) FROM projects WHERE source_created_at >= (timezone('Asia/Ho_Chi_Minh', now()))::date - INTERVAL '30 days') as new_projects
+        (SELECT COUNT(*) FROM projects WHERE created_at >= NOW() - INTERVAL '24 hours') as new_projects
     `);
     return {
       totalProjects: Number(result[0]?.total_projects || 0),

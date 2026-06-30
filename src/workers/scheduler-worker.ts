@@ -110,9 +110,9 @@ async function setupRepeatableJobs() {
     jobId: 'repeat-daily-discovery'
   });
  
-  // 2. Daily Update: Run twice daily at 12:45 AM and 12:45 PM GMT+7
+  // 2. Daily Update: Run twice daily at 12:00 AM and 12:00 PM GMT+7
   await schedulerQueue.add('daily-update', {}, {
-    repeat: { pattern: '45 0,12 * * *', tz: 'Asia/Ho_Chi_Minh' },
+    repeat: { pattern: '0 0,12 * * *', tz: 'Asia/Ho_Chi_Minh' },
     jobId: 'repeat-daily-update'
   });
  
