@@ -9,19 +9,41 @@ import { formatNumber } from "@/lib/utils";
 import Image from "next/image";
 
 export function TrendingMarquee() {
-  const [projects, setProjects] = useState<RankedProject[]>([]);
+  const [projects, setProjects] = useState<(RankedProject & { marqueeBadge?: string })[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function loadTrending() {
       try {
-        const { projects } = await fetchDynamicRankings({
-          limit: 20,
-          offset: 0,
-          filterType: "trending",
-          days: 7, // week trend
-        });
-        setProjects(projects);
+        const [ghRes, hfRes, vnRes] = await Promise.all([
+          fetchDynamicRankings({
+            limit: 10,
+            offset: 0,
+            filterType: "trending",
+            source: "github",
+            days: 3,
+          }),
+          fetchDynamicRankings({
+            limit: 10,
+            offset: 0,
+            filterType: "trending",
+            source: "huggingface",
+            days: 3,
+          }),
+          fetchDynamicRankings({
+            limit: 10,
+            offset: 0,
+            filterType: "trending",
+            country: "vn",
+            days: 3,
+          }),
+        ]);
+
+        const ghList = (ghRes?.projects || []).map((p, idx) => ({ ...p, marqueeBadge: `GH #${idx + 1}` }));
+        const hfList = (hfRes?.projects || []).map((p, idx) => ({ ...p, marqueeBadge: `HF #${idx + 1}` }));
+        const vnList = (vnRes?.projects || []).map((p, idx) => ({ ...p, marqueeBadge: `VN #${idx + 1}` }));
+
+        setProjects([...ghList, ...hfList, ...vnList]);
       } catch (error) {
         console.error("Failed to load marquee projects", error);
       } finally {
@@ -71,6 +93,17 @@ export function TrendingMarquee() {
                   <div className="text-[9px] font-bold">HF</div>
                 )}
               </div>
+              {project.marqueeBadge && (
+                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded tracking-wide uppercase shrink-0 border ${
+                  project.marqueeBadge.startsWith("GH")
+                    ? "bg-[var(--color-action-blue)]/5 text-[var(--color-action-blue)] border-[var(--color-action-blue)]/10"
+                    : project.marqueeBadge.startsWith("HF")
+                    ? "bg-amber-500/10 text-amber-600 border-amber-500/20"
+                    : "bg-rose-500/10 text-rose-600 border-rose-500/20"
+                }`}>
+                  {project.marqueeBadge}
+                </span>
+              )}
               <span className="text-[13px] font-semibold text-[var(--color-ink)] max-w-[150px] truncate">
                 {project.name}
               </span>

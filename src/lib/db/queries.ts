@@ -86,15 +86,8 @@ export async function getDynamicTrendingProjects(params: ProjectQueryParams): Pr
       // Exclude projects with zero growth
       filters.push(sql`momentum_score > 0`);
 
-      // Only show projects that have been updated to the latest snapshot date available in the database
-      // to prevent mixing old day's high statistics with the current day's newly updated statistics.
-      if (days === 1) {
-        filters.push(sql`EXISTS (
-          SELECT 1 FROM project_snapshots s 
-          WHERE s.project_id = scored.project_id 
-            AND s.snapshot_date = (SELECT COALESCE(max(snapshot_date), CURRENT_DATE) FROM project_snapshots)
-        )`);
-      }
+      // Allow newly discovered or recently updated projects to appear immediately 
+      // without requiring a snapshot from the exact max(snapshot_date).
 
       // Apply dynamic noise filtering based on the time window
       if (days === 7) {
@@ -104,9 +97,8 @@ export async function getDynamicTrendingProjects(params: ProjectQueryParams): Pr
       }
 
       filters.push(sql`((source = 'github' AND stars >= ${minStars}) OR (source = 'huggingface' AND downloads >= ${minDownloads}) OR (source NOT IN ('github', 'huggingface')))`);
-      // Exclude newly discovered projects (less than 24 hours in the system) from trending
-      // to ensure they have at least one overnight snapshot for accurate momentum calculation.
-      filters.push(sql`created_at <= NOW() - INTERVAL '24 hours'`);
+      // Allow newly discovered projects to show in trending if they have high momentum.
+      // (Removed the 24-hour created_at restriction to let hot new projects appear immediately)
     }
   }
 
