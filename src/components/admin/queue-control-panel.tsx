@@ -10,6 +10,12 @@ import {
   Zap,
   Clock,
   Loader2,
+  Activity,
+  Server,
+  Search,
+  MessageSquare,
+  Trophy,
+  X,
 } from "lucide-react";
 
 import { toast } from "sonner";
@@ -22,6 +28,7 @@ import {
   retryFailedJobs,
   triggerCrawlerSync,
   triggerJobNow,
+  cancelJobNow,
   fetchGithubTokensHealth,
   fetchHuggingFaceTokenHealth,
 } from "@/app/actions";
@@ -118,7 +125,7 @@ export function QueueControlPanel() {
   const isQueueActionLoading = (source: SourceType) => {
     return Array.from(loadingActions).some(key => {
       return key.endsWith(`-${source}`) || 
-             (source === 'scheduler' && (key === 'trigger-daily-discovery' || key === 'trigger-daily-update' || key === 'trigger-social-mentions' || key === 'trigger-generate-achievements'));
+             (source === 'scheduler' && (key.startsWith('trigger-') || key.startsWith('cancel-')));
     });
   };
 
@@ -207,45 +214,67 @@ export function QueueControlPanel() {
   };
 
   const handleTriggerJob = async (name: string) => {
-    const key = `trigger-${name}`;
-    setLoadingActions(prev => new Set(prev).add(key));
-
-    const actionPromise = async () => {
+    const actionKey = `trigger-${name}`;
+    setLoadingActions(prev => new Set(prev).add(actionKey));
+    try {
       const result = await triggerJobNow(name);
-      if (!result.success) throw new Error(result.message);
-      await loadStats();
-      return t("jobTriggered", { name });
-    };
-
-    toast.promise(actionPromise(), {
-      loading: t("triggeringJob", { name }),
-      success: (msg) => msg,
-      error: (err) => err.message || t("triggerJobFailed", { name }),
-      finally: () => {
-        setLoadingActions(prev => {
-          const next = new Set(prev);
-          next.delete(key);
-          return next;
+      if (result.success) {
+        toast.success(`Started job: ${name}`, {
+          description: "Nhiệm vụ đã được đưa vào hàng đợi và đang thực thi.",
+        });
+        await loadStats();
+      } else {
+        toast.error(`Failed to start job: ${name}`, {
+          description: result.message,
         });
       }
-    });
+    } catch (err) {
+      toast.error(`Error starting job: ${name}`);
+    } finally {
+      setLoadingActions(prev => {
+        const next = new Set(prev);
+        next.delete(actionKey);
+        return next;
+      });
+    }
+  };
+
+  const handleCancelJob = async (name: string) => {
+    const actionKey = `cancel-${name}`;
+    setLoadingActions(prev => new Set(prev).add(actionKey));
+    try {
+      const result = await cancelJobNow(name);
+      if (result.success) {
+        toast.success(`Cancel signal sent to ${name}`, {
+          description: "Tiến trình sẽ dừng lại trong vài giây tới một cách an toàn.",
+        });
+        // We poll a few times to let the UI update when it actually stops
+        setTimeout(loadStats, 1000);
+        setTimeout(loadStats, 3000);
+      } else {
+        toast.error(`Failed to cancel job: ${name}`, {
+          description: result.message,
+        });
+      }
+    } catch (err) {
+      toast.error(`Error cancelling job: ${name}`);
+    } finally {
+      setLoadingActions(prev => {
+        const next = new Set(prev);
+        next.delete(actionKey);
+        return next;
+      });
+    }
   };
 
   const isLoading = (action: ActionType, source: SourceType) =>
     loadingActions.has(`${action}-${source}`);
 
-  const renderQueueCard = (source: SourceType, label: string, q: QueueDetails) => {
+  const renderHealthTableRow = (source: SourceType, label: string, q: QueueDetails) => {
     const isAnyActionLoading = isQueueActionLoading(source);
     const isActive = q.active > 0 || q.waiting > 0;
     const isPaused = q.isPaused;
 
-    const statusColor = isPaused
-      ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
-      : isActive
-        ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
-        : 'bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-500/20';
-
-    const statusLabel = isPaused ? 'Paused' : isActive ? 'Processing' : 'Idle';
     const statusDot = isPaused
       ? 'bg-amber-500'
       : isActive
@@ -253,221 +282,148 @@ export function QueueControlPanel() {
         : 'bg-slate-400 dark:bg-slate-600';
 
     return (
-      <div key={source} className="flex flex-col justify-between h-full bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-850 rounded-2xl shadow-sm hover:shadow-md hover:border-slate-200 dark:hover:border-slate-700 transition-all duration-300 p-5">
-        <div>
-          {/* Header */}
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <span className="relative flex h-2 w-2">
-                {isActive && !isPaused && (
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                )}
-                <span className={`relative inline-flex rounded-full h-2 w-2 ${statusDot}`}></span>
-              </span>
-              <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200 tracking-tight">{label}</h3>
-            </div>
-            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold border ${statusColor}`}>
-              {statusLabel}
+      <tr key={source} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+        <td className="px-4 py-3">
+          <div className="flex items-center gap-2">
+            <span className="relative flex h-2.5 w-2.5">
+              {isActive && !isPaused && (
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              )}
+              <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${statusDot}`}></span>
             </span>
+            <span className="font-semibold text-[13px] text-slate-800 dark:text-slate-200">{label}</span>
           </div>
-
-          {/* Stats Grid */}
-          <div className="grid grid-cols-2 gap-2 mb-3">
-            {/* Active Box */}
-            <div className="p-3 rounded-xl bg-emerald-500/[0.03] dark:bg-emerald-500/[0.02] border border-emerald-500/10 flex items-center justify-between transition-colors hover:bg-emerald-500/[0.06] dark:hover:bg-emerald-500/[0.04]">
-              <div>
-                <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold uppercase tracking-wider">Active</div>
-                <div className="text-xl font-bold text-slate-800 dark:text-slate-100 tabular-nums mt-0.5">{q.active.toLocaleString()}</div>
-              </div>
-              <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-500">
-                <Zap className="w-4 h-4" />
-              </div>
-            </div>
-            {/* Waiting Box */}
-            <div className="p-3 rounded-xl bg-blue-500/[0.03] dark:bg-blue-500/[0.02] border border-blue-500/10 flex items-center justify-between transition-colors hover:bg-blue-500/[0.06] dark:hover:bg-blue-500/[0.04]">
-              <div>
-                <div className="text-[10px] text-blue-600 dark:text-blue-400 font-semibold uppercase tracking-wider">Waiting</div>
-                <div className="text-xl font-bold text-slate-800 dark:text-slate-100 tabular-nums mt-0.5">{q.waiting.toLocaleString()}</div>
-              </div>
-              <div className="p-1.5 rounded-lg bg-blue-500/10 text-blue-500">
-                <Clock className="w-4 h-4" />
-              </div>
-            </div>
-          </div>
-
-          {/* Secondary Stats */}
-          <div className="grid grid-cols-3 gap-1.5 mb-4 text-center">
-            <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 transition-colors hover:bg-slate-100/50 dark:hover:bg-slate-800/60">
-              <div className="text-[9px] text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">Delayed</div>
-              <div className="text-xs font-bold text-amber-500 dark:text-amber-400 tabular-nums mt-0.5">{q.delayed.toLocaleString()}</div>
-            </div>
-            <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 transition-colors hover:bg-slate-100/50 dark:hover:bg-slate-800/60">
-              <div className="text-[9px] text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">Completed</div>
-              <div className="text-xs font-bold text-emerald-600 dark:text-emerald-400 tabular-nums mt-0.5">{q.completed.toLocaleString()}</div>
-            </div>
-            <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 transition-colors hover:bg-slate-100/50 dark:hover:bg-slate-800/60">
-              <div className="text-[9px] text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold">Failed</div>
-              <div className="text-xs font-bold text-red-500 dark:text-red-400 tabular-nums mt-0.5">{q.failed.toLocaleString()}</div>
-            </div>
-          </div>
-
-          {/* Job Type Breakdown */}
-          {source !== 'scheduler' ? (
-            (source === 'github' || source === 'huggingface') ? (
-              <div className="mb-4 p-3 rounded-xl bg-blue-500/[0.02] dark:bg-blue-500/[0.01] border border-blue-500/5 space-y-2">
-                <div className="flex justify-between items-center text-[10px] text-slate-500 dark:text-slate-400">
-                  <span className="font-semibold uppercase tracking-wider">{t("queueBreakdown")}</span>
-                  <span className="font-bold tabular-nums text-blue-500">{t("totalJobs", { count: q.discovery })}</span>
-                </div>
-                
-                <div className="p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                  <div>
-                    <div className="text-[9px] uppercase tracking-wider text-blue-500 font-bold">{t("discoveryJobs")}</div>
-                    <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">{t("discoveryDesc")}</div>
-                  </div>
-                  <div className="text-sm font-bold text-slate-800 dark:text-slate-200 tabular-nums">{q.discovery.toLocaleString()}</div>
-                </div>
-
-                {/* Split Progress Bar */}
-                <div className="w-full h-1 bg-blue-500/10 rounded-full overflow-hidden">
-                  <div className="h-full bg-blue-500 transition-all duration-500" style={{ width: q.discovery > 0 ? '100%' : '0%' }} />
-                </div>
-              </div>
-            ) : source === 'social' ? (
-              <div className="mb-4 p-3 rounded-xl bg-indigo-500/[0.02] dark:bg-indigo-500/[0.01] border border-indigo-500/5 space-y-2 flex flex-col justify-center min-h-[96px]">
-                <div className="text-[10px] text-indigo-650 dark:text-indigo-400 font-bold uppercase tracking-wider text-center">Social Mentions Crawler</div>
-                <p className="text-[11px] text-slate-550 dark:text-slate-400 mt-1 leading-relaxed text-center font-medium">
-                  Quét định kỳ thảo luận trên Reddit &amp; Hacker News của dự án trên 100 stars.
-                </p>
-              </div>
+        </td>
+        <td className="px-4 py-3 text-right tabular-nums font-semibold text-emerald-600 dark:text-emerald-400">{q.active.toLocaleString()}</td>
+        <td className="px-4 py-3 text-right tabular-nums font-semibold text-blue-600 dark:text-blue-400">{q.waiting.toLocaleString()}</td>
+        <td className="px-4 py-3 text-right tabular-nums text-slate-600 dark:text-slate-300">{q.completed.toLocaleString()}</td>
+        <td className="px-4 py-3 text-right tabular-nums font-medium text-red-500">{q.failed.toLocaleString()}</td>
+        <td className="px-4 py-3">
+          <div className="flex items-center justify-end gap-1.5">
+            {isPaused ? (
+              <button onClick={() => handleAction('resume', source)} disabled={isAnyActionLoading} className="p-1.5 rounded-md bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 hover:bg-emerald-100 disabled:opacity-50 transition-colors" title="Resume"><Play className="w-3.5 h-3.5"/></button>
             ) : (
-              <div className="mb-4 p-3 rounded-xl bg-amber-500/[0.02] dark:bg-amber-500/[0.01] border border-amber-500/5 space-y-2">
-                <div className="flex justify-between items-center text-[10px] text-slate-500 dark:text-slate-400">
-                  <span className="font-semibold uppercase tracking-wider">{t("queueBreakdown")}</span>
-                  <span className="font-bold tabular-nums text-amber-500">{t("totalJobs", { count: q.update })}</span>
-                </div>
-                
-                <div className="p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                  <div>
-                    <div className="text-[9px] uppercase tracking-wider text-amber-500 font-bold">{t("updateJobs")}</div>
-                    <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">{t("updateDesc")}</div>
-                  </div>
-                  <div className="text-sm font-bold text-slate-800 dark:text-slate-200 tabular-nums">{q.update.toLocaleString()}</div>
-                </div>
+              <button onClick={() => handleAction('pause', source)} disabled={isAnyActionLoading} className="p-1.5 rounded-md bg-amber-50 dark:bg-amber-500/10 text-amber-600 hover:bg-amber-100 disabled:opacity-50 transition-colors" title="Pause"><Pause className="w-3.5 h-3.5"/></button>
+            )}
+            <button onClick={() => handleAction('drain', source)} disabled={isAnyActionLoading || (q.waiting === 0 && q.delayed === 0)} className="p-1.5 rounded-md bg-red-50 dark:bg-red-500/10 text-red-600 hover:bg-red-100 disabled:opacity-50 transition-colors" title="Drain"><Trash2 className="w-3.5 h-3.5"/></button>
+            <button onClick={() => handleAction('retry', source)} disabled={isAnyActionLoading || q.currentFailed === 0} className="p-1.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-50 transition-colors" title="Retry"><RotateCcw className="w-3.5 h-3.5"/></button>
+          </div>
+        </td>
+      </tr>
+    );
+  };
 
-                {/* Split Progress Bar */}
-                <div className="w-full h-1 bg-amber-500/10 rounded-full overflow-hidden">
-                  <div className="h-full bg-amber-500 transition-all duration-500" style={{ width: q.update > 0 ? '100%' : '0%' }} />
-                </div>
-              </div>
-            )
-          ) : (
-            <div className="mb-4 p-3 rounded-xl bg-slate-500/[0.02] dark:bg-slate-500/[0.01] border border-slate-500/5 space-y-2 flex flex-col justify-center min-h-[96px]">
-              <div className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider font-semibold text-center">Scheduler Controller</div>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 leading-relaxed text-center">
-                Kích hoạt và quản lý tiến trình lập lịch chạy các công việc tự động định kỳ.
-              </p>
+  const renderSchedulerJobController = (
+    title: string,
+    jobName: string,
+    description: string,
+    isActive: boolean,
+    icon: React.ReactNode
+  ) => {
+    const isTriggerLoading = loadingActions.has(`trigger-${jobName}`);
+    const isCancelLoading = loadingActions.has(`cancel-${jobName}`);
+    
+    return (
+      <div className="flex items-center justify-between p-3 rounded-lg border border-border/50 bg-background/50 hover:bg-muted/50 transition-colors">
+        <div className="flex items-center gap-3">
+          <div className={`p-2 rounded-md ${isActive ? 'bg-primary/20 text-primary animate-pulse' : 'bg-muted text-muted-foreground'}`}>
+            {icon}
+          </div>
+          <div>
+            <div className="font-medium flex items-center gap-2">
+              {title}
+              {isActive && (
+                <span className="flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-primary opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+                </span>
+              )}
             </div>
-          )}
-
-          {/* Total processed */}
-          <div className="flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400 mb-3 px-1 border-t border-slate-100 dark:border-slate-800/80 pt-3">
-            <span>Processed: <strong className="text-slate-700 dark:text-slate-300 font-semibold">{q.total.toLocaleString()}</strong></span>
-            <span>Success: <strong className="text-slate-700 dark:text-slate-300 font-semibold">
-              {q.total > 0 ? `${((q.completed / q.total) * 100).toFixed(1)}%` : 'N/A'}
-            </strong></span>
+            <div className="text-xs text-muted-foreground">{description}</div>
           </div>
         </div>
-
-        {/* Action Buttons */}
-        <div className="flex flex-wrap gap-1.5 pt-3 border-t border-slate-100 dark:border-slate-800/80 mt-auto">
-          {isPaused ? (
-            <ActionButton
-              icon={Play}
-              label="Resume"
-              onClick={() => handleAction('resume', source)}
-              loading={isLoading('resume', source)}
-              disabled={isAnyActionLoading}
-              variant="success"
-            />
+        
+        <div className="flex items-center gap-2">
+          {isActive ? (
+            <button 
+              className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 bg-red-500 text-white shadow-sm hover:bg-red-500/90 h-8 px-3 rounded-md gap-1.5"
+              onClick={() => handleCancelJob(jobName)}
+              disabled={isCancelLoading}
+            >
+              {isCancelLoading ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <X className="h-3.5 w-3.5" />}
+              Cancel
+            </button>
           ) : (
-            <ActionButton
-              icon={Pause}
-              label="Pause"
-              onClick={() => handleAction('pause', source)}
-              loading={isLoading('pause', source)}
-              disabled={isAnyActionLoading}
-              variant="warning"
-            />
-          )}
-          <ActionButton
-            icon={Trash2}
-            label="Drain"
-            onClick={() => handleAction('drain', source)}
-            loading={isLoading('drain', source)}
-            variant="danger"
-            disabled={isAnyActionLoading || (q.waiting === 0 && q.delayed === 0)}
-          />
-          <ActionButton
-            icon={RotateCcw}
-            label="Retry"
-            onClick={() => handleAction('retry', source)}
-            loading={isLoading('retry', source)}
-            variant="default"
-            disabled={isAnyActionLoading || q.currentFailed === 0}
-          />
-          {source === 'social' && (
-            <div className="w-full mt-2 pt-2 border-t border-dashed border-slate-100 dark:border-slate-800/80">
-              <ActionButton
-                icon={Play}
-                label={isSocialEnqueuing ? "Social Job..." : "Run Social Job"}
-                onClick={() => handleTriggerJob('social-mentions')}
-                loading={loadingActions.has('trigger-social-mentions') || isSocialEnqueuing}
-                disabled={isAnyActionLoading || isSocialEnqueuing}
-                variant="primary"
-              />
-            </div>
-          )}
-          {source === 'scheduler' && (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-1.5 w-full mt-2 pt-2 border-t border-dashed border-slate-100 dark:border-slate-800/80">
-              <ActionButton
-                icon={Play}
-                label={isDiscoveryEnqueuing ? "Discovery..." : "Discovery"}
-                onClick={() => handleTriggerJob('daily-discovery')}
-                loading={loadingActions.has('trigger-daily-discovery') || isDiscoveryEnqueuing}
-                disabled={isAnyActionLoading || isDiscoveryEnqueuing}
-                variant="primary"
-              />
-              <ActionButton
-                icon={Play}
-                label={isUpdateEnqueuing ? "Update..." : "Update"}
-                onClick={() => handleTriggerJob('daily-update')}
-                loading={loadingActions.has('trigger-daily-update') || isUpdateEnqueuing}
-                disabled={isAnyActionLoading || isUpdateEnqueuing}
-                variant="primary"
-              />
-              <ActionButton
-                icon={Play}
-                label={isSocialEnqueuing ? "Social..." : "Social"}
-                onClick={() => handleTriggerJob('social-mentions')}
-                loading={loadingActions.has('trigger-social-mentions') || isSocialEnqueuing}
-                disabled={isAnyActionLoading || isSocialEnqueuing}
-                variant="primary"
-              />
-              <ActionButton
-                icon={Play}
-                label={isAchievementEnqueuing ? "Achievements..." : "Achievements"}
-                onClick={() => handleTriggerJob('generate-achievements')}
-                loading={loadingActions.has('trigger-generate-achievements') || isAchievementEnqueuing}
-                disabled={isAnyActionLoading || isAchievementEnqueuing}
-                variant="primary"
-              />
-            </div>
+            <button 
+              className="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border border-input bg-transparent shadow-sm hover:bg-primary/10 hover:text-[var(--color-action-blue)] hover:border-[var(--color-action-blue)]/30 h-8 px-3 rounded-md gap-1.5"
+              onClick={() => handleTriggerJob(jobName)}
+              disabled={isTriggerLoading}
+            >
+              {isTriggerLoading ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5" />}
+              Run
+            </button>
           )}
         </div>
       </div>
     );
   };
+
+  const renderSchedulerCard = () => {
+    if (!stats) return null;
+
+    return (
+      <div className="col-span-1 rounded-xl border border-[var(--color-action-blue)]/20 shadow-lg shadow-[var(--color-action-blue)]/5 relative overflow-hidden bg-gradient-to-br from-[var(--color-bg-primary)] to-[var(--color-bg-secondary)]">
+        <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-[var(--color-action-blue)]/40 via-[var(--color-action-blue)] to-[var(--color-action-blue)]/40"></div>
+        <div className="flex flex-col space-y-1.5 p-6 pb-3">
+          <div className="space-y-1">
+            <h3 className="font-semibold leading-none tracking-tight text-xl flex items-center gap-2 text-[var(--color-ink)]">
+              <Clock className="w-5 h-5 text-[var(--color-action-blue)]" />
+              Scheduler Command Center
+            </h3>
+            <p className="text-sm text-[var(--color-ink-muted-80)]">
+              Quản lý và kích hoạt thủ công các tiến trình định kỳ
+            </p>
+          </div>
+        </div>
+        <div className="p-6 pt-0">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {renderSchedulerJobController(
+              "Daily Discovery", 
+              "daily-discovery", 
+              "Tìm kiếm repo/model mới trending",
+              isDiscoveryEnqueuing,
+              <Search className="w-4 h-4" />
+            )}
+            
+            {renderSchedulerJobController(
+              "Daily Update", 
+              "daily-update", 
+              "Cập nhật stars/likes dự án đã có",
+              isUpdateEnqueuing,
+              <RefreshCw className="w-4 h-4" />
+            )}
+            
+            {renderSchedulerJobController(
+              "Social Mentions", 
+              "social-mentions", 
+              "Crawl bài đăng HN, Reddit, X",
+              isSocialEnqueuing,
+              <MessageSquare className="w-4 h-4" />
+            )}
+            
+            {renderSchedulerJobController(
+              "Achievements", 
+              "generate-achievements", 
+              "Tính toán thành tựu & huy hiệu",
+              isAchievementEnqueuing,
+              <Trophy className="w-4 h-4" />
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const totalPending = totalUpdateJobs + totalDiscoveryJobs;
   const hasActiveScheduler = !!(stats?.activeSchedulerJobs && stats.activeSchedulerJobs.length > 0);
 
@@ -545,15 +501,48 @@ export function QueueControlPanel() {
         </div>
       )}
 
-      {/* Queue cards */}
+      {/* Queue cards layout */}
       {stats ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {renderQueueCard('github', 'GitHub Crawler', stats.github)}
-          {renderQueueCard('huggingface', 'HF Crawler', stats.huggingface)}
-          {renderQueueCard('github-updater', 'GH Updater', stats.githubUpdater)}
-          {renderQueueCard('hf-updater', 'HF Updater', stats.hfUpdater)}
-          {renderQueueCard('social', 'Social Crawler', stats.social)}
-          {renderQueueCard('scheduler', 'Scheduler', stats.scheduler)}
+        <div className="flex flex-col gap-6">
+          {/* Master: Scheduler Command Center */}
+          <div className="w-full">
+            <h2 className="text-sm font-bold text-[var(--color-ink)] mb-3 flex items-center gap-2">
+              <Zap className="w-4 h-4 text-[var(--color-action-blue)]" />
+              Bộ Điều Khiển Trung Tâm (Command Center)
+            </h2>
+            {renderSchedulerCard()}
+          </div>
+
+          {/* Detail: Health Status Table */}
+          <div className="w-full">
+            <h2 className="text-sm font-bold text-[var(--color-ink)] mb-3 flex items-center gap-2">
+              <Activity className="w-4 h-4 text-[var(--color-ink-muted-48)]" />
+              Trạng Thái Hàng Đợi (System Health)
+            </h2>
+            <div className="apple-utility-card overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm text-[var(--color-ink)]">
+                  <thead className="bg-[var(--color-bg-secondary)] text-[10px] font-bold uppercase tracking-wider text-[var(--color-ink-muted-80)] border-b border-[var(--color-divider-soft)]">
+                    <tr>
+                      <th className="px-4 py-3 whitespace-nowrap">Tên Hàng Đợi</th>
+                      <th className="px-4 py-3 text-right whitespace-nowrap">Active</th>
+                      <th className="px-4 py-3 text-right whitespace-nowrap">Waiting</th>
+                      <th className="px-4 py-3 text-right hidden sm:table-cell whitespace-nowrap">Completed</th>
+                      <th className="px-4 py-3 text-right whitespace-nowrap">Failed</th>
+                      <th className="px-4 py-3 text-right whitespace-nowrap">Thao tác</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[var(--color-divider-soft)]">
+                    {renderHealthTableRow('github', 'GitHub Crawler', stats.github)}
+                    {renderHealthTableRow('huggingface', 'HF Crawler', stats.huggingface)}
+                    {renderHealthTableRow('github-updater', 'GH Updater', stats.githubUpdater)}
+                    {renderHealthTableRow('hf-updater', 'HF Updater', stats.hfUpdater)}
+                    {renderHealthTableRow('social', 'Social Crawler', stats.social)}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
         </div>
       ) : (
         <div className="apple-utility-card flex items-center justify-center py-12">

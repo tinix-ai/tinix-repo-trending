@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { Job } from 'bullmq';
-import { crawlerQueue, githubUpdaterQueue, socialCrawlerQueue, hfQueue } from './queue';
+import { crawlerQueue, githubUpdaterQueue, socialCrawlerQueue, hfQueue, redisConnection } from './queue';
 import { db } from '../lib/db';
 import { projects, projectSnapshots, projectTrends, githubUsers, projectMentions } from '../lib/db/schema';
 import { discoverNewRepos } from '../lib/crawlers/github-discovery';
@@ -22,6 +22,7 @@ import { calculateProjectTrendInline } from '../lib/db/trends';
  */
 export async function runDailyDiscovery(source?: 'github' | 'huggingface') {
   console.log(`[Cron] Running Discovery (source: ${source || 'all'})...`);
+  await redisConnection.del('cancel_signal:daily-discovery'); // Clear any orphaned signals
 
   // --- 1. FETCH ALL DISCOVERY ITEMS ---
   let newRepos: any[] = [];
@@ -102,6 +103,13 @@ export async function runDailyDiscovery(source?: 'github' | 'huggingface') {
   console.log(`[Cron] Starting interleaved discovery processing...`);
 
   while (ghIndex < newRepos.length || hfModelIndex < hfModels.length || hfDatasetIndex < hfDatasets.length) {
+    // Check for cancellation signal
+    const isCancelled = await redisConnection.get('cancel_signal:daily-discovery');
+    if (isCancelled === 'true') {
+      console.log('[Cron] Discovery job cancelled by user.');
+      await redisConnection.del('cancel_signal:daily-discovery');
+      return;
+    }
     
     // Process GH batch
     if (ghIndex < newRepos.length) {
@@ -112,9 +120,6 @@ export async function runDailyDiscovery(source?: 'github' | 'huggingface') {
         
         if (!existing) {
           await crawlerQueue.add('crawl-repo', { owner: repo.owner, repo: repo.repo }, { jobId: `discovery-${sourceId}` });
-          ghQueuedCount++;
-        } else if (existing.crawlInterval !== 30) {
-          await db.update(projects).set({ crawlInterval: 1, nextCrawlAt: new Date() }).where(eq(projects.id, existing.id));
           ghQueuedCount++;
         }
       }
@@ -198,6 +203,7 @@ function crawlIntervalToPriority(interval: number | null): number {
 
 export async function runDailyUpdate(force = false, job?: Job) {
   console.log(`[Cron] Running Daily Update for tracked repos (force: ${force})...`);
+  await redisConnection.del('cancel_signal:daily-update'); // Clear any orphaned signals
 
   const selectFields = {
     id: projects.id,
@@ -214,6 +220,11 @@ export async function runDailyUpdate(force = false, job?: Job) {
   // then by nextCrawlAt ASC so the most overdue come before the just-due.
   const trackedProjects = force
     ? await db.select(selectFields).from(projects)
+        .where(or(
+          isNull(projects.lastCrawledAt),
+          sql`(NOW() AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Ho_Chi_Minh')::date - (${projects.lastCrawledAt} AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Ho_Chi_Minh')::date > 0`,
+          sql`COALESCE(${projects.crawlInterval}, 1) <= 1`
+        ))
         .orderBy(asc(projects.crawlInterval), asc(projects.nextCrawlAt))
     : await db.select(selectFields).from(projects)
         .where(or(
@@ -246,6 +257,14 @@ export async function runDailyUpdate(force = false, job?: Job) {
   const todayStr = new Date(now.getTime() + 7 * 60 * 60 * 1000).toISOString().split('T')[0];
 
   while (ghIndex < githubProjects.length || hfIndex < huggingFaceProjects.length) {
+    // Check for cancellation signal
+    const isCancelled = await redisConnection.get('cancel_signal:daily-update');
+    if (isCancelled === 'true') {
+      console.log('[Cron] Update job cancelled by user.');
+      await redisConnection.del('cancel_signal:daily-update');
+      return;
+    }
+    
     // --- GitHub Batch ---
     if (!stopGithub && ghIndex < githubProjects.length) {
       const batch = githubProjects.slice(ghIndex, ghIndex + GITHUB_BATCH_SIZE);
@@ -670,11 +689,22 @@ export async function runDailySocialMentions() {
       }
     }));
 
-    // Enqueue jobs in bulk (500 items per chunk)
-    const CHUNK_SIZE = 500;
-    for (let i = 0; i < jobs.length; i += CHUNK_SIZE) {
-      const chunk = jobs.slice(i, i + CHUNK_SIZE);
+    // Process in chunks
+    const CHUNK_SIZE = 50;
+    let index = 0;
+
+    while (index < jobs.length) {
+      // Check for cancellation signal
+      const isCancelled = await redisConnection.get('cancel_signal:social-mentions');
+      if (isCancelled === 'true') {
+        console.log('[Cron] Social Mentions job cancelled by user.');
+        await redisConnection.del('cancel_signal:social-mentions');
+        return;
+      }
+
+      const chunk = jobs.slice(index, index + CHUNK_SIZE);
       await socialCrawlerQueue.addBulk(chunk);
+      index += CHUNK_SIZE;
     }
 
     console.log(`[Cron] Bulk enqueued ${jobs.length} social crawler jobs in queue for HN/Reddit.`);

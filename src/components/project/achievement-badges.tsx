@@ -23,19 +23,18 @@ export function AchievementBadges({ projectId, projectName, achievements }: Achi
 
   if (!achievements || achievements.length === 0) return null;
 
-  // Group achievements by period for organized display
-  const grouped = {
-    daily: achievements.filter(a => a.period === "daily"),
-    weekly: achievements.filter(a => a.period === "weekly"),
-    monthly: achievements.filter(a => a.period === "monthly"),
-  };
+  const sortedAchievements = [...achievements].sort(
+    (a, b) => new Date(b.achievedAt).getTime() - new Date(a.achievedAt).getTime()
+  );
+  
+  // Lấy tối đa 2 thành tựu mới nhất (1 global, 1 language nếu có, hoặc 2 cái bất kỳ)
+  const latestAchievements = sortedAchievements.slice(0, 2);
 
-  const hasAny = grouped.daily.length > 0 || grouped.weekly.length > 0 || grouped.monthly.length > 0;
-  if (!hasAny) return null;
+  if (latestAchievements.length === 0) return null;
 
   const formatDate = (dateString: string) => {
     const d = new Date(dateString);
-    return d.toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" });
+    return d.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
   };
 
   const getRankColors = (rank: number) => {
@@ -45,9 +44,9 @@ export function AchievementBadges({ projectId, projectName, achievements }: Achi
   };
 
   const getPeriodTitle = (period: string) => {
-    if (period === "daily") return "Repository Of The Day";
-    if (period === "weekly") return "Repository Of The Week";
-    return "Repository Of The Month";
+    if (period === "daily") return "Repository Của Ngày";
+    if (period === "weekly") return "Repository Của Tuần";
+    return "Repository Của Tháng";
   };
 
   const renderBadgeCard = (ach: Achievement) => {
@@ -56,85 +55,73 @@ export function AchievementBadges({ projectId, projectName, achievements }: Achi
     const colors = getRankColors(ach.rank);
     const Icon = colors.medal;
     
-    const subtext = isGlobal 
-      ? `First achieved on ${formatDate(ach.achievedAt)} across all languages`
-      : `First achieved on ${formatDate(ach.achievedAt)} for ${language}`;
-
     return (
-      <div key={`${ach.achievementType}-${ach.achievedAt}`} className="flex flex-col gap-3">
-        {/* Helper Subtext */}
-        <p className="text-sm text-[var(--color-ink-muted-80)]">
-          {subtext}
-        </p>
-        
-        {/* The Badge UI */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center p-4 sm:p-5 rounded-2xl border border-[var(--color-divider-soft)] bg-[var(--color-bg-primary)] shadow-sm gap-4 transition-all hover:shadow-md hover:border-[var(--color-action-blue)]/30">
-          
-          {/* Medal Graphic */}
-          <div className={`relative flex-shrink-0 w-14 h-14 rounded-full flex items-center justify-center border-2 ${colors.bg} ${colors.border}`}>
-            <Icon className={`w-7 h-7 ${colors.text}`} />
-            <div className={`absolute -bottom-2 -right-1 w-6 h-6 rounded-full border-2 border-white dark:border-slate-900 flex items-center justify-center font-bold text-xs ${colors.bg} ${colors.text}`}>
-              {ach.rank}
-            </div>
-          </div>
-          
-          {/* Text Info */}
-          <div className="flex flex-col gap-1 w-full">
-            <div className="flex items-center gap-1.5 uppercase tracking-widest text-[10px] sm:text-[11px] font-bold text-[var(--color-action-blue)]">
-              <span>📈 TINIX TRENDING</span>
-              {language && (
-                <>
-                  <span className="text-[var(--color-ink-muted-48)]">·</span>
-                  <span className="text-[var(--color-ink)]">{language}</span>
-                </>
-              )}
-            </div>
-            <h3 className="text-lg sm:text-xl font-bold tracking-tight text-[var(--color-ink)]">
-              #{ach.rank} {getPeriodTitle(ach.period)}
-            </h3>
+      <div key={`${ach.achievementType}-${ach.achievedAt}`} className="group flex items-center gap-3 p-3 rounded-xl bg-[var(--color-bg-primary)] border border-[var(--color-border)] hover:border-[var(--color-action-blue)]/40 hover:shadow-sm transition-all duration-200 cursor-default">
+        {/* Medal Graphic */}
+        <div className={`relative flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center border-2 ${colors.bg} ${colors.border} shadow-sm group-hover:scale-105 transition-transform duration-300`}>
+          <Icon className={`w-5 h-5 ${colors.text}`} />
+          <div className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full border-2 border-white dark:border-slate-900 flex items-center justify-center font-bold text-[9px] ${colors.bg} ${colors.text}`}>
+            {ach.rank}
           </div>
         </div>
+        
+        {/* Text Info */}
+        <div className="flex flex-col min-w-0 flex-1">
+          <div className="flex items-center gap-1.5 uppercase tracking-wider text-[9px] sm:text-[10px] font-bold text-[var(--color-action-blue)]">
+            <span>TINIX TRENDING</span>
+            {language && (
+              <>
+                <span className="text-[var(--color-ink-muted-48)]">·</span>
+                <span className="text-[var(--color-ink)] truncate">{language}</span>
+              </>
+            )}
+          </div>
+          <h3 className="text-sm font-bold tracking-tight text-[var(--color-ink)] truncate">
+            #{ach.rank} {getPeriodTitle(ach.period)}
+          </h3>
+        </div>
 
-        {/* Embed Action */}
-        <button 
-          onClick={() => setIsEmbedOpen(true)}
-          className="self-start mt-1 px-4 py-2 bg-[#5e6ad2] hover:bg-[#4d56ba] text-white text-sm font-semibold rounded-lg shadow-sm flex items-center gap-2 transition-all duration-200 active:scale-95"
-        >
-          <Code2 className="w-4 h-4" />
-          Embed Badge
-        </button>
-      </div>
-    );
-  };
-
-  const renderSection = (title: string, data: Achievement[]) => {
-    if (!data || data.length === 0) return null;
-    
-    return (
-      <div className="flex flex-col gap-5 mb-10">
-        <h2 className="text-xl font-bold tracking-tight text-[var(--color-ink)] border-b border-[var(--color-divider-soft)] pb-2">{title}</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-10">
-          {data.map(renderBadgeCard)}
+        {/* Date */}
+        <div className="hidden sm:block text-[11px] font-medium text-[var(--color-ink-muted-48)] whitespace-nowrap pl-2">
+          {formatDate(ach.achievedAt)}
         </div>
       </div>
     );
   };
 
   return (
-    <section className="w-full mt-10 mb-6 bg-[var(--color-bg-secondary)] rounded-2xl border border-[var(--color-border)] p-6 md:p-8">
-      <div className="mb-8">
-        <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-[var(--color-ink)] flex items-center gap-3">
-          🏆 Project Achievements
-        </h1>
-        <p className="text-[var(--color-ink-muted-80)] mt-2">
-          Recognitions awarded by TiniX Trending based on momentum and growth.
-        </p>
-      </div>
+    <div className="w-full">
+      <div className="apple-utility-card overflow-hidden">
+        <div className="flex items-center justify-between p-4 sm:p-5 border-b border-[var(--color-divider-soft)] bg-[var(--color-bg-secondary)]/50">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700/50 shadow-sm">
+              <Trophy className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold tracking-tight text-[var(--color-ink)]">
+                Thành tựu nổi bật
+              </h2>
+              <p className="text-[11px] text-[var(--color-ink-muted-80)]">
+                Những danh hiệu mới nhất của dự án
+              </p>
+            </div>
+          </div>
+          
+          <button 
+            onClick={() => setIsEmbedOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--color-canvas)] border border-[var(--color-border)] hover:border-[var(--color-action-blue)] hover:text-[var(--color-action-blue)] text-xs font-semibold text-[var(--color-ink-muted-80)] transition-colors"
+          >
+            <Code2 className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Nhúng Badge</span>
+            <span className="sm:hidden">Nhúng</span>
+          </button>
+        </div>
 
-      <div className="flex flex-col gap-4">
-        {renderSection("Daily", grouped.daily)}
-        {renderSection("Weekly", grouped.weekly)}
-        {renderSection("Monthly", grouped.monthly)}
+        <div className="p-4 sm:p-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {latestAchievements.map(renderBadgeCard)}
+          </div>
+        </div>
       </div>
 
       <EmbedBadgeDialog 
@@ -143,6 +130,6 @@ export function AchievementBadges({ projectId, projectName, achievements }: Achi
         isOpen={isEmbedOpen}
         onClose={() => setIsEmbedOpen(false)}
       />
-    </section>
+    </div>
   );
 }

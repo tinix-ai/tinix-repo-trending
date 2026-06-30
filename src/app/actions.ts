@@ -217,7 +217,7 @@ export async function fetchDetailedQueueStats() {
       };
     };
 
-    const [github, huggingface, githubUpdater, hfUpdater, social, scheduler, activeSchedulerJobs] = await Promise.all([
+    const [github, huggingface, githubUpdater, hfUpdater, social, scheduler] = await Promise.all([
       getQueueDetails(crawlerQueue, 'github-crawler'),
       getQueueDetails(hfQueue, 'hf-crawler'),
       getQueueDetails(githubUpdaterQueue, 'github-updater'),
@@ -226,7 +226,6 @@ export async function fetchDetailedQueueStats() {
       schedulerQueue 
         ? getQueueDetails(schedulerQueue, 'scheduler-queue')
         : Promise.resolve({ waiting: 0, active: 0, completed: 0, failed: 0, currentFailed: 0, delayed: 0, isPaused: false, total: 0, discovery: 0, update: 0 }),
-      schedulerQueue ? schedulerQueue.getActive() : Promise.resolve([]),
     ]);
 
     const [githubSyncRunning, hfSyncRunning] = await Promise.all([
@@ -234,7 +233,22 @@ export async function fetchDetailedQueueStats() {
       redisConnection.get('crawler:sync:huggingface:running'),
     ]);
 
-    const activeJobNames = activeSchedulerJobs.map(j => j.name);
+    // Check Redis heartbeats for active jobs
+    const jobNames = ['daily-discovery', 'daily-update', 'social-mentions', 'generate-achievements'];
+    const heartbeatResults = await Promise.all(
+      jobNames.map(name => redisConnection.get(`job:active:${name}`))
+    );
+    
+    const activeSchedulerJobs: string[] = [];
+    for (let i = 0; i < jobNames.length; i++) {
+      const name = jobNames[i];
+      const isHeartbeatActive = !!heartbeatResults[i];
+      const isCancelling = await redisConnection.get(`cancel_signal:${name}`);
+      
+      if (isHeartbeatActive && isCancelling !== 'true') {
+        activeSchedulerJobs.push(name);
+      }
+    }
 
     return { 
       github: { ...github, isSyncRunning: githubSyncRunning === 'true' }, 
@@ -243,7 +257,7 @@ export async function fetchDetailedQueueStats() {
       hfUpdater,
       social,
       scheduler, 
-      activeSchedulerJobs: activeJobNames 
+      activeSchedulerJobs
     };
   } catch (error) {
     console.error("Failed to fetch detailed queue stats:", error);
@@ -755,6 +769,11 @@ export async function getScheduledJobs(): Promise<ScheduledJob[]> {
 export async function triggerJobNow(name: string) {
   try {
     if (!schedulerQueue) throw new Error('Scheduler queue not initialized');
+    
+    // Clear any lingering cancel signals before starting a new job
+    await redisConnection.set(`cancel_signal:${name}`, 'false');
+    await redisConnection.del(`cancel_signal:${name}`);
+    
     if (name === 'daily-update' || name === 'daily-discovery') {
       await githubPool.resetTokenExhaustion();
       await redisConnection.del('crawler:rate-limit-reset:github-crawler');
@@ -787,6 +806,46 @@ export async function triggerJobNow(name: string) {
     return { success: false, message: 'Failed to trigger job' };
   }
 }
+
+export async function cancelJobNow(name: string) {
+  try {
+    if (!redisConnection) throw new Error('Redis connection not initialized');
+    
+    // 1. Set a cancel signal flag in Redis for the worker to pick up gracefully
+    await redisConnection.set(`cancel_signal:${name}`, 'true', 'EX', 60 * 60);
+
+    // 2. Force clear any UI syncing flags and heartbeat keys
+    await redisConnection.del(`job:active:${name}`);
+    if (name === 'daily-discovery') {
+      await redisConnection.del('crawler:sync:github:running');
+      await redisConnection.del('crawler:sync:huggingface:running');
+    }
+
+    // 3. Actively remove the job from BullMQ so UI updates instantly
+    if (schedulerQueue) {
+      const [activeJobs, waitingJobs] = await Promise.all([
+        schedulerQueue.getActive(),
+        schedulerQueue.getWaiting()
+      ]);
+      
+      const jobsToRemove = [...activeJobs, ...waitingJobs].filter(j => j.name === name);
+      for (const job of jobsToRemove) {
+        try {
+          await job.remove();
+          console.log(`[Cancel] Forcefully removed job ${job.id} from queue.`);
+        } catch (e) {
+          console.warn(`[Cancel] Could not remove job ${job.id}:`, e);
+        }
+      }
+    }
+    
+    return { success: true, message: `Đã gửi tín hiệu hủy và dọn dẹp tiến trình ${name}` };
+  } catch (error) {
+    console.error('Failed to cancel job:', error);
+    return { success: false, message: 'Failed to cancel job' };
+  }
+}
+
 
 export async function removeScheduledJob(key: string) {
   try {

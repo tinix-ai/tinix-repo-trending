@@ -2,7 +2,7 @@ import 'dotenv/config';
 import { Worker, Job } from 'bullmq';
 import { schedulerQueue, redisConnection } from './queue';
 import { runDailyDiscovery, runDailyUpdate, runDailySocialMentions } from './cron';
-import { startMemoryReporting } from './metrics';
+import { startMemoryReporting, startJobHeartbeat } from './metrics';
 import { evaluateAndRecordAchievements } from '../lib/achievements';
 
 
@@ -10,6 +10,8 @@ console.log('[Scheduler Worker] Starting...');
 
 const schedulerWorker = new Worker('scheduler-queue', async (job: Job) => {
   console.log(`[Scheduler Worker] Processing scheduled job: ${job.name} (ID: ${job.id})`);
+  
+  const heartbeat = startJobHeartbeat(job.name, redisConnection);
   
   try {
     if (job.name === 'daily-discovery') {
@@ -46,6 +48,8 @@ const schedulerWorker = new Worker('scheduler-queue', async (job: Job) => {
   } catch (error) {
     console.error(`[Scheduler Worker] Job ${job.name} failed:`, error);
     throw error;
+  } finally {
+    await heartbeat.stop();
   }
 }, {
   connection: {
@@ -78,6 +82,13 @@ schedulerWorker.on('failed', async (job, err) => {
 async function setupRepeatableJobs() {
   if (!schedulerQueue) {
     console.error('[Scheduler Worker] Error: schedulerQueue is not initialized.');
+    return;
+  }
+
+  // Acquire a distributed lock (NX with EX 10) to make sure only one worker processes repeatable jobs setup
+  const lockAcquired = await redisConnection.set('scheduler:setup-lock', 'true', 'PX', 10000, 'NX');
+  if (!lockAcquired) {
+    console.log('[Scheduler Worker] Another worker is already syncing repeatable jobs. Skipping repeatable setup.');
     return;
   }
 
@@ -121,8 +132,23 @@ async function setupRepeatableJobs() {
   console.log('[Scheduler Worker] Repeatable jobs synced successfully.');
 }
 
+// Detect duplicate worker instances
+async function checkDuplicateWorker() {
+  try {
+    const existing = await redisConnection.hget('system:worker:memory', 'scheduler-worker');
+    if (existing) {
+      const data = JSON.parse(existing);
+      if (data.timestamp && Date.now() - data.timestamp < 30000) {
+        console.warn('\n\u26a0\ufe0f  [Scheduler Worker] WARNING: Another active scheduler-worker process detected! Running multiple workers simultaneously can cause race conditions and duplicate operations.\n');
+      }
+    }
+  } catch (err) {
+    console.error('[Scheduler Worker] Failed to check for duplicate workers:', err);
+  }
+}
+
 // Initialize repeatable jobs on startup and start memory reporting
-setupRepeatableJobs().catch(console.error);
+checkDuplicateWorker().then(() => setupRepeatableJobs()).catch(console.error);
 const stopReporting = startMemoryReporting('scheduler-worker', redisConnection);
 
 // Graceful shutdown

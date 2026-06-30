@@ -17,7 +17,8 @@ import {
   MessageCircle,
   Star,
   ShieldAlert,
-  RefreshCw
+  RefreshCw,
+  Trophy
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { timeAgo, formatNumber } from "@/lib/utils";
@@ -31,6 +32,7 @@ interface ProjectTabsProps {
   socialMentions: ProjectMention[];
   sourceUrl: string | undefined;
   source: string;
+  achievements?: any[];
 }
 
 function resolveRelativeUrl(url: string, sourceUrl: string | undefined, source: string, isImage: boolean): string {
@@ -63,7 +65,8 @@ export function ProjectTabs({
   cleanedReadme,
   socialMentions,
   sourceUrl,
-  source
+  source,
+  achievements = []
 }: ProjectTabsProps) {
   const searchParams = useSearchParams();
   const t = useTranslations("ProjectDetail");
@@ -72,13 +75,13 @@ export function ProjectTabs({
   const [captchaSvg, setCaptchaSvg] = useState<string | null>(null);
   const [captchaInput, setCaptchaInput] = useState("");
   const [captchaLoading, setCaptchaLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<"readme" | "community">(initialTab);
+  const [activeTab, setActiveTab] = useState<"readme" | "community" | "achievements">(initialTab as any);
   const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     const tab = searchParams.get("tab");
-    if (tab === "community" || tab === "readme") {
-      setActiveTab(tab);
+    if (tab === "community" || tab === "readme" || tab === "achievements") {
+      setActiveTab(tab as any);
     }
   }, [searchParams]);
   const [hoveredCoords, setHoveredCoords] = useState<Record<string, { x: number; y: number }>>({});
@@ -232,6 +235,22 @@ export function ProjectTabs({
             </span>
           )}
         </button>
+        {achievements && achievements.length > 0 && (
+          <button
+            onClick={() => setActiveTab("achievements")}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
+              activeTab === "achievements"
+                ? "bg-[var(--color-bg-primary)] text-[var(--color-ink)] shadow-sm border border-[var(--color-border)]"
+                : "text-[var(--color-ink-muted-80)] hover:text-[var(--color-ink)] hover:bg-[var(--color-divider-soft)]"
+            }`}
+          >
+            <Trophy className="w-4 h-4 text-amber-500" />
+            <span>Thành tựu</span>
+            <span className="flex h-5 items-center justify-center rounded-full bg-[var(--color-accent-dim)] border border-[var(--color-border)] px-1.5 text-[10px] font-bold text-[var(--color-action-blue)] leading-none select-none">
+              {achievements.length}
+            </span>
+          </button>
+        )}
       </div>
 
       {/* Tabs Content */}
@@ -672,6 +691,84 @@ export function ProjectTabs({
               )}
             </div>
             
+          </div>
+        )}
+        {activeTab === "achievements" && (
+          <div className="animate-fade-in-up">
+            <div className="flex flex-col gap-6">
+              <div className="flex items-center gap-2 border-b border-[var(--color-divider-soft)] pb-4">
+                <Trophy className="w-5 h-5 text-amber-500" />
+                <h3 className="text-xl font-bold text-[var(--color-ink)]">Lịch sử Thành tựu</h3>
+              </div>
+              
+              {achievements && achievements.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {achievements.map((ach: any, idx: number) => {
+                    const isGlobal = ach.scope === "global";
+                    const language = isGlobal ? null : ach.scope.replace("language:", "");
+                    let rankBg = "bg-orange-50 dark:bg-orange-950/30";
+                    let rankText = "text-orange-700 dark:text-orange-500";
+                    let rankBorder = "border-orange-200 dark:border-orange-800/50";
+                    
+                    if (ach.rank === 1) {
+                      rankBg = "bg-amber-100 dark:bg-amber-900/30";
+                      rankText = "text-amber-600 dark:text-amber-400";
+                      rankBorder = "border-amber-200 dark:border-amber-700/50";
+                    } else if (ach.rank === 2) {
+                      rankBg = "bg-slate-100 dark:bg-slate-800";
+                      rankText = "text-slate-600 dark:text-slate-300";
+                      rankBorder = "border-slate-200 dark:border-slate-700";
+                    }
+
+                    let periodTitle = "Repository Của Tháng";
+                    if (ach.period === "daily") periodTitle = "Repository Của Ngày";
+                    else if (ach.period === "weekly") periodTitle = "Repository Của Tuần";
+
+                    const d = new Date(ach.achievedAt);
+                    const formattedDate = d.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
+                    
+                    return (
+                      <div key={`${ach.achievementType}-${idx}`} className="flex flex-col sm:flex-row items-start sm:items-center p-5 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-secondary)] gap-4">
+                        <div className={`relative flex-shrink-0 w-12 h-12 rounded-full flex items-center justify-center border-2 ${rankBg} ${rankBorder}`}>
+                          <Trophy className={`w-6 h-6 ${rankText}`} />
+                          <div className={`absolute -bottom-2 -right-1 w-5 h-5 rounded-full border-2 border-white dark:border-slate-900 flex items-center justify-center font-bold text-[10px] ${rankBg} ${rankText}`}>
+                            {ach.rank}
+                          </div>
+                        </div>
+                        
+                        <div className="flex flex-col gap-1 w-full">
+                          <div className="flex items-center gap-1.5 uppercase tracking-widest text-[10px] font-bold text-[var(--color-action-blue)]">
+                            <span>TINIX TRENDING</span>
+                            {language && (
+                              <>
+                                <span className="text-[var(--color-ink-muted-48)]">·</span>
+                                <span className="text-[var(--color-ink)]">{language}</span>
+                              </>
+                            )}
+                          </div>
+                          <h3 className="text-base font-bold text-[var(--color-ink)]">
+                            #{ach.rank} {periodTitle}
+                          </h3>
+                          <p className="text-xs text-[var(--color-ink-muted-80)] mt-0.5">
+                            Đạt được vào {formattedDate} {isGlobal ? "trên toàn hệ thống" : `cho ngôn ngữ ${language}`}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="apple-utility-card p-12 text-center flex flex-col items-center justify-center border-dashed">
+                  <div className="w-16 h-16 rounded-full bg-[var(--color-bg-secondary)] flex items-center justify-center mb-4">
+                    <Trophy className="h-8 w-8 text-[var(--color-ink-muted-48)]" />
+                  </div>
+                  <h3 className="text-apple-body-strong text-[var(--color-ink)] mb-2">Chưa có thành tựu nào</h3>
+                  <p className="text-[var(--color-ink-muted-80)] text-sm max-w-sm">
+                    Dự án này chưa lọt vào danh sách Trending của TiniX. Hãy tiếp tục theo dõi sự phát triển của dự án nhé!
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>

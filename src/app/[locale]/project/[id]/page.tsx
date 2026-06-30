@@ -302,7 +302,8 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
               cleanedReadme={cleanedReadme} 
               socialMentions={sortedMentions} 
               sourceUrl={project.sourceUrl || undefined} 
-              source={project.source} 
+              source={project.source}
+              achievements={project.achievements}
             />
           </div>
 
