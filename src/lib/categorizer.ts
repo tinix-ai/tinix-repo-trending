@@ -1,7 +1,7 @@
 import { db } from "./db";
 import { categories as categoriesTable } from "./db/schema";
 import { sql } from "drizzle-orm";
-import { STACKOVERFLOW_TAGS } from "./crawlers/discovery-keywords";
+import { SYSTEM_DB_TOPICS } from "./crawlers/discovery-keywords";
 
 interface CategoryConfig {
   id: string;
@@ -228,7 +228,7 @@ export const DEFAULT_CATEGORIES: CategoryConfig[] = [
     "adwords", "adshield", "analytics-dashboard", "growth-hacking", "customer-feedback",
     "ab-testing", "web-analytics", "metrics", "newsletter-sender", "subscribers"
   ]},
-  { id: "Ecosystem (Global)", icon: "🌐", color: "#64748b", keywords: STACKOVERFLOW_TAGS }
+  { id: "Ecosystem (Global)", icon: "🌐", color: "#64748b", keywords: SYSTEM_DB_TOPICS }
 ];
 
 export const CATEGORY_MAP: Record<string, string[]> = {};
