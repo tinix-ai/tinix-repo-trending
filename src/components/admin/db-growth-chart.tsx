@@ -8,6 +8,12 @@ interface DBGrowthChartProps {
 }
 
 export function DBGrowthChart({ data }: DBGrowthChartProps) {
+  const [isMounted, setIsMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   if (!data || data.length === 0) {
     return (
       <div className="w-full h-16 mt-4 flex items-center justify-center text-[10px] text-[var(--color-ink-muted-48)] font-mono">
@@ -16,9 +22,13 @@ export function DBGrowthChart({ data }: DBGrowthChartProps) {
     );
   }
 
+  if (!isMounted) {
+    return <div className="w-full h-16 mt-4" />;
+  }
+
   return (
     <div className="w-full h-16 mt-4 select-none">
-      <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+      <ResponsiveContainer width="99%" height="100%" minWidth={1} minHeight={1}>
         <AreaChart data={data} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
           <defs>
             <linearGradient id="growthGlow" x1="0" y1="0" x2="0" y2="1">
