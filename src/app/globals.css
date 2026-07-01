@@ -33,7 +33,7 @@
   --color-action-blue-focus: var(--color-action-blue-focus);
   --color-action-blue-on-dark: var(--color-action-blue-on-dark);
 
-  --animate-custom-marquee: custom-marquee 40s linear infinite;
+  --animate-custom-marquee: custom-marquee 60s linear infinite;
 
   @keyframes custom-marquee {
     0% { transform: translateX(0%); }

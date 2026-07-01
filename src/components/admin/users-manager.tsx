@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Trash2, Users, Shield, User as UserIcon, ShieldAlert, ArrowUpCircle, ArrowDownCircle } from "lucide-react";
+import { Trash2, Users, Shield, User as UserIcon, ShieldAlert, ArrowUpCircle, ArrowDownCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import { timeAgo } from "@/lib/utils";
 
 interface UserData {
@@ -15,14 +15,25 @@ export function UsersManager() {
   const [usersList, setUsersList] = useState<UserData[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalUsers, setTotalUsers] = useState(0);
 
-  const fetchUsers = async () => {
+  const fetchUsers = async (page = 1) => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/admin/users`);
+      const res = await fetch(`/api/admin/users?page=${page}&limit=10`);
       if (res.ok) {
         const data = await res.json();
         setUsersList(data.users || []);
+        if (data.pagination) {
+          setTotalPages(data.pagination.totalPages);
+          setTotalUsers(data.pagination.total);
+          setCurrentPage(data.pagination.page);
+        } else {
+          setTotalUsers(data.users?.length || 0);
+        }
       }
     } catch (error) {
       console.error("Failed to fetch users:", error);
@@ -32,7 +43,7 @@ export function UsersManager() {
   };
 
   useEffect(() => {
-    fetchUsers();
+    fetchUsers(1);
   }, []);
 
   const handleUpdateRole = async (id: string, newRole: string) => {
@@ -94,7 +105,7 @@ export function UsersManager() {
           </div>
         </div>
         <div className="text-sm text-[var(--color-ink-muted-80)] bg-[var(--color-bg-secondary)] px-4 py-2 rounded-xl border border-[var(--color-divider-soft)]">
-          Total Users: <span className="font-bold text-[var(--color-ink)]">{usersList.length}</span>
+          Total Users: <span className="font-bold text-[var(--color-ink)]">{totalUsers > 0 ? totalUsers : usersList.length}</span>
         </div>
       </div>
 
@@ -165,6 +176,31 @@ export function UsersManager() {
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between px-6 py-4 border-t border-[var(--color-divider-soft)] bg-[var(--color-bg-secondary)]">
+            <div className="text-sm text-[var(--color-ink-muted-80)]">
+              Page {currentPage} of {totalPages}
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => fetchUsers(currentPage - 1)}
+                disabled={currentPage === 1 || loading}
+                className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium bg-[var(--color-canvas)] text-[var(--color-ink)] rounded-lg hover:bg-[var(--color-divider-soft)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft className="w-4 h-4" /> Previous
+              </button>
+              <button
+                onClick={() => fetchUsers(currentPage + 1)}
+                disabled={currentPage === totalPages || loading}
+                className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium bg-[var(--color-canvas)] text-[var(--color-ink)] rounded-lg hover:bg-[var(--color-divider-soft)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         )}
       </div>

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, sql } from "drizzle-orm";
 import { getSession } from "@/lib/auth";
 
 // GET all users
@@ -12,6 +12,14 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "10");
+    const offset = (page - 1) * limit;
+
+    const [{ count }] = await db.select({ count: sql`count(*)` }).from(users);
+    const total = Number(count);
+
     const allUsers = await db
       .select({
         id: users.id,
@@ -20,9 +28,19 @@ export async function GET(request: Request) {
         createdAt: users.createdAt,
       })
       .from(users)
-      .orderBy(desc(users.createdAt));
+      .orderBy(desc(users.createdAt))
+      .limit(limit)
+      .offset(offset);
 
-    return NextResponse.json({ users: allUsers });
+    return NextResponse.json({ 
+      users: allUsers,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit)
+      }
+    });
   } catch (error) {
     console.error("Failed to fetch users:", error);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
