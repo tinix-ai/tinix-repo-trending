@@ -2,26 +2,29 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { User, FolderGit2, MessageSquare, Heart, Clock, CheckCircle2, XCircle, ExternalLink, Eye } from "lucide-react";
+import { User, FolderGit2, MessageSquare, Heart, Clock, CheckCircle2, XCircle, ExternalLink, Eye, BookOpen } from "lucide-react";
 import Link from "next/link";
 import { DeleteSubmissionButton } from "@/components/profile/delete-submission-button";
 import { ProfileSettings } from "@/components/profile/profile-settings";
 import { UserReviews } from "@/components/profile/user-reviews";
 import { UserVotes } from "@/components/profile/user-votes";
+import { UserPosts } from "@/components/profile/user-posts";
 
-type Tab = "profile" | "submissions" | "reviews" | "votes";
+type Tab = "profile" | "submissions" | "stories" | "reviews" | "votes";
 
 export function ProfileTabs({ 
   user, 
   projects, 
   reviews, 
   votes, 
+  posts = [],
   locale 
 }: { 
   user: any, 
   projects: any[], 
   reviews: any[], 
   votes: any[],
+  posts?: any[],
   locale: string 
 }) {
   const t = useTranslations("Profile");
@@ -30,6 +33,7 @@ export function ProfileTabs({
   const tabs: { id: Tab, label: string, icon: any, count?: number }[] = [
     { id: "profile", label: t("tabs.profile"), icon: User },
     { id: "submissions", label: t("tabs.submissions"), icon: FolderGit2, count: projects.length },
+    { id: "stories", label: t("tabs.stories") || "My Stories", icon: BookOpen, count: posts.length },
     { id: "reviews", label: t("tabs.reviews"), icon: MessageSquare, count: reviews.length },
     { id: "votes", label: t("tabs.votes"), icon: Heart, count: votes.length },
   ];
@@ -178,6 +182,7 @@ export function ProfileTabs({
       <div className="flex-1 min-w-0">
         {activeTab === "profile" && <ProfileSettings username={user.username} role={user.role} createdAt={user.createdAt} />}
         {activeTab === "submissions" && renderSubmissions()}
+        {activeTab === "stories" && <UserPosts posts={posts} locale={locale} />}
         {activeTab === "reviews" && <UserReviews reviews={reviews} locale={locale} />}
         {activeTab === "votes" && <UserVotes votes={votes} locale={locale} />}
       </div>

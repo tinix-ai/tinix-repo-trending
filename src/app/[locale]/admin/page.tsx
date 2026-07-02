@@ -15,6 +15,7 @@ import { SubmissionsManager } from "@/components/admin/submissions-manager";
 import { ReviewsManager } from "@/components/admin/reviews-manager";
 import { UsersManager } from "@/components/admin/users-manager";
 import { AchievementsManager } from "@/components/admin/achievements-manager";
+import { BlogModerationManager } from "@/components/admin/blog-moderation-manager";
 import { Link } from "@/i18n/routing";
 import { getTranslations } from "next-intl/server";
 
@@ -25,7 +26,7 @@ interface AdminPageProps {
 export default async function AdminPage(props: AdminPageProps) {
   const searchParams = await props.searchParams;
   const tab = searchParams.tab || 'overview';
-  const currentTab = ['overview', 'queues', 'analytics', 'categories', 'submissions', 'reviews', 'users', 'achievements'].includes(tab) ? tab : 'overview';
+  const currentTab = ['overview', 'queues', 'analytics', 'categories', 'submissions', 'blog', 'reviews', 'users', 'achievements'].includes(tab) ? tab : 'overview';
   
   const [{ count: totalProjects }] = await db.select({ count: sql`count(*)` }).from(projects);
   const [{ count: totalModels }] = await db.select({ count: sql`count(*)` }).from(projects).where(sql`${projects.projectType} = 'model'`);
@@ -52,6 +53,7 @@ export default async function AdminPage(props: AdminPageProps) {
     analytics: t("tabAnalytics"),
     categories: t("tabCategories"),
     submissions: t("tabSubmissions"),
+    blog: "Stories Moderation",
     users: "Users Management",
     achievements: "Achievements Dashboard",
   };
@@ -146,6 +148,12 @@ export default async function AdminPage(props: AdminPageProps) {
         {currentTab === 'submissions' && (
           <div className="space-y-6 animate-fade-in-up">
             <SubmissionsManager />
+          </div>
+        )}
+
+        {currentTab === 'blog' && (
+          <div className="space-y-6 animate-fade-in-up">
+            <BlogModerationManager />
           </div>
         )}
 

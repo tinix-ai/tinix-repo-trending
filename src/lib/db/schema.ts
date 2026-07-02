@@ -239,3 +239,28 @@ export const projectAchievements = pgTable("project_achievements", {
   index("project_achievements_project_idx").on(table.projectId),
   unique("project_achievements_unique").on(table.projectId, table.achievementType, table.scope, table.period, table.achievedAt),
 ]);
+
+export const posts = pgTable("posts", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  title: text("title").notNull(),
+  slug: text("slug").notNull().unique(),
+  content: text("content").notNull(),
+  summary: text("summary"),
+  coverImage: text("cover_image"),
+  authorId: uuid("author_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  projectId: uuid("project_id").references(() => projects.id, { onDelete: "set null" }),
+  status: text("status").notNull().default("draft"), // 'draft' | 'pending' | 'published' | 'rejected'
+  rejectionReason: text("rejection_reason"),
+  views: integer("views").default(0),
+  tags: jsonb("tags").$type<string[]>().default([]),
+  seoTitle: text("seo_title"),
+  seoDescription: text("seo_description"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  publishedAt: timestamp("published_at"),
+}, (table) => [
+  index("posts_slug_idx").on(table.slug),
+  index("posts_status_idx").on(table.status),
+  index("posts_author_idx").on(table.authorId),
+]);
+

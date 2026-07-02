@@ -6,6 +6,25 @@ import { TrendingMarquee } from "@/components/leaderboard/trending-marquee";
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, getTranslations } from 'next-intl/server';
 import { Toaster } from 'sonner';
+import { Inter, JetBrains_Mono, Lora } from 'next/font/google';
+
+const inter = Inter({
+  subsets: ['latin', 'vietnamese'],
+  variable: '--font-sans',
+  display: 'swap',
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ['latin'],
+  variable: '--font-mono',
+  display: 'swap',
+});
+
+const lora = Lora({
+  subsets: ['latin', 'vietnamese'],
+  variable: '--font-serif',
+  display: 'swap',
+});
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
@@ -55,8 +74,8 @@ export default async function RootLayout({
 
   return (
     <html lang={locale} suppressHydrationWarning data-scroll-behavior="smooth">
-      <body className="noise-overlay">
-        <NextIntlClientProvider messages={messages}>
+      <body className={`noise-overlay ${inter.variable} ${jetbrainsMono.variable} ${lora.variable}`}>
+        <NextIntlClientProvider messages={messages} locale={locale}>
           <ThemeProvider>
             <div className="flex min-h-screen flex-col">
               <Header />

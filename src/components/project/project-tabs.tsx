@@ -18,7 +18,9 @@ import {
   Star,
   ShieldAlert,
   RefreshCw,
-  Trophy
+  Trophy,
+  BookOpen,
+  Eye,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { timeAgo, formatNumber } from "@/lib/utils";
@@ -33,6 +35,7 @@ interface ProjectTabsProps {
   sourceUrl: string | undefined;
   source: string;
   achievements?: any[];
+  blogPosts?: any[];
 }
 
 function resolveRelativeUrl(url: string, sourceUrl: string | undefined, source: string, isImage: boolean): string {
@@ -66,21 +69,22 @@ export function ProjectTabs({
   socialMentions,
   sourceUrl,
   source,
-  achievements = []
+  achievements = [],
+  blogPosts = []
 }: ProjectTabsProps) {
   const searchParams = useSearchParams();
   const t = useTranslations("ProjectDetail");
-  const initialTab = searchParams.get("tab") === "community" ? "community" : "readme";
+  const initialTab = searchParams.get("tab") === "blog" ? "blog" : (searchParams.get("tab") === "community" ? "community" : "readme");
   const [isHovered, setIsHovered] = useState(false);
   const [captchaSvg, setCaptchaSvg] = useState<string | null>(null);
   const [captchaInput, setCaptchaInput] = useState("");
   const [captchaLoading, setCaptchaLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<"readme" | "community" | "achievements">(initialTab as any);
+  const [activeTab, setActiveTab] = useState<"readme" | "community" | "achievements" | "blog">(initialTab as any);
   const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     const tab = searchParams.get("tab");
-    if (tab === "community" || tab === "readme" || tab === "achievements") {
+    if (tab === "community" || tab === "readme" || tab === "achievements" || tab === "blog") {
       setActiveTab(tab as any);
     }
   }, [searchParams]);
@@ -248,6 +252,22 @@ export function ProjectTabs({
             <span>Thành tựu</span>
             <span className="flex h-5 items-center justify-center rounded-full bg-[var(--color-accent-dim)] border border-[var(--color-border)] px-1.5 text-[10px] font-bold text-[var(--color-action-blue)] leading-none select-none">
               {achievements.length}
+            </span>
+          </button>
+        )}
+        {blogPosts && blogPosts.length > 0 && (
+          <button
+            onClick={() => setActiveTab("blog")}
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
+              activeTab === "blog"
+                ? "bg-[var(--color-bg-primary)] text-[var(--color-ink)] shadow-sm border border-[var(--color-border)]"
+                : "text-[var(--color-ink-muted-80)] hover:text-[var(--color-ink)] hover:bg-[var(--color-divider-soft)]"
+            }`}
+          >
+            <BookOpen className="w-4 h-4 text-indigo-500" />
+            <span>{t("blogTab") || "Bài viết"}</span>
+            <span className="flex h-5 items-center justify-center rounded-full bg-[var(--color-accent-dim)] border border-[var(--color-border)] px-1.5 text-[10px] font-bold text-[var(--color-action-blue)] leading-none select-none">
+              {blogPosts.length}
             </span>
           </button>
         )}
@@ -768,6 +788,48 @@ export function ProjectTabs({
                   </p>
                 </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {activeTab === "blog" && blogPosts && blogPosts.length > 0 && (
+          <div className="apple-utility-card p-6 space-y-6">
+            <div className="flex items-center gap-2 border-b border-[var(--color-divider-soft)] pb-4">
+              <BookOpen className="w-5 h-5 text-indigo-500" />
+              <h3 className="text-xl font-bold text-[var(--color-ink)]">{t("blogTab")}</h3>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in-up">
+              {blogPosts.map((post: any) => {
+                return (
+                  <div key={post.id} className="flex flex-col border border-[var(--color-divider-soft)] bg-[var(--color-bg-secondary)]/50 rounded-xl p-5 hover:border-[var(--color-primary)]/30 hover:shadow-sm transition-all">
+                    <div className="flex items-center gap-2 text-xs text-[var(--color-ink-muted)] mb-2">
+                      <div className="w-5 h-5 rounded-full bg-[var(--color-primary)]/10 text-[var(--color-primary)] flex items-center justify-center font-bold font-serif text-[10px]">
+                        {post.author.username[0].toUpperCase()}
+                      </div>
+                      <span>@{post.author.username}</span>
+                      <span>•</span>
+                      <span>{new Date(post.publishedAt || post.createdAt).toLocaleDateString()}</span>
+                    </div>
+                    
+                    <Link href={`/blog/${post.slug}`} className="block hover:text-[var(--color-primary)] transition-colors mb-2">
+                      <h4 className="font-bold font-serif text-base line-clamp-1">{post.title}</h4>
+                    </Link>
+                    
+                    <p className="text-xs text-[var(--color-ink-muted)] line-clamp-2 leading-relaxed mb-4">
+                      {post.summary}
+                    </p>
+                    
+                    <div className="flex items-center justify-between text-[10px] text-[var(--color-ink-muted)] mt-auto pt-2 border-t border-[var(--color-divider-soft)]/50">
+                      <span className="flex items-center gap-1">
+                        <Eye className="w-3.5 h-3.5" />
+                        {post.views}
+                      </span>
+                      <Link href={`/blog/${post.slug}`} className="font-semibold text-[var(--color-primary)] hover:underline cursor-pointer">{t("blogTab")} →</Link>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}

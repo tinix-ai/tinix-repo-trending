@@ -29,6 +29,11 @@
     "pm2:stop": "npx pm2 stop ecosystem.config.js"
   },
   "dependencies": {
+    "@tiptap/extension-image": "^3.27.1",
+    "@tiptap/extension-link": "^3.27.1",
+    "@tiptap/extension-placeholder": "^3.27.1",
+    "@tiptap/react": "^3.27.1",
+    "@tiptap/starter-kit": "^3.27.1",
     "bullmq": "^5.78.0",
     "clsx": "^2.1.1",
     "dotenv": "^17.4.2",

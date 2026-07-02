@@ -1,7 +1,10 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
 @import "tailwindcss";
 
 @theme {
+  --font-sans: var(--font-sans), ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-serif: var(--font-serif), ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+  --font-mono: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+
   --color-primary: var(--color-bg-primary);
   --color-secondary: var(--color-bg-secondary);
   --color-card: var(--color-bg-card);
@@ -179,7 +182,7 @@ html {
 body {
   background-color: var(--color-bg-primary);
   color: var(--color-text-primary);
-  font-family: "Inter", system-ui, -apple-system, sans-serif;
+  font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
   line-height: 1.6;
   overflow-x: hidden;
 }

@@ -16,6 +16,7 @@ import {
   Settings,
   MessageSquare,
   FolderHeart,
+  BookOpen,
 } from "lucide-react";
 import { ThemeToggle } from "./theme-toggle";
 import { LanguageSwitcher } from "./language-switcher";
@@ -108,6 +109,7 @@ export function Header() {
   const NAV_ITEMS = [
     { href: "/", label: t("trending"), icon: Flame },
     { href: "/collection", label: t("collections"), icon: FolderHeart },
+    { href: "/blog", label: t("blog") || "Blog", icon: BookOpen },
     { href: "/community", label: t("community"), icon: MessageSquare },
     { href: "/categories", label: t("categories"), icon: Hash },
     { href: "/stats", label: t("stats"), icon: BarChart3 },

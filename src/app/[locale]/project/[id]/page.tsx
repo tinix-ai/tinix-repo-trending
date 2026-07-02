@@ -1,5 +1,6 @@
 import React from "react";
 import { fetchProjectById, fetchProjectHistory, fetchProjectMentions, fetchSimilarProjects } from "@/app/actions";
+import { getPublishedPosts } from "@/lib/db/blog-queries";
 import { notFound } from "next/navigation";
 import { formatNumber, cleanReadme, timeAgo } from "@/lib/utils";
 import { SourceBadge } from "@/components/common/source-badge";
@@ -88,6 +89,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
   const historyData = await fetchProjectHistory(project.id, 30);
   const socialMentions = await fetchProjectMentions(project.id);
   const similarProjects = await fetchSimilarProjects(project.id, 3);
+  const blogPosts = await getPublishedPosts({ projectId: project.id });
   const isGithub = project.source === "github";
   const isHuggingFace = project.source === "huggingface";
   const cleanedReadme = cleanReadme(project.readme);
@@ -304,6 +306,11 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
               sourceUrl={project.sourceUrl || undefined} 
               source={project.source}
               achievements={project.achievements}
+              blogPosts={blogPosts.map(p => ({
+                ...p,
+                createdAt: p.createdAt.toISOString(),
+                publishedAt: p.publishedAt ? p.publishedAt.toISOString() : null
+              }))}
             />
           </div>
 
