@@ -7,17 +7,13 @@
 export const VIETNAM_KEYWORDS = [
   "vietnam",
   "vietnamese",
-  "tro-ly",
   "ai",
-  "nguon-mo",
   "audio",
   "video",
   "vn",
   "dubbing",
-  "tiki",
-  "sendo",
   "viet",
-  "tiengviet"
+  "tinix",
 ];
 
 export const SYSTEM_DB_TOPICS = [

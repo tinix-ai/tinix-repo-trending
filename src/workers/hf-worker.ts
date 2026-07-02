@@ -271,6 +271,8 @@ export async function handleHFCrawlJob(job: Job<HFCrawlJobData>) {
           primaryLanguage: data.pipeline_tag || (type === 'datasets' ? data.task_categories?.[0] : '') || '',
           likes: likes,
           downloads: downloads,
+          sourceCreatedAt: data.createdAt ? new Date(data.createdAt) : undefined,
+          sourceUpdatedAt: data.lastModified ? new Date(data.lastModified) : undefined,
           lastCrawledAt: new Date(),
         }
       })

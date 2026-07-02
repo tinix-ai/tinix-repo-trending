@@ -14,26 +14,44 @@ import { eq, sql, ilike, or, desc } from "drizzle-orm";
 import { getSession } from "@/lib/auth";
 import { ensureCategoriesLoaded, categorizeProject } from "@/lib/categorizer";
 
-export async function fetchDynamicRankings(params: ProjectQueryParams): Promise<{ projects: RankedProject[], total: number }> {
-  try {
-    return await getDynamicTrendingProjects(params);
-  } catch (error) {
-    console.error("Error fetching projects:", error);
-    return { projects: [], total: 0 };
-  }
-}
+import { unstable_cache } from "next/cache";
 
-export async function fetchGlobalStats() {
-  return await getGlobalStats();
-}
+export const fetchDynamicRankings = unstable_cache(
+  async (params: ProjectQueryParams): Promise<{ projects: RankedProject[], total: number }> => {
+    try {
+      return await getDynamicTrendingProjects(params);
+    } catch (error) {
+      console.error("Error fetching projects:", error);
+      return { projects: [], total: 0 };
+    }
+  },
+  ['dynamic-rankings'],
+  { revalidate: 3600 } // Cache for 1 hour
+);
 
-export async function fetchCategoryStats() {
-  return await getCategoryStats();
-}
+export const fetchGlobalStats = unstable_cache(
+  async () => {
+    return await getGlobalStats();
+  },
+  ['global-stats'],
+  { revalidate: 3600 }
+);
 
-export async function fetchPopularFilters(source?: string) {
-  return await getPopularLanguagesAndHashtags(source);
-}
+export const fetchCategoryStats = unstable_cache(
+  async () => {
+    return await getCategoryStats();
+  },
+  ['category-stats'],
+  { revalidate: 3600 }
+);
+
+export const fetchPopularFilters = unstable_cache(
+  async (source?: string) => {
+    return await getPopularLanguagesAndHashtags(source);
+  },
+  ['popular-filters'],
+  { revalidate: 3600 }
+);
 
 export async function fetchProjectDetails(slug: string) {
   return await getProjectBySlug(slug);
@@ -1496,5 +1514,61 @@ export async function fetchAdminAchievementsList(limit = 50, offset = 0) {
   } catch (error) {
     console.error("Error fetching achievements list:", error);
     return { success: false, error: "Failed to fetch list" };
+  }
+}
+
+import { getUserById, changeUserPassword, getUserReviews, getUserVotes } from "@/lib/db/queries";
+import { hashPassword, generateSalt } from "@/lib/auth";
+
+export async function actionGetUserReviews() {
+  const session = await getSession();
+  if (!session?.userId) {
+    return { success: false, error: "Unauthorized" };
+  }
+  try {
+    const reviews = await getUserReviews(session.userId);
+    return { success: true, reviews };
+  } catch (error) {
+    return { success: false, error: "Failed to fetch reviews" };
+  }
+}
+
+export async function actionGetUserVotes() {
+  const session = await getSession();
+  if (!session?.userId) {
+    return { success: false, error: "Unauthorized" };
+  }
+  try {
+    const votes = await getUserVotes(session.userId);
+    return { success: true, votes };
+  } catch (error) {
+    return { success: false, error: "Failed to fetch votes" };
+  }
+}
+
+export async function actionChangePassword(currentPassword: string, newPassword: string) {
+  const session = await getSession();
+  if (!session?.userId) {
+    return { success: false, error: "Unauthorized" };
+  }
+  try {
+    const user = await getUserById(session.userId);
+    if (!user) return { success: false, error: "User not found" };
+
+    const currentHash = await hashPassword(currentPassword, user.salt);
+    if (currentHash !== user.passwordHash) {
+      return { success: false, error: "Incorrect current password" };
+    }
+
+    const newSalt = generateSalt();
+    const newHash = await hashPassword(newPassword, newSalt);
+    const updated = await changeUserPassword(session.userId, newHash, newSalt);
+
+    if (updated) {
+      return { success: true };
+    }
+    return { success: false, error: "Failed to update password" };
+  } catch (error) {
+    return { success: false, error: "An error occurred" };
   }
 }

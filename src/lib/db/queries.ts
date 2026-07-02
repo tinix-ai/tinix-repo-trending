@@ -1,5 +1,6 @@
 import { db } from './index';
-import { sql } from 'drizzle-orm';
+import { sql, eq, desc } from 'drizzle-orm';
+import { users, projectReviews, projects, projectVotes } from './schema';
 import type { RankedProject, ProjectMention, RecentProjectMention, ProjectSource } from '@/types';
 import { CATEGORY_METADATA, ensureCategoriesLoaded } from '../categorizer';
 import * as zlib from 'zlib';
@@ -384,7 +385,7 @@ export async function getDynamicTrendingProjects(params: ProjectQueryParams): Pr
       topics: Array.isArray(r.topics) ? (r.topics as string[]) : [],
       createdAt: typeof r.created_at === 'string' ? r.created_at : ((r.created_at as Date)?.toISOString() || new Date().toISOString()),
       updatedAt: typeof r.updated_at === 'string' ? r.updated_at : ((r.updated_at as Date)?.toISOString() || new Date().toISOString()),
-      sourceCreatedAt: typeof r.source_created_at === 'string' ? r.source_created_at : ((r.source_created_at as Date)?.toISOString() || new Date().toISOString()),
+      sourceCreatedAt: typeof r.source_created_at === 'string' ? r.source_created_at : ((r.source_created_at as Date)?.toISOString() || (typeof r.created_at === 'string' ? r.created_at : (r.created_at as Date)?.toISOString()) || new Date().toISOString()),
       sourceUpdatedAt: r.source_updated_at ? (typeof r.source_updated_at === 'string' ? r.source_updated_at : (r.source_updated_at as Date).toISOString()) : undefined,
       lastCrawledAt: typeof r.last_crawled_at === 'string' ? r.last_crawled_at : ((r.last_crawled_at as Date)?.toISOString() || new Date().toISOString()),
       location: (r.location as string) || null,
@@ -573,7 +574,7 @@ export async function getProjectById(id: string) {
       categories: (r.categories as string[]) || [],
       createdAt: typeof r.created_at === 'string' ? r.created_at : ((r.created_at as Date)?.toISOString() || new Date().toISOString()),
       updatedAt: typeof r.updated_at === 'string' ? r.updated_at : ((r.updated_at as Date)?.toISOString() || new Date().toISOString()),
-      sourceCreatedAt: typeof r.source_created_at === 'string' ? r.source_created_at : ((r.source_created_at as Date)?.toISOString() || new Date().toISOString()),
+      sourceCreatedAt: typeof r.source_created_at === 'string' ? r.source_created_at : ((r.source_created_at as Date)?.toISOString() || (typeof r.created_at === 'string' ? r.created_at : (r.created_at as Date)?.toISOString()) || new Date().toISOString()),
       lastCrawledAt: typeof r.last_crawled_at === 'string' ? r.last_crawled_at : ((r.last_crawled_at as Date)?.toISOString() || new Date().toISOString()),
       location: (r.location as string) || null,
       countryCode: (r.country_code as string) || null,
@@ -651,7 +652,7 @@ export async function getProjectBySlug(slug: string) {
       categories: (r.categories as string[]) || [],
       createdAt: typeof r.created_at === 'string' ? r.created_at : ((r.created_at as Date)?.toISOString() || new Date().toISOString()),
       updatedAt: typeof r.updated_at === 'string' ? r.updated_at : ((r.updated_at as Date)?.toISOString() || new Date().toISOString()),
-      sourceCreatedAt: typeof r.source_created_at === 'string' ? r.source_created_at : ((r.source_created_at as Date)?.toISOString() || new Date().toISOString()),
+      sourceCreatedAt: typeof r.source_created_at === 'string' ? r.source_created_at : ((r.source_created_at as Date)?.toISOString() || (typeof r.created_at === 'string' ? r.created_at : (r.created_at as Date)?.toISOString()) || new Date().toISOString()),
       lastCrawledAt: typeof r.last_crawled_at === 'string' ? r.last_crawled_at : ((r.last_crawled_at as Date)?.toISOString() || new Date().toISOString()),
       location: (r.location as string) || null,
       countryCode: (r.country_code as string) || null,
@@ -1148,7 +1149,7 @@ export async function getSimilarProjects(projectId: string, limit: number = 3): 
         topics: Array.isArray(r.topics) ? (r.topics as string[]) : [],
         createdAt: typeof r.created_at === 'string' ? r.created_at : ((r.created_at as Date)?.toISOString() || new Date().toISOString()),
         updatedAt: typeof r.updated_at === 'string' ? r.updated_at : ((r.updated_at as Date)?.toISOString() || new Date().toISOString()),
-        sourceCreatedAt: typeof r.source_created_at === 'string' ? r.source_created_at : ((r.source_created_at as Date)?.toISOString() || new Date().toISOString()),
+        sourceCreatedAt: typeof r.source_created_at === 'string' ? r.source_created_at : ((r.source_created_at as Date)?.toISOString() || (typeof r.created_at === 'string' ? r.created_at : (r.created_at as Date)?.toISOString()) || new Date().toISOString()),
         sourceUpdatedAt: r.source_updated_at ? (typeof r.source_updated_at === 'string' ? r.source_updated_at : (r.source_updated_at as Date).toISOString()) : undefined,
         lastCrawledAt: typeof r.last_crawled_at === 'string' ? r.last_crawled_at : ((r.last_crawled_at as Date)?.toISOString() || new Date().toISOString()),
         location: (r.location as string) || null,
@@ -1907,7 +1908,94 @@ export async function getProjectThreadReplies(projectId: string, params: { page?
   }
 }
 
+export async function getUserById(userId: string) {
+  try {
+    const result = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+    return result[0] || null;
+  } catch (error) {
+    console.error("Error fetching user by id:", error);
+    return null;
+  }
+}
 
+export async function changeUserPassword(userId: string, hash: string, salt: string) {
+  try {
+    await db
+      .update(users)
+      .set({
+        passwordHash: hash,
+        salt: salt,
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, userId));
+    return true;
+  } catch (error) {
+    console.error("Error changing password:", error);
+    return false;
+  }
+}
 
+export async function getUserReviews(userId: string) {
+  try {
+    const data = await db
+      .select({
+        id: projectReviews.id,
+        rating: projectReviews.rating,
+        reviewText: projectReviews.reviewText,
+        status: projectReviews.status,
+        createdAt: projectReviews.createdAt,
+        projectId: projects.id,
+        projectSlug: projects.slug,
+        projectName: projects.name,
+        projectFullName: projects.fullName,
+        projectSource: projects.source,
+      })
+      .from(projectReviews)
+      .innerJoin(projects, eq(projects.id, projectReviews.projectId))
+      .where(eq(projectReviews.userId, userId))
+      .orderBy(desc(projectReviews.createdAt));
+      
+    return data.map(r => ({
+      ...r,
+      createdAt: (r.createdAt as Date).toISOString(),
+    }));
+  } catch (error) {
+    console.error("Error fetching user reviews:", error);
+    return [];
+  }
+}
 
+export async function getUserVotes(userId: string) {
+  try {
+    const data = await db
+      .select({
+        id: projectVotes.id,
+        voteType: projectVotes.voteType,
+        createdAt: projectVotes.createdAt,
+        projectId: projects.id,
+        projectSlug: projects.slug,
+        projectName: projects.name,
+        projectFullName: projects.fullName,
+        projectSource: projects.source,
+        description: projects.description,
+        ownerAvatarUrl: projects.ownerAvatarUrl,
+      })
+      .from(projectVotes)
+      .innerJoin(projects, eq(projects.id, projectVotes.projectId))
+      .where(eq(projectVotes.userId, userId))
+      .orderBy(desc(projectVotes.createdAt));
+
+    return data.map(r => ({
+      ...r,
+      createdAt: (r.createdAt as Date).toISOString(),
+    }));
+  } catch (error) {
+    console.error("Error fetching user votes:", error);
+    return [];
+  }
+}
 

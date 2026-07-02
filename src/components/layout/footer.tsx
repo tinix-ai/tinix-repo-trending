@@ -1,9 +1,12 @@
 import { Github } from "lucide-react";
 import { Link } from "@/i18n/routing";
-import { useTranslations } from "next-intl";
+import { getTranslations } from "next-intl/server";
 
-export function Footer() {
-  const t = useTranslations("Navigation");
+import { getSession } from "@/lib/auth";
+
+export async function Footer() {
+  const t = await getTranslations("Navigation");
+  const session = await getSession();
 
   return (
     <footer className="border-t border-[var(--color-divider-soft)] py-8 mt-16 bg-[var(--color-canvas-parchment)]">
@@ -25,7 +28,9 @@ export function Footer() {
               {t("source")}
             </a>
             <Link href="/submit" className="transition-colors hover:text-[var(--color-ink)]">{t("submit")}</Link>
-            <Link href="/admin" className="transition-colors hover:text-[var(--color-ink)]">{t("admin")}</Link>
+            {session?.role === "admin" && (
+              <Link href="/admin" className="transition-colors hover:text-[var(--color-ink)]">{t("admin")}</Link>
+            )}
           </div>
         </div>
       </div>

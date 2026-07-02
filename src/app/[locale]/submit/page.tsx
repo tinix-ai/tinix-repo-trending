@@ -366,10 +366,10 @@ export default function SubmitPage() {
                     Submit Another
                   </button>
                   <a 
-                    href="/dashboard"
+                    href="/profile"
                     className="h-12 px-8 flex items-center justify-center rounded-[var(--radius-pill)] bg-[var(--color-ink)] text-[var(--color-canvas)] text-sm font-semibold transition-all hover:bg-[var(--color-ink)]/90 hover:shadow-lg active:scale-[0.98] cursor-pointer"
                   >
-                    Go to Dashboard
+                    Go to Profile
                   </a>
                 </div>
               </div>

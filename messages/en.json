@@ -306,9 +306,22 @@
     "desc": "Sorry, we couldn't find the page you're looking for. It might have been moved or doesn't exist.",
     "backHome": "Back to Home"
   },
-  "Dashboard": {
-    "title": "My Projects",
-    "subtitle": "Manage your submitted projects and track their performance.",
+  "Profile": {
+    "title": "Account Settings",
+    "subtitle": "Manage your profile, submitted projects, reviews, and votes.",
+    "tabs": {
+      "profile": "Profile",
+      "submissions": "Submissions",
+      "reviews": "My Reviews",
+      "votes": "My Votes"
+    },
+    "form": {
+      "currentPassword": "Current Password",
+      "newPassword": "New Password",
+      "changePassword": "Change Password",
+      "success": "Password changed successfully!",
+      "error": "Failed to change password."
+    },
     "noProjects": "No projects yet",
     "noProjectsDesc": "You haven't submitted any projects yet. Submit your first project to see it here!",
     "submitProject": "Submit Project",
@@ -316,7 +329,11 @@
     "statusApproved": "Approved",
     "statusRejected": "Rejected",
     "statusPending": "Pending Review",
-    "submittedAt": "Submitted {date}"
+    "submittedAt": "Submitted {date}",
+    "noReviews": "No reviews yet",
+    "noReviewsDesc": "You haven't left any reviews on projects yet.",
+    "noVotes": "No votes yet",
+    "noVotesDesc": "You haven't liked or voted for any projects yet."
   },
   "SubmissionsManager": {
     "delete": "Delete",

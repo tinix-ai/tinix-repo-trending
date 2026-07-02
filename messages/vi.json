@@ -306,9 +306,22 @@
     "desc": "Xin lỗi, chúng tôi không thể tìm thấy trang bạn đang yêu cầu. Trang có thể đã bị di chuyển hoặc không tồn tại.",
     "backHome": "Quay lại Trang Chủ"
   },
-  "Dashboard": {
-    "title": "Dự án của tôi",
-    "subtitle": "Quản lý các dự án bạn đã gửi và theo dõi hiệu suất của chúng.",
+  "Profile": {
+    "title": "Hồ sơ cá nhân",
+    "subtitle": "Quản lý thông tin hồ sơ, dự án đã gửi, đánh giá và lượt bình chọn của bạn.",
+    "tabs": {
+      "profile": "Hồ sơ",
+      "submissions": "Dự án đã gửi",
+      "reviews": "Đánh giá của tôi",
+      "votes": "Lượt thích của tôi"
+    },
+    "form": {
+      "currentPassword": "Mật khẩu hiện tại",
+      "newPassword": "Mật khẩu mới",
+      "changePassword": "Đổi Mật Khẩu",
+      "success": "Đổi mật khẩu thành công!",
+      "error": "Lỗi khi đổi mật khẩu."
+    },
     "noProjects": "Chưa có dự án nào",
     "noProjectsDesc": "Bạn chưa gửi dự án nào. Hãy gửi dự án đầu tiên của bạn để xem tại đây!",
     "submitProject": "Gửi Dự án",
@@ -316,7 +329,11 @@
     "statusApproved": "Đã duyệt",
     "statusRejected": "Bị từ chối",
     "statusPending": "Chờ duyệt",
-    "submittedAt": "Đã gửi {date}"
+    "submittedAt": "Đã gửi {date}",
+    "noReviews": "Chưa có đánh giá",
+    "noReviewsDesc": "Bạn chưa để lại bất kỳ đánh giá nào cho dự án.",
+    "noVotes": "Chưa có lượt thích",
+    "noVotesDesc": "Bạn chưa thích hoặc bình chọn cho dự án nào."
   },
   "SubmissionsManager": {
     "delete": "Xóa",

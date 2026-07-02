@@ -413,6 +413,7 @@ export async function handleGithubCrawlJob(job: Job<CrawlJobData>) {
           forks: data.forks,
           watchers: data.watchers,
           openIssues: data.openIssues,
+          sourceCreatedAt: data.sourceCreatedAt,
           sourceUpdatedAt: data.sourceUpdatedAt,
           lastCrawledAt: new Date(),
         }

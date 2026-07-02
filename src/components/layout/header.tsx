@@ -112,7 +112,7 @@ export function Header() {
     { href: "/categories", label: t("categories"), icon: Hash },
     { href: "/stats", label: t("stats"), icon: BarChart3 },
     { href: "/submit", label: t("submit"), icon: Plus },
-    { href: "/admin", label: t("admin"), icon: Settings },
+    ...(session?.user?.role === "admin" ? [{ href: "/admin", label: t("admin"), icon: Settings }] : []),
   ];
 
   return (
@@ -198,10 +198,10 @@ export function Header() {
                   @{session.user?.username}
                 </span>
                 <Link
-                  href="/dashboard"
+                  href="/profile"
                   className="rounded-md px-2 py-1.5 text-[11px] font-semibold text-[var(--color-ink)] hover:bg-[var(--color-bg-secondary)] transition-colors cursor-pointer"
                 >
-                  Dashboard
+                  Profile
                 </Link>
                 <button
                   onClick={handleLogout}
@@ -285,11 +285,11 @@ export function Header() {
                 </div>
                 <div className="flex items-center gap-2 px-3 pb-2">
                   <Link
-                    href="/dashboard"
+                    href="/profile"
                     onClick={() => setMobileOpen(false)}
                     className="flex-1 text-center py-1.5 bg-[var(--color-bg-secondary)] text-[var(--color-ink)] text-xs font-semibold rounded-lg transition-colors"
                   >
-                    Dashboard
+                    Profile
                   </Link>
                   <button
                     onClick={() => {
