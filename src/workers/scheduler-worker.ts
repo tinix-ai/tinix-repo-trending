@@ -57,7 +57,7 @@ const schedulerWorker = new Worker('scheduler-queue', async (job: Job) => {
     port: parseInt(process.env.REDIS_PORT || '6379'),
     password: process.env.REDIS_PASSWORD || undefined,
   },
-  concurrency: 1, // Sequential: scheduled tasks are heavyweight batch operations
+  concurrency: 2, // Allow 2 concurrent scheduled tasks
   lockDuration: 600000, // 10 minutes lock duration to prevent stalling on heavy CPU/DB bound jobs like daily-update
 });
 
